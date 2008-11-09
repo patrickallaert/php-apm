@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package packagerversion="1.7.1" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+ <name>apm</name>
+ <channel></channel>
+ <summary></summary>
+ <description></description>
+ <lead>
+  <name>Davide Mendolia</name>
+  <user></user>
+  <email>idaf_1er@gmail.com</email>
+  <active>yes</active>
+ </lead>
+ <lead>
+  <name>Patrick Allaert</name>
+  <user></user>
+  <email>patrick.allaert@gmail.com</email>
+  <active>yes</active>
+ </lead>
+ <date>2008-11-09</date>
+ <time>11:44:00</time>
+ <version>
+  <release>0.0.1</release>
+  <api>0.0.1</api>
+ </version>
+ <stability>
+  <release>alpha</release>
+  <api>alpha</api>
+ </stability>
+ <license uri="http://www.gnu.org/licenses/gpl.txt">GNU GENERAL PUBLIC LICENSE</license>
+ <notes></notes>
+ <contents>
+  <dir name="/">
+   <file md5sum="9da27024fbf8cc452abdb604b63f8f73" name="config.m4" role="src" />
+   <file md5sum="151729110a272f1120064a7681c4be68" name="Makefile.in" role="src" />
+   <file md5sum="34dd0b5082380360c8a082d274654231" name="php_apm.h" role="src" />
+   <file md5sum="a8cdc1b81770e145181052ed152ee77f" name="apm.c" role="src" />
+  </dir>
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>4.0.0</min>
+   </php>
+   <pearinstaller>
+    <min>1.4.0b1</min>
+   </pearinstaller>
+  </required>
+ </dependencies>
+ <providesextension>apm</providesextension>
+ <extsrcrelease />
+</package>

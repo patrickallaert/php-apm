@@ -1,0 +1,6 @@
+LTLIBRARY_NAME        = libapm.la
+LTLIBRARY_SOURCES     = apm.c
+LTLIBRARY_SHARED_NAME = apm.la
+LTLIBRARY_SHARED_LIBADD  = $(APM_SHARED_LIBADD)
+
+include $(top_srcdir)/build/dynlib.mk
