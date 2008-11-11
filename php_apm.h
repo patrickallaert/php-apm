@@ -25,6 +25,7 @@ PHP_MINFO_FUNCTION(apm);
 
 ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool enabled;
+	char     *db_path;
 ZEND_END_MODULE_GLOBALS(apm) 
 
 int apm_printf(FILE *stream, const char* fmt, ...);
