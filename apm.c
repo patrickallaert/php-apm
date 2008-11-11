@@ -46,7 +46,7 @@ ZEND_GET_MODULE(apm)
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("apm.enabled",       "1", PHP_INI_ALL, OnUpdateBool, enabled,       zend_apm_globals, apm_globals)
+    STD_PHP_INI_BOOLEAN("apm.enabled",       "1", PHP_INI_ALL, OnUpdateBool, enabled,       zend_apm_globals, apm_globals)
 PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
