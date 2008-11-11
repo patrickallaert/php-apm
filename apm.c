@@ -46,12 +46,12 @@ ZEND_GET_MODULE(apm)
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("apm.active",       "0", PHP_INI_SYSTEM, OnUpdateBool, active,       zend_apm_globals, apm_globals)
+    STD_PHP_INI_ENTRY("apm.enabled",       "1", PHP_INI_ALL, OnUpdateBool, enabled,       zend_apm_globals, apm_globals)
 PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
 {
-	apm_globals->active       = 0;
+	apm_globals->enabled       = 0;
 }
 
 
@@ -79,7 +79,7 @@ PHP_RINIT_FUNCTION(apm)
 {
 	old_error_cb = zend_error_cb;
 
-	if (APM_G(active)) {
+	if (APM_G(enabled)) {
 		zend_error_cb = apm_error_cb;
 	}
 	return SUCCESS;
@@ -129,3 +129,4 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
     old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
+

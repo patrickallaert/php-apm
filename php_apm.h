@@ -24,7 +24,7 @@ PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
 ZEND_BEGIN_MODULE_GLOBALS(apm)
-	int active;
+	int enabled;
 ZEND_END_MODULE_GLOBALS(apm) 
 
 int apm_printf(FILE *stream, const char* fmt, ...);
@@ -47,3 +47,4 @@ int apm_printf(FILE *stream, const char* fmt, ...);
 #endif
 
 #endif
+
