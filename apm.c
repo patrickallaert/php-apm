@@ -3,6 +3,7 @@
 #include "config.h"
 #endif
 
+#include <sqlite3.h>
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
@@ -16,11 +17,11 @@ ZEND_API void (*old_error_cb)(int type, const char *error_filename,
 void apm_error_cb(int type, const char *error_filename, 
 				  const uint error_lineno, const char *format,
                   va_list args);
+sqlite3 *eventDb;
 
 function_entry apm_functions[] = {
 	{NULL, NULL, NULL}
 };
-
 
 zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
@@ -54,7 +55,6 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 	apm_globals->enabled       = 0;
 }
 
-
 PHP_MINIT_FUNCTION(apm)
 {
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
@@ -62,7 +62,6 @@ PHP_MINIT_FUNCTION(apm)
 
 	return SUCCESS;
 }
-
 
 PHP_MSHUTDOWN_FUNCTION(apm)
 {
@@ -73,27 +72,34 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 	return SUCCESS;
 }
 
-
-
 PHP_RINIT_FUNCTION(apm)
 {
 	old_error_cb = zend_error_cb;
 
 	if (APM_G(enabled)) {
+		int rc;
+		//TODO: make the db path configurable
+		rc = sqlite3_open("/var/php/apm/events.db", &eventDb);
+		if (rc) {
+			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(eventDb));
+			sqlite3_close(eventDb);
+		}
+
 		zend_error_cb = apm_error_cb;
 	}
 	return SUCCESS;
 }
 
-
-
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	zend_error_cb        = old_error_cb;
 
+	if (APM_G(enabled)) {
+		sqlite3_close(eventDb);
+	}
+
 	return SUCCESS;
 }
-
 
 PHP_MINFO_FUNCTION(apm)
 {
@@ -102,7 +108,6 @@ PHP_MINFO_FUNCTION(apm)
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
-
 }
 
 /** To investigate */
@@ -126,7 +131,28 @@ int apm_printf(FILE *stream, const char* fmt, ...)
  *    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-    old_error_cb(type, error_filename, error_lineno, format, args);
+	int rc;
+	char *msg;
+	int msg_len;
+	va_list args_copy;
+	sqlite3_stmt *pStmt;
+
+	va_copy(args_copy, args);
+	msg_len = vspprintf(&msg, 0, format, args_copy);
+
+	//TODO: optimization: reusing the prepared statement for all insertion
+	rc = sqlite3_prepare_v2(eventDb, "INSERT INTO event (type, file, line, message) VALUES (?, ?, ?, ?)", -1, &pStmt, 0);
+	if (rc==SQLITE_OK) {
+		sqlite3_bind_int(pStmt, 1, type);
+		sqlite3_bind_text(pStmt, 2, error_filename, -1, SQLITE_STATIC);
+		sqlite3_bind_int(pStmt, 3, error_lineno);
+		sqlite3_bind_text(pStmt, 4, msg, -1, SQLITE_STATIC);
+		sqlite3_step(pStmt);
+	}
+	sqlite3_finalize(pStmt);
+	efree(msg);
+
+	old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
 
