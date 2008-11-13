@@ -143,7 +143,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	msg_len = vspprintf(&msg, 0, format, args_copy);
 
 	//TODO: optimization: reusing the prepared statement for all insertion
-	rc = sqlite3_prepare_v2(eventDb, "INSERT INTO event (type, file, line, message) VALUES (?, ?, ?, ?)", -1, &pStmt, 0);
+	rc = sqlite3_prepare_v2(eventDb, "INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), ?, ?, ?, ?)", -1, &pStmt, 0);
 	if (rc==SQLITE_OK) {
 		sqlite3_bind_int(pStmt, 1, type);
 		sqlite3_bind_text(pStmt, 2, error_filename, -1, SQLITE_STATIC);
