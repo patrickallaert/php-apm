@@ -18,6 +18,7 @@ void apm_error_cb(int type, const char *error_filename,
                   const uint error_lineno, const char *format,
                   va_list args);
 sqlite3 *eventDb;
+sqlite3_stmt *pStmt;
 
 function_entry apm_functions[] = {
 	{NULL, NULL, NULL}
@@ -85,6 +86,8 @@ PHP_RINIT_FUNCTION(apm)
 			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(eventDb));
 			sqlite3_close(eventDb);
 		}
+		sqlite3_exec(eventDb, "BEGIN", NULL, NULL, NULL);
+		sqlite3_prepare_v2(eventDb, "INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), ?, ?, ?, ?)", -1, &pStmt, 0);
 
 		zend_error_cb = apm_error_cb;
 	}
@@ -96,6 +99,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	zend_error_cb = old_error_cb;
 
 	if (APM_G(enabled)) {
+		sqlite3_finalize(pStmt);
+		sqlite3_exec(eventDb, "COMMIT", NULL, NULL, NULL);
 		sqlite3_close(eventDb);
 	}
 
@@ -132,26 +137,19 @@ int apm_printf(FILE *stream, const char* fmt, ...)
  *    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	int rc;
 	char *msg;
-	int msg_len;
 	va_list args_copy;
-	sqlite3_stmt *pStmt;
 
 	// a copy of args is needed to be used for the old_error_cb
 	va_copy(args_copy, args);
-	msg_len = vspprintf(&msg, 0, format, args_copy);
+	vspprintf(&msg, 0, format, args_copy);
 
-	//TODO: optimization: reusing the prepared statement for all insertion
-	rc = sqlite3_prepare_v2(eventDb, "INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), ?, ?, ?, ?)", -1, &pStmt, 0);
-	if (rc==SQLITE_OK) {
-		sqlite3_bind_int(pStmt, 1, type);
-		sqlite3_bind_text(pStmt, 2, error_filename, -1, SQLITE_STATIC);
-		sqlite3_bind_int(pStmt, 3, error_lineno);
-		sqlite3_bind_text(pStmt, 4, msg, -1, SQLITE_STATIC);
-		sqlite3_step(pStmt);
-	}
-	sqlite3_finalize(pStmt);
+	sqlite3_reset(pStmt);
+	sqlite3_bind_int(pStmt, 1, type);
+	sqlite3_bind_text(pStmt, 2, error_filename, -1, SQLITE_STATIC);
+	sqlite3_bind_int(pStmt, 3, error_lineno);
+	sqlite3_bind_text(pStmt, 4, msg, -1, SQLITE_STATIC);
+	sqlite3_step(pStmt);
 	efree(msg);
 
 	// calling saved callback function for error handling
