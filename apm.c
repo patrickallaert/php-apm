@@ -80,7 +80,7 @@ PHP_RINIT_FUNCTION(apm)
 
 	if (APM_G(enabled)) {
 		int rc;
-		// opening the sqlite database file
+		/* opening the sqlite database file */
 		rc = sqlite3_open(APM_G(db_path), &eventDb);
 		if (rc) {
 			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(eventDb));
@@ -140,7 +140,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	char *msg;
 	va_list args_copy;
 
-	// a copy of args is needed to be used for the old_error_cb
+	/* a copy of args is needed to be used for the old_error_cb */
 	va_copy(args_copy, args);
 	vspprintf(&msg, 0, format, args_copy);
 
@@ -152,7 +152,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	sqlite3_step(pStmt);
 	efree(msg);
 
-	// calling saved callback function for error handling
+	/* calling saved callback function for error handling */
 	old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
