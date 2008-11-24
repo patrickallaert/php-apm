@@ -18,7 +18,6 @@ void apm_error_cb(int type, const char *error_filename,
                   const uint error_lineno, const char *format,
                   va_list args);
 sqlite3 *eventDb;
-sqlite3_stmt *pStmt;
 
 function_entry apm_functions[] = {
 	{NULL, NULL, NULL}
@@ -54,7 +53,6 @@ PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
 {
-	apm_globals->enabled = 0;
 }
 
 PHP_MINIT_FUNCTION(apm)
@@ -83,11 +81,9 @@ PHP_RINIT_FUNCTION(apm)
 		/* opening the sqlite database file */
 		rc = sqlite3_open(APM_G(db_path), &eventDb);
 		if (rc) {
-			fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(eventDb));
 			sqlite3_close(eventDb);
+			return FAILURE;
 		}
-		sqlite3_exec(eventDb, "BEGIN", NULL, NULL, NULL);
-		sqlite3_prepare_v2(eventDb, "INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), ?, ?, ?, ?)", -1, &pStmt, 0);
 
 		zend_error_cb = apm_error_cb;
 	}
@@ -97,12 +93,6 @@ PHP_RINIT_FUNCTION(apm)
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	zend_error_cb = old_error_cb;
-
-	if (APM_G(enabled)) {
-		sqlite3_finalize(pStmt);
-		sqlite3_exec(eventDb, "COMMIT", NULL, NULL, NULL);
-		sqlite3_close(eventDb);
-	}
 
 	return SUCCESS;
 }
@@ -137,19 +127,16 @@ int apm_printf(FILE *stream, const char* fmt, ...)
  *    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	char *msg;
+	char *msg, *sql;
 	va_list args_copy;
 
 	/* a copy of args is needed to be used for the old_error_cb */
 	va_copy(args_copy, args);
 	vspprintf(&msg, 0, format, args_copy);
 
-	sqlite3_reset(pStmt);
-	sqlite3_bind_int(pStmt, 1, type);
-	sqlite3_bind_text(pStmt, 2, error_filename, -1, SQLITE_STATIC);
-	sqlite3_bind_int(pStmt, 3, error_lineno);
-	sqlite3_bind_text(pStmt, 4, msg, -1, SQLITE_STATIC);
-	sqlite3_step(pStmt);
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
+	                      type, error_filename, error_lineno, msg);
+	sqlite3_exec(eventDb, sql, NULL, NULL, NULL);
 	efree(msg);
 
 	/* calling saved callback function for error handling */
