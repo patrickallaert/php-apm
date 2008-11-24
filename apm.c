@@ -6,10 +6,7 @@
 #include <sqlite3.h>
 #include "php.h"
 #include "php_ini.h"
-#include "ext/standard/info.h"
-#include "ext/standard/url.h"
 #include "php_apm.h"
-#include "php_globals.h"
 
 ZEND_API void (*old_error_cb)(int type, const char *error_filename,
                               const uint error_lineno, const char *format,
@@ -104,23 +101,6 @@ PHP_MINFO_FUNCTION(apm)
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
-}
-
-/** To investigate */
-int apm_printf(FILE *stream, const char* fmt, ...)
-{
-	char *message;
-	int len;
-	va_list args;
-	
-	va_start(args, fmt);
-	len = vspprintf(&message, 0, fmt, args);
-	va_end(args);
-
-	fprintf(stream, "%s", message);
-	efree(message);
-	
-	return len;
 }
 
 /* {{{ void apm_error(int type, const char *format, ...)

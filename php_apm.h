@@ -35,17 +35,6 @@ int apm_printf(FILE *stream, const char* fmt, ...);
 #else
 #define APM_G(v) (apm_globals.v)
 #endif
-#define APM_PRINT(v,args...) if (apm_G(verbosity) >= (v)) { apm_printf(stderr, args); }
-
-#if PHP_VERSION_ID >= 60000
-#define ZSTRCP(str)  ((str).v)
-#define ZSTRKEY(key) ((key).s)
-#define ZSTRFMT      "%v"
-#else
-#define ZSTRCP(str)  (str)
-#define ZSTRKEY(key) (key)
-#define ZSTRFMT      "%s"
-#endif
 
 #endif
 
