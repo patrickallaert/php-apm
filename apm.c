@@ -77,6 +77,7 @@ PHP_RINIT_FUNCTION(apm)
 		int rc;
 		/* opening the sqlite database file */
 		rc = sqlite3_open(APM_G(db_path), &eventDb);
+		sqlite3_busy_timeout(eventDb, 100);
 		if (rc) {
 			sqlite3_close(eventDb);
 			return FAILURE;
