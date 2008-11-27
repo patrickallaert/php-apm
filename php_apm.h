@@ -33,8 +33,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	long      timeout;
 ZEND_END_MODULE_GLOBALS(apm) 
 
-int apm_printf(FILE *stream, const char* fmt, ...);
-
 #ifdef ZTS
 #define APM_G(v) TSRMG(apm_globals_id, zend_apm_globals *, v)
 #else

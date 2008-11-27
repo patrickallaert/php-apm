@@ -16,16 +16,12 @@ void apm_error_cb(int type, const char *error_filename,
                   va_list args);
 sqlite3 *eventDb;
 
-function_entry apm_functions[] = {
-	{NULL, NULL, NULL}
-};
-
 zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
 	"apm",
-	apm_functions,
+	NULL,
 	PHP_MINIT(apm),
 	PHP_MSHUTDOWN(apm),
 	PHP_RINIT(apm),	
