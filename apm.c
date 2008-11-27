@@ -44,8 +44,9 @@ ZEND_GET_MODULE(apm)
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
-	STD_PHP_INI_BOOLEAN("apm.enabled", "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,  zend_apm_globals, apm_globals)
-	STD_PHP_INI_ENTRY("apm.db_path",   "/var/php/apm/events.db", PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/events.db", PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
 PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
@@ -77,7 +78,7 @@ PHP_RINIT_FUNCTION(apm)
 		int rc;
 		/* opening the sqlite database file */
 		rc = sqlite3_open(APM_G(db_path), &eventDb);
-		sqlite3_busy_timeout(eventDb, 100);
+		sqlite3_busy_timeout(eventDb, APM_G(timeout));
 		if (rc) {
 			sqlite3_close(eventDb);
 			return FAILURE;
