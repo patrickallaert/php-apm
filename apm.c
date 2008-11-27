@@ -44,8 +44,11 @@ ZEND_GET_MODULE(apm)
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
+	/* Boolean controlling whether the monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,  zend_apm_globals, apm_globals)
+	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,  zend_apm_globals, apm_globals)
+	/* Max timeout to wait for storing the event in the DB */
 	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/events.db", PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
 PHP_INI_END()
  
@@ -65,6 +68,7 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 {
 	UNREGISTER_INI_ENTRIES();
 
+	/* Restoring saved error callback function */
 	zend_error_cb = old_error_cb;
 
 	return SUCCESS;
@@ -72,18 +76,24 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 
 PHP_RINIT_FUNCTION(apm)
 {
+	/* Storing actual error callback function for later restore */
 	old_error_cb = zend_error_cb;
 
 	if (APM_G(enabled)) {
 		int rc;
-		/* opening the sqlite database file */
+		/* Opening the sqlite database file */
 		rc = sqlite3_open(APM_G(db_path), &eventDb);
 		sqlite3_busy_timeout(eventDb, APM_G(timeout));
 		if (rc) {
+			/*
+			 Closing DB file and stop loading the extension
+			 in case of error while opening the database file
+			 */
 			sqlite3_close(eventDb);
 			return FAILURE;
 		}
 
+		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
 	}
 	return SUCCESS;
@@ -91,6 +101,7 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
+	/* Restoring saved error callback function */
 	zend_error_cb = old_error_cb;
 
 	return SUCCESS;
@@ -112,16 +123,18 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	char *msg, *sql;
 	va_list args_copy;
 
-	/* a copy of args is needed to be used for the old_error_cb */
+	/* A copy of args is needed to be used for the old_error_cb */
 	va_copy(args_copy, args);
 	vspprintf(&msg, 0, format, args_copy);
 
+	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
 	                      type, error_filename, error_lineno, msg);
+	/* Executing SQL insert query */
 	sqlite3_exec(eventDb, sql, NULL, NULL, NULL);
 	efree(msg);
 
-	/* calling saved callback function for error handling */
+	/* Calling saved callback function for error handling */
 	old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */

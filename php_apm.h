@@ -23,9 +23,13 @@ PHP_RINIT_FUNCTION(apm);
 PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
+/* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
+	/* Boolean controlling whether the monitoring is active or not */
 	zend_bool enabled;
+	/* Path to the SQLite database file */
 	char     *db_path;
+	/* max timeout to wait for storing the event in the DB */
 	long      timeout;
 ZEND_END_MODULE_GLOBALS(apm) 
 
