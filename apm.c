@@ -8,6 +8,15 @@
 #include "php_ini.h"
 #include "php_apm.h"
 
+static const char *createSql =  "\
+CREATE TABLE event ( \
+	id INTEGER PRIMARY KEY AUTOINCREMENT, \
+	ts TEXT, \
+	type INTEGER, \
+	file TEXT, \
+	line INTEGER, \
+	message TEXT)";
+
 ZEND_API void (*old_error_cb)(int type, const char *error_filename,
                               const uint error_lineno, const char *format,
                               va_list args);
@@ -54,8 +63,34 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 
 PHP_MINIT_FUNCTION(apm)
 {
+	sqlite3 *db;
+	int rc;
+
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
+
+	/* Opening the sqlite database file */
+	rc = sqlite3_open(APM_G(db_path), &db);
+	if (rc) {
+		/*
+		 Closing DB file and stop loading the extension
+		 in case of error while opening the database file
+		 */
+		sqlite3_close(db);
+		return FAILURE;
+	}
+	/* Executing SQL creation table query */
+	sqlite3_exec(
+		db,
+		"CREATE TABLE IF NOT EXISTS event ( \
+		    id INTEGER PRIMARY KEY AUTOINCREMENT, \
+		    ts TEXT, \
+		    type INTEGER, \
+		    file TEXT, \
+		    line INTEGER, \
+		    message TEXT)",
+		NULL, NULL, NULL);
+	sqlite3_close(db);
 
 	return SUCCESS;
 }
