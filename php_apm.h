@@ -42,6 +42,8 @@ PHP_RINIT_FUNCTION(apm);
 PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
+PHP_FUNCTION(apm_get_events);
+
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
 	/* Boolean controlling whether the monitoring is active or not */

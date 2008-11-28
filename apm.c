@@ -33,14 +33,21 @@ ZEND_API void (*old_error_cb)(int type, const char *error_filename,
 void apm_error_cb(int type, const char *error_filename, 
                   const uint error_lineno, const char *format,
                   va_list args);
+int callback(void *, int, char **, char **);
+
 sqlite3 *eventDb;
+
+function_entry apm_functions[] = {
+        PHP_FE(apm_get_events, NULL)
+	{NULL, NULL, NULL}
+};
 
 zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
 	"apm",
-	NULL,
+	apm_functions,
 	PHP_MINIT(apm),
 	PHP_MSHUTDOWN(apm),
 	PHP_RINIT(apm),	
@@ -179,4 +186,34 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
+
+/* Return an HTML table with all events */
+PHP_FUNCTION(apm_get_events)
+{
+	sqlite3 *db;
+	int rc;
+	/* Opening the sqlite database file */
+	rc = sqlite3_open(APM_G(db_path), &db);
+	if (rc) {
+		/* Closing DB file and returning false */
+		sqlite3_close(db);
+		RETURN_FALSE;
+	}
+
+	/* Results are printed in an HTML table */
+	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th></tr>\n");
+	sqlite3_exec(db, "SELECT id, ts, type, file, line, message FROM event", callback, NULL, NULL);
+	php_printf("</table>");
+
+	RETURN_TRUE;
+}
+
+/* Function called for every row returned by event query */
+int callback(void *data, int num_fields, char **fields, char **col_name)
+{
+	php_printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+
+	return 0;
+}
 
