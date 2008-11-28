@@ -27,15 +27,6 @@
 #include "php_ini.h"
 #include "php_apm.h"
 
-static const char *createSql =  "\
-CREATE TABLE event ( \
-	id INTEGER PRIMARY KEY AUTOINCREMENT, \
-	ts TEXT, \
-	type INTEGER, \
-	file TEXT, \
-	line INTEGER, \
-	message TEXT)";
-
 ZEND_API void (*old_error_cb)(int type, const char *error_filename,
                               const uint error_lineno, const char *format,
                               va_list args);
