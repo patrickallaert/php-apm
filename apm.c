@@ -103,11 +103,11 @@ PHP_MINIT_FUNCTION(apm)
 			db,
 			"CREATE TABLE IF NOT EXISTS event ( \
 			    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-			    ts TEXT, \
-			    type INTEGER, \
-			    file TEXT, \
-			    line INTEGER, \
-			    message TEXT)",
+			    ts TEXT NOT NULL, \
+			    type INTEGER NOT NULL, \
+			    file TEXT NOT NULL, \
+			    line INTEGER NOT NULL, \
+			    message TEXT NOT NULL)",
 			NULL, NULL, NULL);
 		sqlite3_close(db);
 	}
