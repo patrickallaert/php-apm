@@ -142,6 +142,8 @@ PHP_RINIT_FUNCTION(apm)
 			return FAILURE;
 		}
 
+		sqlite3_exec(eventDb, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
 	}
