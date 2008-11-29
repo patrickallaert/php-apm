@@ -96,6 +96,7 @@ PHP_MINIT_FUNCTION(apm)
 		sqlite3_close(db);
 		return FAILURE;
 	}
+	chmod(APM_G(db_path), 0666);
 	/* Executing SQL creation table query */
 	sqlite3_exec(
 		db,
