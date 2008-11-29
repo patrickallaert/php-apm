@@ -86,29 +86,31 @@ PHP_MINIT_FUNCTION(apm)
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
-	/* Opening the sqlite database file */
-	rc = sqlite3_open(APM_G(db_path), &db);
-	if (rc) {
-		/*
-		 Closing DB file and stop loading the extension
-		 in case of error while opening the database file
-		 */
+	if (APM_G(enabled)) {
+		/* Opening the sqlite database file */
+		rc = sqlite3_open(APM_G(db_path), &db);
+		if (rc) {
+			/*
+			 Closing DB file and stop loading the extension
+			 in case of error while opening the database file
+			 */
+			sqlite3_close(db);
+			return FAILURE;
+		}
+		chmod(APM_G(db_path), 0666);
+		/* Executing SQL creation table query */
+		sqlite3_exec(
+			db,
+			"CREATE TABLE IF NOT EXISTS event ( \
+			    id INTEGER PRIMARY KEY AUTOINCREMENT, \
+			    ts TEXT, \
+			    type INTEGER, \
+			    file TEXT, \
+			    line INTEGER, \
+			    message TEXT)",
+			NULL, NULL, NULL);
 		sqlite3_close(db);
-		return FAILURE;
 	}
-	chmod(APM_G(db_path), 0666);
-	/* Executing SQL creation table query */
-	sqlite3_exec(
-		db,
-		"CREATE TABLE IF NOT EXISTS event ( \
-		    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-		    ts TEXT, \
-		    type INTEGER, \
-		    file TEXT, \
-		    line INTEGER, \
-		    message TEXT)",
-		NULL, NULL, NULL);
-	sqlite3_close(db);
 
 	return SUCCESS;
 }
