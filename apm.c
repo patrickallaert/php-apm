@@ -95,6 +95,7 @@ PHP_MINIT_FUNCTION(apm)
 			 in case of error while opening the database file
 			 */
 			sqlite3_close(db);
+			zend_error(E_CORE_WARNING, "APM cannot be loaded, the DB file cannot be opened/created");
 			return FAILURE;
 		}
 		chmod(APM_G(db_path), 0666);
