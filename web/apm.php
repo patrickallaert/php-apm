@@ -5,9 +5,14 @@
     <title>Events captured by APM</title>
   </head>
   <body>
-    <h1>Events captured by APM</h1>
+    <h1>APM dashboard</h1>
+    <h2>Events captured by APM</h2>
 <?php
 apm_get_events();
+?>
+    <h2>Slow requests captured by APM</h2>
+<?php
+apm_get_slow_requests();
 ?>
   </body>
 </html>

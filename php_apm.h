@@ -43,6 +43,7 @@ PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
 PHP_FUNCTION(apm_get_events);
+PHP_FUNCTION(apm_get_slow_requests);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)

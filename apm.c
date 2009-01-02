@@ -22,6 +22,7 @@
 #include "config.h"
 #endif
 
+#include <sys/time.h>
 #include <sqlite3.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -30,6 +31,8 @@
 #include "php_apm.h"
 
 #define DB_FILE "/events"
+#define SEC_TO_USEC(sec) ((sec) * 1000000.00)
+#define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
 ZEND_API void (*old_error_cb)(int type, const char *error_filename,
                               const uint error_lineno, const char *format,
@@ -38,12 +41,17 @@ void apm_error_cb(int type, const char *error_filename,
                   const uint error_lineno, const char *format,
                   va_list args);
 int callback(void *, int, char **, char **);
+int callback_slow_request(void *, int, char **, char **);
 
 sqlite3 *event_db;
 char *db_file;
 
+/* recorded timestamp for the request */
+struct timeval begin_tp;
+
 function_entry apm_functions[] = {
         PHP_FE(apm_get_events, NULL)
+        PHP_FE(apm_get_slow_requests, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -141,6 +149,14 @@ PHP_MINIT_FUNCTION(apm)
 			    line INTEGER NOT NULL, \
 			    message TEXT NOT NULL)",
 			NULL, NULL, NULL);
+		sqlite3_exec(
+			db,
+			"CREATE TABLE IF NOT EXISTS slow_request ( \
+			    id INTEGER PRIMARY KEY AUTOINCREMENT, \
+			    ts TEXT NOT NULL, \
+			    duration FLOAT NOT NULL, \
+			    file TEXT NOT NULL)",
+			NULL, NULL, NULL);
 		sqlite3_close(db);
 	}
 
@@ -164,6 +180,10 @@ PHP_RINIT_FUNCTION(apm)
 
 	if (APM_G(enabled)) {
 		int rc;
+		struct timezone begin_tz;
+		
+		/* storing timestamp of request */
+		gettimeofday(&begin_tp, &begin_tz);
 		/* Opening the sqlite database file */
 		rc = sqlite3_open(db_file, &event_db);
 		sqlite3_busy_timeout(event_db, APM_G(timeout));
@@ -187,6 +207,33 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
+	float duration;
+	struct timeval end_tp;
+	struct timezone end_tz;
+
+	gettimeofday(&end_tp, &end_tz);
+
+	/* Request longer than accepted thresold ? */
+	duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
+	if (duration > 1000000.00) {
+		zval **array;
+		zval **token;
+		char *script_filename = NULL;
+		char *sql;
+
+		if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
+			Z_TYPE_PP(array) == IS_ARRAY &&
+			zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
+			script_filename = Z_STRVAL_PP(token);
+		}
+
+		/* Building SQL insert query */
+		sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (datetime(), %f, %Q);",
+		                      USEC_TO_SEC(duration), script_filename);
+
+		/* Executing SQL insert query */
+		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+	}
 	/* Restoring saved error callback function */
 	zend_error_cb = old_error_cb;
 
@@ -246,11 +293,41 @@ PHP_FUNCTION(apm_get_events)
 	RETURN_TRUE;
 }
 
+/* Return an HTML table with all events */
+PHP_FUNCTION(apm_get_slow_requests)
+{
+	sqlite3 *db;
+	int rc;
+	/* Opening the sqlite database file */
+	rc = sqlite3_open(db_file, &db);
+	if (rc) {
+		/* Closing DB file and returning false */
+		sqlite3_close(db);
+		RETURN_FALSE;
+	}
+
+	/* Results are printed in an HTML table */
+	php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
+	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request", callback_slow_request, NULL, NULL);
+	php_printf("</table>");
+
+	RETURN_TRUE;
+}
+
 /* Function called for every row returned by event query */
 int callback(void *data, int num_fields, char **fields, char **col_name)
 {
 	php_printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
                    fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+
+	return 0;
+}
+
+/* Function called for every row returned by slow request query */
+int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
+{
+	php_printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   fields[0], fields[1], fields[2], fields[3]);
 
 	return 0;
 }
