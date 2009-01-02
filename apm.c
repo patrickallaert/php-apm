@@ -39,7 +39,7 @@ void apm_error_cb(int type, const char *error_filename,
                   va_list args);
 int callback(void *, int, char **, char **);
 
-sqlite3 *eventDb;
+sqlite3 *event_db;
 char *db_file;
 
 function_entry apm_functions[] = {
@@ -165,19 +165,19 @@ PHP_RINIT_FUNCTION(apm)
 	if (APM_G(enabled)) {
 		int rc;
 		/* Opening the sqlite database file */
-		rc = sqlite3_open(db_file, &eventDb);
-		sqlite3_busy_timeout(eventDb, APM_G(timeout));
+		rc = sqlite3_open(db_file, &event_db);
+		sqlite3_busy_timeout(event_db, APM_G(timeout));
 		if (rc) {
 			/*
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
-			sqlite3_close(eventDb);
+			sqlite3_close(event_db);
 			return FAILURE;
 		}
 
 		/* Making the connection asynchronous, not waiting for data being really written to the disk */
-		sqlite3_exec(eventDb, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+		sqlite3_exec(event_db, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
 
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
@@ -217,7 +217,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
 	                      type, error_filename, error_lineno, msg);
 	/* Executing SQL insert query */
-	sqlite3_exec(eventDb, sql, NULL, NULL, NULL);
+	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 	efree(msg);
 
 	/* Calling saved callback function for error handling */
