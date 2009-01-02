@@ -94,7 +94,6 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 PHP_MINIT_FUNCTION(apm)
 {
 	sqlite3 *db;
-	int rc;
 
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
@@ -127,8 +126,7 @@ PHP_MINIT_FUNCTION(apm)
 		strcat(db_file, DB_FILE);
 
 		/* Opening the sqlite database file */
-		rc = sqlite3_open(db_file, &db);
-		if (rc) {
+		if (sqlite3_open(db_file, &db)) {
 			/*
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
@@ -179,15 +177,12 @@ PHP_RINIT_FUNCTION(apm)
 	old_error_cb = zend_error_cb;
 
 	if (APM_G(enabled)) {
-		int rc;
 		struct timezone begin_tz;
 		
 		/* storing timestamp of request */
 		gettimeofday(&begin_tp, &begin_tz);
 		/* Opening the sqlite database file */
-		rc = sqlite3_open(db_file, &event_db);
-		sqlite3_busy_timeout(event_db, APM_G(timeout));
-		if (rc) {
+		if (sqlite3_open(db_file, &event_db)) {
 			/*
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
@@ -195,6 +190,8 @@ PHP_RINIT_FUNCTION(apm)
 			sqlite3_close(event_db);
 			return FAILURE;
 		}
+
+		sqlite3_busy_timeout(event_db, APM_G(timeout));
 
 		/* Making the connection asynchronous, not waiting for data being really written to the disk */
 		sqlite3_exec(event_db, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
@@ -276,10 +273,8 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 PHP_FUNCTION(apm_get_events)
 {
 	sqlite3 *db;
-	int rc;
 	/* Opening the sqlite database file */
-	rc = sqlite3_open(db_file, &db);
-	if (rc) {
+	if (sqlite3_open(db_file, &db)) {
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
 		RETURN_FALSE;
@@ -297,10 +292,8 @@ PHP_FUNCTION(apm_get_events)
 PHP_FUNCTION(apm_get_slow_requests)
 {
 	sqlite3 *db;
-	int rc;
 	/* Opening the sqlite database file */
-	rc = sqlite3_open(db_file, &db);
-	if (rc) {
+	if (sqlite3_open(db_file, &db)) {
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
 		RETURN_FALSE;
