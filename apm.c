@@ -99,23 +99,7 @@ PHP_MINIT_FUNCTION(apm)
 	REGISTER_INI_ENTRIES();
 
 	if (APM_G(enabled)) {
-		struct stat db_path_stat;
-
-		/* Does db_path exists ? */
-		if (stat(APM_G(db_path), &db_path_stat) != 0) {
-			zend_error(E_CORE_WARNING, "APM cannot be loaded, an error occured while accessing %s", APM_G(db_path));
-			return FAILURE;
-		}
-
-		/* Is this a directory ? */
-		if (! S_ISDIR(db_path_stat.st_mode)) {
-			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be a directory", APM_G(db_path));
-			return FAILURE;
-		}
-
-		/* Does it have the correct permissions ? */
-		if (access(APM_G(db_path), R_OK | W_OK | X_OK) != 0) {
-			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be readable, writable and executable", APM_G(db_path));
+		if (perform_db_access_checks() == FAILURE) {
 			return FAILURE;
 		}
 
@@ -325,3 +309,27 @@ int callback_slow_request(void *data, int num_fields, char **fields, char **col_
 	return 0;
 }
 
+/* Perform access checks on the DB path */
+int perform_db_access_checks()
+{
+	struct stat db_path_stat;
+
+	/* Does db_path exists ? */
+	if (stat(APM_G(db_path), &db_path_stat) != 0) {
+		zend_error(E_CORE_WARNING, "APM cannot be loaded, an error occured while accessing %s", APM_G(db_path));
+		return FAILURE;
+	}
+
+	/* Is this a directory ? */
+	if (! S_ISDIR(db_path_stat.st_mode)) {
+		zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be a directory", APM_G(db_path));
+		return FAILURE;
+	}
+
+	/* Does it have the correct permissions ? */
+	if (access(APM_G(db_path), R_OK | W_OK | X_OK) != 0) {
+		zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be readable, writable and executable", APM_G(db_path));
+		return FAILURE;
+	}
+	return SUCCESS;
+}
