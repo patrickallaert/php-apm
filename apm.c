@@ -23,9 +23,13 @@
 #endif
 
 #include <sqlite3.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "php.h"
 #include "php_ini.h"
 #include "php_apm.h"
+
+#define DB_FILE "/events"
 
 ZEND_API void (*old_error_cb)(int type, const char *error_filename,
                               const uint error_lineno, const char *format,
@@ -36,6 +40,7 @@ void apm_error_cb(int type, const char *error_filename,
 int callback(void *, int, char **, char **);
 
 sqlite3 *eventDb;
+char *db_file;
 
 function_entry apm_functions[] = {
         PHP_FE(apm_get_events, NULL)
@@ -71,7 +76,7 @@ PHP_INI_BEGIN()
 	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,  zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/events.db", PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/db",        PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
 PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
@@ -87,18 +92,44 @@ PHP_MINIT_FUNCTION(apm)
 	REGISTER_INI_ENTRIES();
 
 	if (APM_G(enabled)) {
+		struct stat db_path_stat;
+
+		/* Does db_path exists ? */
+		if (stat(APM_G(db_path), &db_path_stat) != 0) {
+			zend_error(E_CORE_WARNING, "APM cannot be loaded, an error occured while accessing %s", APM_G(db_path));
+			return FAILURE;
+		}
+
+		/* Is this a directory ? */
+		if (! S_ISDIR(db_path_stat.st_mode)) {
+			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be a directory", APM_G(db_path));
+			return FAILURE;
+		}
+
+		/* Does it have the correct permissions ? */
+		if (access(APM_G(db_path), R_OK | W_OK | X_OK) != 0) {
+			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be readable, writable and executable", APM_G(db_path));
+			return FAILURE;
+		}
+
+		/* Defining full path to db file */
+		db_file = (char *) malloc((strlen(APM_G(db_path)) + strlen(DB_FILE) + 1) * sizeof(char));
+
+		strcpy(db_file, APM_G(db_path));
+		strcat(db_file, DB_FILE);
+
 		/* Opening the sqlite database file */
-		rc = sqlite3_open(APM_G(db_path), &db);
+		rc = sqlite3_open(db_file, &db);
 		if (rc) {
 			/*
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
 			sqlite3_close(db);
-			zend_error(E_CORE_WARNING, "APM cannot be loaded, the DB file cannot be opened/created");
+			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s cannot be opened/created", db_file);
 			return FAILURE;
 		}
-		chmod(APM_G(db_path), 0666);
+
 		/* Executing SQL creation table query */
 		sqlite3_exec(
 			db,
@@ -134,7 +165,7 @@ PHP_RINIT_FUNCTION(apm)
 	if (APM_G(enabled)) {
 		int rc;
 		/* Opening the sqlite database file */
-		rc = sqlite3_open(APM_G(db_path), &eventDb);
+		rc = sqlite3_open(db_file, &eventDb);
 		sqlite3_busy_timeout(eventDb, APM_G(timeout));
 		if (rc) {
 			/*
@@ -200,7 +231,7 @@ PHP_FUNCTION(apm_get_events)
 	sqlite3 *db;
 	int rc;
 	/* Opening the sqlite database file */
-	rc = sqlite3_open(APM_G(db_path), &db);
+	rc = sqlite3_open(db_file, &db);
 	if (rc) {
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
