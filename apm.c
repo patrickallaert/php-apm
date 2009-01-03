@@ -190,33 +190,36 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
-	float duration;
-	struct timeval end_tp;
-	struct timezone end_tz;
+	if (APM_G(enabled)) {
+		float duration;
+		struct timeval end_tp;
+		struct timezone end_tz;
 
-	gettimeofday(&end_tp, &end_tz);
+		gettimeofday(&end_tp, &end_tz);
 
-	/* Request longer than accepted thresold ? */
-	duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
-	if (duration > 1000.0 * APM_G(slow_request_duration)) {
-		zval **array;
-		zval **token;
-		char *script_filename = NULL;
-		char *sql;
+		/* Request longer than accepted thresold ? */
+		duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
+		if (duration > 1000.0 * APM_G(slow_request_duration)) {
+			zval **array;
+			zval **token;
+			char *script_filename = NULL;
+			char *sql;
 
-		if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
-			Z_TYPE_PP(array) == IS_ARRAY &&
-			zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-			script_filename = Z_STRVAL_PP(token);
+			if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
+				Z_TYPE_PP(array) == IS_ARRAY &&
+				zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
+				script_filename = Z_STRVAL_PP(token);
+			}
+
+			/* Building SQL insert query */
+			sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (datetime(), %f, %Q);",
+			                      USEC_TO_SEC(duration), script_filename);
+
+			/* Executing SQL insert query */
+			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 		}
-
-		/* Building SQL insert query */
-		sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (datetime(), %f, %Q);",
-		                      USEC_TO_SEC(duration), script_filename);
-
-		/* Executing SQL insert query */
-		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 	}
+
 	/* Restoring saved error callback function */
 	zend_error_cb = old_error_cb;
 
