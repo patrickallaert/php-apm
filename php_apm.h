@@ -51,8 +51,10 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool enabled;
 	/* Path to the SQLite database file */
 	char     *db_path;
-	/* max timeout to wait for storing the event in the DB */
+	/* Max timeout to wait for storing the event in the DB */
 	long      timeout;
+	/* Time (in ms) before a request is considered 'slow' */
+	long      slow_request_duration;
 ZEND_END_MODULE_GLOBALS(apm) 
 
 #ifdef ZTS

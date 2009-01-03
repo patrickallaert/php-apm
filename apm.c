@@ -80,11 +80,13 @@ ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the monitoring is active or not */
-	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,                zend_apm_globals, apm_globals)
 	/* Path to the SQLite database file */
-	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,                zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/db",        PHP_INI_ALL, OnUpdateString, db_path,  zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/db",        PHP_INI_ALL, OnUpdateString, db_path,                zend_apm_globals, apm_globals)
+	/* Time (in ms) before a request is considered 'slow' */
+	STD_PHP_INI_ENTRY("apm.slow_request_duration",    "100",                    PHP_INI_ALL, OnUpdateLong,   slow_request_duration,  zend_apm_globals, apm_globals)
 PHP_INI_END()
  
 static void apm_init_globals(zend_apm_globals *apm_globals)
@@ -196,7 +198,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 	/* Request longer than accepted thresold ? */
 	duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
-	if (duration > 1000000.00) {
+	if (duration > 1000.0 * APM_G(slow_request_duration)) {
 		zval **array;
 		zval **token;
 		char *script_filename = NULL;
