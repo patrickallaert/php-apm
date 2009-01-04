@@ -79,8 +79,12 @@ ZEND_GET_MODULE(apm)
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
-	/* Boolean controlling whether the monitoring is active or not */
+	/* Boolean controlling whether the extension is globally active or not */
 	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,                zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the event monitoring is active or not */
+	STD_PHP_INI_BOOLEAN("apm.event_enabled",          "1",                      PHP_INI_ALL, OnUpdateBool,   event_enabled,          zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the slow request monitoring is active or not */
+	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled",   "1",                      PHP_INI_ALL, OnUpdateBool,   slow_request_enabled,   zend_apm_globals, apm_globals)
 	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,                zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
@@ -123,24 +127,28 @@ PHP_MINIT_FUNCTION(apm)
 		}
 
 		/* Executing SQL creation table query */
-		sqlite3_exec(
-			db,
-			"CREATE TABLE IF NOT EXISTS event ( \
-			    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-			    ts TEXT NOT NULL, \
-			    type INTEGER NOT NULL, \
-			    file TEXT NOT NULL, \
-			    line INTEGER NOT NULL, \
-			    message TEXT NOT NULL)",
-			NULL, NULL, NULL);
-		sqlite3_exec(
-			db,
-			"CREATE TABLE IF NOT EXISTS slow_request ( \
-			    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-			    ts TEXT NOT NULL, \
-			    duration FLOAT NOT NULL, \
-			    file TEXT NOT NULL)",
-			NULL, NULL, NULL);
+		if (APM_G(event_enabled)) {
+			sqlite3_exec(
+				db,
+				"CREATE TABLE IF NOT EXISTS event ( \
+				    id INTEGER PRIMARY KEY AUTOINCREMENT, \
+				    ts TEXT NOT NULL, \
+				    type INTEGER NOT NULL, \
+				    file TEXT NOT NULL, \
+				    line INTEGER NOT NULL, \
+				    message TEXT NOT NULL)",
+				NULL, NULL, NULL);
+		}
+		if (APM_G(slow_request_enabled)) {
+			sqlite3_exec(
+				db,
+				"CREATE TABLE IF NOT EXISTS slow_request ( \
+				    id INTEGER PRIMARY KEY AUTOINCREMENT, \
+				    ts TEXT NOT NULL, \
+				    duration FLOAT NOT NULL, \
+				    file TEXT NOT NULL)",
+				NULL, NULL, NULL);
+		}
 		sqlite3_close(db);
 	}
 
@@ -163,10 +171,12 @@ PHP_RINIT_FUNCTION(apm)
 	old_error_cb = zend_error_cb;
 
 	if (APM_G(enabled)) {
-		struct timezone begin_tz;
-		
-		/* storing timestamp of request */
-		gettimeofday(&begin_tp, &begin_tz);
+		if (APM_G(event_enabled)) {
+			struct timezone begin_tz;
+			
+			/* storing timestamp of request */
+			gettimeofday(&begin_tp, &begin_tz);
+		}
 		/* Opening the sqlite database file */
 		if (sqlite3_open(db_file, &event_db)) {
 			/*
@@ -190,7 +200,7 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
-	if (APM_G(enabled)) {
+	if (APM_G(enabled) && APM_G(slow_request_enabled)) {
 		float duration;
 		struct timeval end_tp;
 		struct timezone end_tz;
@@ -241,21 +251,23 @@ PHP_MINFO_FUNCTION(apm)
  *    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	char *msg, *sql;
-	va_list args_copy;
+	if (APM_G(event_enabled)) {
+		char *msg, *sql;
+		va_list args_copy;
 
-	/* A copy of args is needed to be used for the old_error_cb */
-	va_copy(args_copy, args);
-	vspprintf(&msg, 0, format, args_copy);
+		/* A copy of args is needed to be used for the old_error_cb */
+		va_copy(args_copy, args);
+		vspprintf(&msg, 0, format, args_copy);
 
-	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
-	                      type, error_filename, error_lineno, msg);
-	/* Executing SQL insert query */
-	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+		/* Builing SQL insert query */
+		sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
+		                      type, error_filename, error_lineno, msg);
+		/* Executing SQL insert query */
+		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
-	efree(msg);
-	sqlite3_free(sql);
+		efree(msg);
+		sqlite3_free(sql);
+	}
 
 	/* Calling saved callback function for error handling */
 	old_error_cb(type, error_filename, error_lineno, format, args);

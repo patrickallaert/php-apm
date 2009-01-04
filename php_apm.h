@@ -47,8 +47,12 @@ PHP_FUNCTION(apm_get_slow_requests);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
-	/* Boolean controlling whether the monitoring is active or not */
+	/* Boolean controlling whether the extension is globally active or not */
 	zend_bool enabled;
+	/* Boolean controlling whether the event monitoring is active or not */
+	zend_bool event_enabled;
+	/* Boolean controlling whether the slow request monitoring is active or not */
+	zend_bool slow_request_enabled;
 	/* Path to the SQLite database file */
 	char     *db_path;
 	/* Max timeout to wait for storing the event in the DB */
