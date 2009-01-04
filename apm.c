@@ -95,12 +95,12 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 
 PHP_MINIT_FUNCTION(apm)
 {
-	sqlite3 *db;
-
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
 	if (APM_G(enabled)) {
+		sqlite3 *db;
+
 		if (perform_db_access_checks() == FAILURE) {
 			return FAILURE;
 		}
@@ -217,6 +217,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 			/* Executing SQL insert query */
 			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+
+			sqlite3_free(sql);
 		}
 	}
 
@@ -251,7 +253,9 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	                      type, error_filename, error_lineno, msg);
 	/* Executing SQL insert query */
 	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+
 	efree(msg);
+	sqlite3_free(sql);
 
 	/* Calling saved callback function for error handling */
 	old_error_cb(type, error_filename, error_lineno, format, args);
@@ -274,6 +278,7 @@ PHP_FUNCTION(apm_get_events)
 	sqlite3_exec(db, "SELECT id, ts, type, file, line, message FROM event", callback, NULL, NULL);
 	php_printf("</table>");
 
+	sqlite3_close(db);
 	RETURN_TRUE;
 }
 
@@ -293,6 +298,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request", callback_slow_request, NULL, NULL);
 	php_printf("</table>");
 
+	sqlite3_close(db);
 	RETURN_TRUE;
 }
 
