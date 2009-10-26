@@ -345,8 +345,11 @@ PHP_FUNCTION(apm_get_slow_requests)
 /* Function called for every row returned by event query */
 int callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   fields[2], fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+	static int odd = 1;
+
+	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   fields[2], odd ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+	odd = !odd;
 
 	return 0;
 }
@@ -354,8 +357,11 @@ int callback(void *data, int num_fields, char **fields, char **col_name)
 /* Function called for every row returned by slow request query */
 int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
 {
-	php_printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   fields[0], fields[1], fields[2], fields[3]);
+	static int odd = 1;
+
+	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   odd ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
+	odd = !odd;
 
 	return 0;
 }
