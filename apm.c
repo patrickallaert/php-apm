@@ -296,7 +296,24 @@ PHP_FUNCTION(apm_get_events)
 
 	/* Results are printed in an HTML table */
 	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th></tr>\n");
-	sqlite3_exec(db, "SELECT id, ts, type, file, line, message FROM event", callback, NULL, NULL);
+	sqlite3_exec(db, "SELECT id, ts, CASE type \
+                          WHEN 1 THEN 'E_ERROR' \
+                          WHEN 2 THEN 'E_WARNING' \
+                          WHEN 4 THEN 'E_PARSE' \
+                          WHEN 8 THEN 'E_NOTICE' \
+                          WHEN 16 THEN 'E_CORE_ERROR' \
+                          WHEN 32 THEN 'E_CORE_WARNING' \
+                          WHEN 64 THEN 'E_COMPILE_ERROR' \
+                          WHEN 128 THEN 'E_COMPILE_WARNING' \
+                          WHEN 256 THEN 'E_USER_ERROR' \
+                          WHEN 512 THEN 'E_USER_WARNING' \
+                          WHEN 1024 THEN 'E_USER_NOTICE' \
+                          WHEN 2048 THEN 'E_STRICT' \
+                          WHEN 4096 THEN 'E_RECOVERABLE_ERROR' \
+                          WHEN 8192 THEN 'E_DEPRECATED' \
+                          WHEN 16384 THEN 'E_USER_DEPRECATED' \
+                          END, \
+                          file, line, message FROM event", callback, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
