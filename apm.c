@@ -343,8 +343,8 @@ PHP_FUNCTION(apm_get_slow_requests)
 /* Function called for every row returned by event query */
 int callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	php_printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   fields[2], fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
 
 	return 0;
 }
