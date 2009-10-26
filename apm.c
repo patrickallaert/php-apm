@@ -41,9 +41,9 @@ ZEND_API void (*old_error_cb)(int type, const char *error_filename,
 void apm_error_cb(int type, const char *error_filename, 
                   const uint error_lineno, const char *format,
                   va_list args);
-int callback(void *, int, char **, char **);
-int callback_slow_request(void *, int, char **, char **);
-int perform_db_access_checks();
+static int callback(void *, int, char **, char **);
+static int callback_slow_request(void *, int, char **, char **);
+static int perform_db_access_checks();
 
 sqlite3 *event_db;
 char *db_file;
@@ -343,7 +343,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 }
 
 /* Function called for every row returned by event query */
-int callback(void *data, int num_fields, char **fields, char **col_name)
+static int callback(void *data, int num_fields, char **fields, char **col_name)
 {
 	static int odd = 1;
 
@@ -355,7 +355,7 @@ int callback(void *data, int num_fields, char **fields, char **col_name)
 }
 
 /* Function called for every row returned by slow request query */
-int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
+static int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
 {
 	static int odd = 1;
 
@@ -367,7 +367,7 @@ int callback_slow_request(void *data, int num_fields, char **fields, char **col_
 }
 
 /* Perform access checks on the DB path */
-int perform_db_access_checks()
+static int perform_db_access_checks()
 {
 	struct stat db_path_stat;
 
