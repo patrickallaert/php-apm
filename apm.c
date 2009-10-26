@@ -250,7 +250,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 PHP_MINFO_FUNCTION(apm)
 {
 	php_info_print_table_start();
-	php_info_print_table_header(2, "APM support", "enabled");
+	php_info_print_table_row(2, "APM support", "enabled");
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
