@@ -29,6 +29,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "php_apm.h"
+#include "ext/standard/info.h"
 
 #define DB_FILE "/events"
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
@@ -42,6 +43,7 @@ void apm_error_cb(int type, const char *error_filename,
                   va_list args);
 int callback(void *, int, char **, char **);
 int callback_slow_request(void *, int, char **, char **);
+int perform_db_access_checks();
 
 sqlite3 *event_db;
 char *db_file;
