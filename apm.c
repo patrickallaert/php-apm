@@ -47,6 +47,8 @@ static int perform_db_access_checks();
 
 sqlite3 *event_db;
 char *db_file;
+static int odd_event_list = 1;
+static int odd_slow_request = 1;
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
@@ -297,6 +299,7 @@ PHP_FUNCTION(apm_get_events)
 	}
 
 	/* Results are printed in an HTML table */
+	odd_event_list = 1;
 	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th></tr>\n");
 	sqlite3_exec(db, "SELECT id, ts, CASE type \
                           WHEN 1 THEN 'E_ERROR' \
@@ -334,6 +337,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 	}
 
 	/* Results are printed in an HTML table */
+	odd_slow_request = 1;
 	php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
 	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request", callback_slow_request, NULL, NULL);
 	php_printf("</table>");
@@ -345,11 +349,9 @@ PHP_FUNCTION(apm_get_slow_requests)
 /* Function called for every row returned by event query */
 static int callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	static int odd = 1;
-
 	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   fields[2], odd ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
-	odd = !odd;
+                   fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+	odd_event_list = !odd_event_list;
 
 	return 0;
 }
@@ -357,11 +359,9 @@ static int callback(void *data, int num_fields, char **fields, char **col_name)
 /* Function called for every row returned by slow request query */
 static int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
 {
-	static int odd = 1;
-
 	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   odd ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
-	odd = !odd;
+                   odd_slow_request ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
+	odd_slow_request = !odd_slow_request;
 
 	return 0;
 }
