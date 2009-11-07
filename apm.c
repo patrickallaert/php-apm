@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include "php.h"
 #include "php_ini.h"
+#include "zend_exceptions.h"
 #include "php_apm.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
@@ -43,6 +44,9 @@ ZEND_API void (*old_error_cb)(int type, const char *error_filename,
 void apm_error_cb(int type, const char *error_filename, 
                   const uint error_lineno, const char *format,
                   va_list args);
+
+void apm_throw_exception_hook(zval *exception TSRMLS_DC);
+
 static int callback(void *, int, char **, char **);
 static int callback_slow_request(void *, int, char **, char **);
 static int perform_db_access_checks();
@@ -201,6 +205,7 @@ PHP_RINIT_FUNCTION(apm)
 
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
+		zend_throw_exception_hook = apm_throw_exception_hook;
 	}
 	return SUCCESS;
 }
@@ -250,7 +255,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 	/* Restoring saved error callback function */
 	zend_error_cb = old_error_cb;
-
+	zend_throw_exception_hook = NULL;
 	return SUCCESS;
 }
 
@@ -268,14 +273,66 @@ PHP_MINFO_FUNCTION(apm)
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	if (APM_G(event_enabled)) {
-		char *msg, *sql;
+		char *msg, *sql, *backtrace;
 		va_list args_copy;
 
 		/* A copy of args is needed to be used for the old_error_cb */
 		va_copy(args_copy, args);
 		vspprintf(&msg, 0, format, args_copy);
 
-		/*Fetch the stacktrace and serialize it before storing it*/
+		/* We need to see if we have an uncaught exception fatal error now */
+		if (type == E_ERROR && strncmp(msg, "Uncaught exception", 18) == 0) {
+
+		} else {
+			/*Fetch the stacktrace and serialize it before storing it*/
+			zval *return_value;
+			zend_bool provide_object = 1;
+			zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
+
+			smart_str buf = {0};
+			php_serialize_data_t var_hash;
+			PHP_VAR_SERIALIZE_INIT(var_hash);
+			php_var_serialize(&buf, &return_value, &var_hash TSRMLS_CC);
+			PHP_VAR_SERIALIZE_DESTROY(var_hash);
+			backtrace = buf.c;
+
+			/* Builing SQL insert query */
+			sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
+				                  type, error_filename, error_lineno, msg, backtrace);
+			/* Executing SQL insert query */
+			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+
+			smart_str_free(&buf);
+			sqlite3_free(sql);
+		}
+		efree(msg);
+	}
+
+	/* Calling saved callback function for error handling */
+	old_error_cb(type, error_filename, error_lineno, format, args);
+}
+/* }}} */
+
+
+void apm_throw_exception_hook(zval *exception TSRMLS_DC)
+{
+	if (APM_G(event_enabled)) {
+		char *sql;
+		zval *message, *file, *line;
+		zend_class_entry *default_ce, *exception_ce;
+		char *exception_trace;
+
+		if (!exception) {
+			return;
+		}
+
+		default_ce = zend_exception_get_default(TSRMLS_C);
+		exception_ce = zend_get_class_entry(exception TSRMLS_CC);
+
+		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
+		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
+		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
+
 		zval *return_value;
 		zend_bool provide_object = 1;
 		zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
@@ -288,19 +345,15 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 		/* Builing SQL insert query */
 		sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-		                      type, error_filename, error_lineno, msg, buf.c);
+			                  E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message), buf.c);
 		/* Executing SQL insert query */
 		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
 		smart_str_free(&buf);
-		efree(msg);
 		sqlite3_free(sql);
 	}
-
-	/* Calling saved callback function for error handling */
-	old_error_cb(type, error_filename, error_lineno, format, args);
 }
-/* }}} */
+
 
 /* Return an HTML table with all events */
 PHP_FUNCTION(apm_get_events)
