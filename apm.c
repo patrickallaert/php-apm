@@ -30,6 +30,8 @@
 #include "php_ini.h"
 #include "php_apm.h"
 #include "ext/standard/info.h"
+#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_var.h"
 
 #define DB_FILE "/events"
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
@@ -140,7 +142,8 @@ PHP_MINIT_FUNCTION(apm)
 				    type INTEGER NOT NULL, \
 				    file TEXT NOT NULL, \
 				    line INTEGER NOT NULL, \
-				    message TEXT NOT NULL)",
+				    message TEXT NOT NULL, \
+				    backtrace TEXT NOT NULL)",
 				NULL, NULL, NULL);
 		}
 		if (APM_G(slow_request_enabled)) {
@@ -272,12 +275,24 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 		va_copy(args_copy, args);
 		vspprintf(&msg, 0, format, args_copy);
 
+		/*Fetch the stacktrace and serialize it before storing it*/
+		zval *return_value;
+		zend_bool provide_object = 1;
+		zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
+
+		smart_str buf = {0};
+		php_serialize_data_t var_hash;
+		PHP_VAR_SERIALIZE_INIT(var_hash);
+		php_var_serialize(&buf, &return_value, &var_hash TSRMLS_CC);
+		PHP_VAR_SERIALIZE_DESTROY(var_hash);
+
 		/* Builing SQL insert query */
-		sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message) VALUES (datetime(), %d, %Q, %d, %Q);",
-		                      type, error_filename, error_lineno, msg);
+		sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
+		                      type, error_filename, error_lineno, msg, buf.c);
 		/* Executing SQL insert query */
 		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
+		smart_str_free(&buf);
 		efree(msg);
 		sqlite3_free(sql);
 	}
@@ -300,7 +315,7 @@ PHP_FUNCTION(apm_get_events)
 
 	/* Results are printed in an HTML table */
 	odd_event_list = 1;
-	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th></tr>\n");
+	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
 	sqlite3_exec(db, "SELECT id, ts, CASE type \
                           WHEN 1 THEN 'E_ERROR' \
                           WHEN 2 THEN 'E_WARNING' \
@@ -318,7 +333,7 @@ PHP_FUNCTION(apm_get_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-                          file, line, message FROM event", callback, NULL, NULL);
+                          file, line, message, backtrace FROM event", callback, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
@@ -349,8 +364,8 @@ PHP_FUNCTION(apm_get_slow_requests)
 /* Function called for every row returned by event query */
 static int callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]);
+	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+                   fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
 	odd_event_list = !odd_event_list;
 
 	return 0;
