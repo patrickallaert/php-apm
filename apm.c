@@ -33,6 +33,7 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_var.h"
+#include "Zend/zend_builtin_functions.h"
 
 #define DB_FILE "/events"
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
