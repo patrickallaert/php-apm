@@ -42,6 +42,7 @@
     padding: 0.2em 0.5em;
   }
   table#slow-request-list td { border-bottom: 1px solid #ccc; }
+  table#event-list td { border-bottom: 1px solid #999; }
   table#slow-request-list tr.odd td { background-color: #eee; }
   table#event-list tr.E_ERROR td,
   table#event-list tr.E_CORE_ERROR td,

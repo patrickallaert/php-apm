@@ -312,7 +312,7 @@ PHP_FUNCTION(apm_get_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-                          file, line, message, backtrace FROM event", callback, NULL, NULL);
+                          file, line, message, backtrace FROM event ORDER BY id DESC", callback, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
@@ -333,7 +333,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 	/* Results are printed in an HTML table */
 	odd_slow_request = 1;
 	php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
-	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request", callback_slow_request, NULL, NULL);
+	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request ORDER BY id DESC", callback_slow_request, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
