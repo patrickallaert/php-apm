@@ -51,6 +51,7 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 static int callback(void *, int, char **, char **);
 static int callback_slow_request(void *, int, char **, char **);
 static int perform_db_access_checks();
+static void insert_event(int, char *, uint, char *);
 
 sqlite3 *event_db;
 char *db_file;
@@ -235,7 +236,7 @@ PHP_MINFO_FUNCTION(apm)
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	if (APM_G(event_enabled)) {
-		char *msg, *sql;
+		char *msg;
 		va_list args_copy;
 
 		/* A copy of args is needed to be used for the old_error_cb */
@@ -246,26 +247,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 		if (type == E_ERROR && strncmp(msg, "Uncaught exception", 18) == 0) {
 
 		} else {
-			/*Fetch the stacktrace and serialize it before storing it*/
-			zval *trace;
-			smart_str buf = {0};
-			php_serialize_data_t var_hash;
-
-			MAKE_STD_ZVAL(trace);
-			zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
-
-			PHP_VAR_SERIALIZE_INIT(var_hash);
-			php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
-			PHP_VAR_SERIALIZE_DESTROY(var_hash);
-
-			/* Builing SQL insert query */
-			sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-				                  type, error_filename, error_lineno, msg, buf.c);
-			/* Executing SQL insert query */
-			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
-
-			smart_str_free(&buf);
-			sqlite3_free(sql);
+			insert_event(type, (char *) error_filename, error_lineno, msg);
 		}
 		efree(msg);
 	}
@@ -279,11 +261,8 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 	if (APM_G(event_enabled)) {
-		char *sql;
-		zval *message, *file, *line, *trace;
+		zval *message, *file, *line;
 		zend_class_entry *default_ce, *exception_ce;
-		smart_str buf = {0};
-		php_serialize_data_t var_hash;
 
 		if (!exception) {
 			return;
@@ -296,21 +275,7 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-		MAKE_STD_ZVAL(trace);
-		zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
-
-		PHP_VAR_SERIALIZE_INIT(var_hash);
-		php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
-		PHP_VAR_SERIALIZE_DESTROY(var_hash);
-
-		/* Builing SQL insert query */
-		sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-			                  E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message), buf.c);
-		/* Executing SQL insert query */
-		sqlite3_exec(event_db, sql, NULL, NULL, NULL);
-
-		smart_str_free(&buf);
-		sqlite3_free(sql);
+		insert_event(E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message));
 	}
 }
 
@@ -417,4 +382,31 @@ static int perform_db_access_checks()
 		return FAILURE;
 	}
 	return SUCCESS;
+}
+
+/* Insert an event in the backend */
+static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
+{
+	char *sql;
+	zval *trace;
+	smart_str buf = {0};
+	php_serialize_data_t var_hash;
+
+	/* Fetch the stacktrace */
+	MAKE_STD_ZVAL(trace);
+	zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
+
+	/* Serializing the stacktrace */
+	PHP_VAR_SERIALIZE_INIT(var_hash);
+	php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
+	PHP_VAR_SERIALIZE_DESTROY(var_hash);
+
+	/* Builing SQL insert query */
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
+		                  type, error_filename, error_lineno, msg, buf.c);
+	/* Executing SQL insert query */
+	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+
+	smart_str_free(&buf);
+	sqlite3_free(sql);
 }
