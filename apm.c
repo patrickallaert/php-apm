@@ -288,6 +288,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 			/*Fetch the stacktrace and serialize it before storing it*/
 			zval *return_value;
 			zend_bool provide_object = 1;
+			MAKE_STD_ZVAL(return_value);
 			zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
 
 			smart_str buf = {0};
@@ -336,6 +337,7 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 
 		zval *return_value;
 		zend_bool provide_object = 1;
+		MAKE_STD_ZVAL(return_value);
 		zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
 
 		smart_str buf = {0};
