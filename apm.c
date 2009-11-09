@@ -18,6 +18,8 @@
     along with APM.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define APM_VERSION "1.0.0RC1"
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -227,6 +229,7 @@ PHP_MINFO_FUNCTION(apm)
 {
 	php_info_print_table_start();
 	php_info_print_table_row(2, "APM support", "enabled");
+	php_info_print_table_row(2, "Version", APM_VERSION);
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
