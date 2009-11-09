@@ -52,6 +52,7 @@ static int callback(void *, int, char **, char **);
 static int callback_slow_request(void *, int, char **, char **);
 static int perform_db_access_checks();
 static void insert_event(int, char *, uint, char *);
+void debug_print_backtrace_args(zval * TSRMLS_DC);
 
 sqlite3 *event_db;
 char *db_file;
@@ -387,26 +388,160 @@ static int perform_db_access_checks()
 /* Insert an event in the backend */
 static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
 {
-	char *sql;
-	zval *trace;
-	smart_str buf = {0};
-	php_serialize_data_t var_hash;
+	zend_execute_data *ptr, *skip;
+	int lineno, indent = 0;
+	char *function_name, *filename, *class_name = NULL, *call_type, *include_filename = NULL, *sql;
+	zval *arg_array = NULL;
+	smart_str trace_str = {0};
 
-	/* Fetch the stacktrace */
-	MAKE_STD_ZVAL(trace);
-	zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
+	ptr = EG(current_execute_data);
 
-	/* Serializing the stacktrace */
-	PHP_VAR_SERIALIZE_INIT(var_hash);
-	php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
-	PHP_VAR_SERIALIZE_DESTROY(var_hash);
+	while (ptr) {
+		char *free_class_name = NULL;
+
+		class_name = call_type = NULL;   
+		arg_array = NULL;
+
+		skip = ptr;
+		/* skip internal handler */
+		if (!skip->op_array &&
+		    skip->prev_execute_data &&
+		    skip->prev_execute_data->opline &&
+		    skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL &&
+		    skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL_BY_NAME &&
+		    skip->prev_execute_data->opline->opcode != ZEND_INCLUDE_OR_EVAL) {
+		  skip = skip->prev_execute_data;
+		}
+
+		if (skip->op_array) {
+			filename = skip->op_array->filename;
+			lineno = skip->opline->lineno;
+		} else {
+			filename = NULL;
+			lineno = 0;
+		}
+
+		function_name = ptr->function_state.function->common.function_name;
+
+		if (function_name) {
+			if (ptr->object) {
+				if (ptr->function_state.function->common.scope) {
+					class_name = ptr->function_state.function->common.scope->name;
+				} else {
+					zend_uint class_name_len;
+					int dup;
+
+					dup = zend_get_object_classname(ptr->object, &class_name, &class_name_len TSRMLS_CC);
+					if(!dup) {
+						free_class_name = class_name;
+					}
+				}
+
+				call_type = "->";
+			} else if (ptr->function_state.function->common.scope) {
+				class_name = ptr->function_state.function->common.scope->name;
+				call_type = "::";
+			} else {
+				class_name = NULL;
+				call_type = NULL;
+			}
+		} else {
+			/* i know this is kinda ugly, but i'm trying to avoid extra cycles in the main execution loop */
+			zend_bool build_filename_arg = 1;
+
+			if (!ptr->opline || ptr->opline->opcode != ZEND_INCLUDE_OR_EVAL) {
+				/* can happen when calling eval from a custom sapi */
+				function_name = "unknown";
+				build_filename_arg = 0;
+			} else
+			switch (Z_LVAL(ptr->opline->op2.u.constant)) {
+				case ZEND_EVAL:
+					function_name = "eval";
+					build_filename_arg = 0;
+					break;
+				case ZEND_INCLUDE:
+					function_name = "include";
+					break;
+				case ZEND_REQUIRE:
+					function_name = "require";
+					break;
+				case ZEND_INCLUDE_ONCE:
+					function_name = "include_once";
+					break;
+				case ZEND_REQUIRE_ONCE:
+					function_name = "require_once";
+					break;
+				default:
+					/* this can actually happen if you use debug_backtrace() in your error_handler and 
+					 * you're in the top-scope */
+					function_name = "unknown"; 
+					build_filename_arg = 0;
+					break;
+			}
+
+			if (build_filename_arg && include_filename) {
+				MAKE_STD_ZVAL(arg_array);
+				array_init(arg_array);
+				add_next_index_string(arg_array, include_filename, 1);
+			}
+			call_type = NULL;
+		}
+		smart_str_appendc(&trace_str, '#');
+		smart_str_append_long(&trace_str, indent);
+		smart_str_appendc(&trace_str, ' ');
+		if (class_name) {
+			smart_str_appends(&trace_str, class_name);
+			smart_str_appends(&trace_str, call_type);
+		}
+		smart_str_appends(&trace_str, function_name?function_name:"main");
+		smart_str_appendc(&trace_str, '(');
+		if (arg_array) {
+			debug_print_backtrace_args(arg_array TSRMLS_CC);
+			zval_ptr_dtor(&arg_array);
+		}
+		if (filename) {
+			smart_str_appends(&trace_str, ") called at [");
+			smart_str_appends(&trace_str, filename);
+			smart_str_appendc(&trace_str, ':');
+			smart_str_append_long(&trace_str, lineno);
+			smart_str_appends(&trace_str, "]\n");
+		} else {
+			zend_execute_data *prev = skip->prev_execute_data;
+
+			while (prev) {
+				if (prev->function_state.function &&
+					prev->function_state.function->common.type != ZEND_USER_FUNCTION) {
+					prev = NULL;
+					break;
+				}				    
+				if (prev->op_array) {
+					smart_str_appends(&trace_str, ") called at [");
+					smart_str_appends(&trace_str, prev->op_array->filename);
+					smart_str_appendc(&trace_str, ':');
+					smart_str_append_long(&trace_str, prev->opline->lineno);
+					smart_str_appends(&trace_str, "]\n");
+					break;
+				}
+				prev = prev->prev_execute_data;
+			}
+			if (!prev) {
+				smart_str_appends(&trace_str, ")\n");
+			}
+		}
+		include_filename = filename;
+		ptr = skip->prev_execute_data;
+		++indent;
+		if (free_class_name) {
+			efree(free_class_name);
+		}
+	}
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-		                  type, error_filename, error_lineno, msg, buf.c);
+		                  type, error_filename, error_lineno, msg, trace_str.c);
 	/* Executing SQL insert query */
 	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
-	smart_str_free(&buf);
+	smart_str_free(&trace_str);
 	sqlite3_free(sql);
 }
