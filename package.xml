@@ -35,6 +35,8 @@
    <file md5sum="95b29f6411964cbc4f76b80465a607a9" name="config.m4" role="src" />
    <file md5sum="ca60168a039e91b697a8e2199745964e" name="php_apm.h" role="src" />
    <file md5sum="f119506e29a8896e3860fa1edbfcbe52" name="apm.c" role="src" />
+   <file md5sum="d32239bcb673463ab874e80d47fae504" name="COPYING" role="doc" />
+   <file md5sum="fb23be1607ea11d233f9437b40ab1d15" name="AUTHORS" role="doc" />
   </dir>
  </contents>
  <dependencies>
