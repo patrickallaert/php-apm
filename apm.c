@@ -1,6 +1,6 @@
 /*
     APM stands for Alternative PHP Monitor
-    Copyright (C) 2008  Davide Mendolia, Patrick Allaert
+    Copyright (C) 2008-2009  Davide Mendolia, Patrick Allaert
 
     This file is part of APM.
 
