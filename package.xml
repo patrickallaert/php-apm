@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package packagerversion="1.7.1" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
  <name>apm</name>
- <channel></channel>
- <summary></summary>
- <description></description>
+ <channel>pecl.php.net</channel>
+ <summary>Alternative PHP Monitor</summary>
+ <description>Monitoring extension for PHP, collects error events and store them in a local SQLite database.</description>
  <lead>
   <name>Davide Mendolia</name>
   <user></user>
@@ -19,21 +19,22 @@
  <date>2008-11-09</date>
  <time>11:44:00</time>
  <version>
-  <release>0.0.1</release>
-  <api>0.0.1</api>
+  <release>1.0.0RC1</release>
+  <api>1.0.0</api>
  </version>
  <stability>
-  <release>alpha</release>
-  <api>alpha</api>
+  <release>beta</release>
+  <api>beta</api>
  </stability>
  <license uri="http://www.gnu.org/licenses/gpl.txt">GNU GENERAL PUBLIC LICENSE</license>
- <notes></notes>
+ <notes>
+- Initial release
+</notes>
  <contents>
   <dir name="/">
-   <file md5sum="9da27024fbf8cc452abdb604b63f8f73" name="config.m4" role="src" />
-   <file md5sum="151729110a272f1120064a7681c4be68" name="Makefile.in" role="src" />
-   <file md5sum="34dd0b5082380360c8a082d274654231" name="php_apm.h" role="src" />
-   <file md5sum="a8cdc1b81770e145181052ed152ee77f" name="apm.c" role="src" />
+   <file md5sum="95b29f6411964cbc4f76b80465a607a9" name="config.m4" role="src" />
+   <file md5sum="ca60168a039e91b697a8e2199745964e" name="php_apm.h" role="src" />
+   <file md5sum="f119506e29a8896e3860fa1edbfcbe52" name="apm.c" role="src" />
   </dir>
  </contents>
  <dependencies>
