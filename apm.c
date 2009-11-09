@@ -274,7 +274,7 @@ PHP_MINFO_FUNCTION(apm)
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	if (APM_G(event_enabled)) {
-		char *msg, *sql, *backtrace;
+		char *msg, *sql;
 		va_list args_copy;
 
 		/* A copy of args is needed to be used for the old_error_cb */
@@ -286,21 +286,20 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 		} else {
 			/*Fetch the stacktrace and serialize it before storing it*/
-			zval *return_value;
-			zend_bool provide_object = 1;
-			MAKE_STD_ZVAL(return_value);
-			zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
-
+			zval *trace;
 			smart_str buf = {0};
 			php_serialize_data_t var_hash;
+
+			MAKE_STD_ZVAL(trace);
+			zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
+
 			PHP_VAR_SERIALIZE_INIT(var_hash);
-			php_var_serialize(&buf, &return_value, &var_hash TSRMLS_CC);
+			php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
 			PHP_VAR_SERIALIZE_DESTROY(var_hash);
-			backtrace = buf.c;
 
 			/* Builing SQL insert query */
 			sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-				                  type, error_filename, error_lineno, msg, backtrace);
+				                  type, error_filename, error_lineno, msg, buf.c);
 			/* Executing SQL insert query */
 			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
@@ -320,9 +319,10 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 	if (APM_G(event_enabled)) {
 		char *sql;
-		zval *message, *file, *line;
+		zval *message, *file, *line, *trace;
 		zend_class_entry *default_ce, *exception_ce;
-		char *exception_trace;
+		smart_str buf = {0};
+		php_serialize_data_t var_hash;
 
 		if (!exception) {
 			return;
@@ -335,15 +335,11 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-		zval *return_value;
-		zend_bool provide_object = 1;
-		MAKE_STD_ZVAL(return_value);
-		zend_fetch_debug_backtrace(return_value, 1, provide_object TSRMLS_CC);
+		MAKE_STD_ZVAL(trace);
+		zend_fetch_debug_backtrace(trace, 1, 1 TSRMLS_CC);
 
-		smart_str buf = {0};
-		php_serialize_data_t var_hash;
 		PHP_VAR_SERIALIZE_INIT(var_hash);
-		php_var_serialize(&buf, &return_value, &var_hash TSRMLS_CC);
+		php_var_serialize(&buf, &trace, &var_hash TSRMLS_CC);
 		PHP_VAR_SERIALIZE_DESTROY(var_hash);
 
 		/* Builing SQL insert query */
