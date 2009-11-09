@@ -539,6 +539,8 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		}
 	}
 
+	smart_str_0(&trace_str);
+
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
 		                  type, error_filename, error_lineno, msg, trace_str.c);
