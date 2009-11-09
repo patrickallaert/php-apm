@@ -114,8 +114,6 @@ PHP_MINIT_FUNCTION(apm)
 	REGISTER_INI_ENTRIES();
 
 	if (APM_G(enabled)) {
-		sqlite3 *db;
-
 		if (perform_db_access_checks() == FAILURE) {
 			return FAILURE;
 		}
@@ -125,43 +123,6 @@ PHP_MINIT_FUNCTION(apm)
 
 		strcpy(db_file, APM_G(db_path));
 		strcat(db_file, DB_FILE);
-
-		/* Opening the sqlite database file */
-		if (sqlite3_open(db_file, &db)) {
-			/*
-			 Closing DB file and stop loading the extension
-			 in case of error while opening the database file
-			 */
-			sqlite3_close(db);
-			zend_error(E_CORE_WARNING, "APM cannot be loaded, %s cannot be opened/created", db_file);
-			return FAILURE;
-		}
-
-		/* Executing SQL creation table query */
-		if (APM_G(event_enabled)) {
-			sqlite3_exec(
-				db,
-				"CREATE TABLE IF NOT EXISTS event ( \
-				    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-				    ts TEXT NOT NULL, \
-				    type INTEGER NOT NULL, \
-				    file TEXT NOT NULL, \
-				    line INTEGER NOT NULL, \
-				    message TEXT NOT NULL, \
-				    backtrace TEXT NOT NULL)",
-				NULL, NULL, NULL);
-		}
-		if (APM_G(slow_request_enabled)) {
-			sqlite3_exec(
-				db,
-				"CREATE TABLE IF NOT EXISTS slow_request ( \
-				    id INTEGER PRIMARY KEY AUTOINCREMENT, \
-				    ts TEXT NOT NULL, \
-				    duration FLOAT NOT NULL, \
-				    file TEXT NOT NULL)",
-				NULL, NULL, NULL);
-		}
-		sqlite3_close(db);
 	}
 
 	return SUCCESS;
