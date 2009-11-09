@@ -343,7 +343,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 /* Function called for every row returned by event query */
 static int callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
+	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
                    fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
 	odd_event_list = !odd_event_list;
 
