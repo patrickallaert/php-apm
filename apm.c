@@ -388,6 +388,40 @@ static int perform_db_access_checks()
 	return SUCCESS;
 }
 
+static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
+{
+	void **p = *curpos - 2;
+	zval *arg_array, **arg;
+	int arg_count = (int)(zend_uintptr_t) *p;
+
+	*curpos -= (arg_count+2);
+
+	MAKE_STD_ZVAL(arg_array);
+	array_init(arg_array);
+	p -= arg_count;
+
+	while (--arg_count >= 0) {
+		arg = (zval **) p++;
+		if (*arg) {
+			if (Z_TYPE_PP(arg) != IS_OBJECT) {
+				SEPARATE_ZVAL_TO_MAKE_IS_REF(arg);
+			}
+			(*arg)->refcount++;
+			add_next_index_zval(arg_array, *arg);
+		} else {
+			add_next_index_null(arg_array);
+		}
+	}
+
+	/* skip args from incomplete frames */
+	while ((((*curpos)-1) > EG(argument_stack).elements) && *((*curpos)-1)) {
+		(*curpos)--;
+	}
+
+	return arg_array;
+}
+
+
 /* Insert an event in the backend */
 static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
 {
@@ -396,8 +430,34 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	char *function_name, *filename, *class_name = NULL, *call_type, *include_filename = NULL, *sql;
 	zval *arg_array = NULL;
 	smart_str trace_str = {0};
+	void **cur_arg_pos = EG(argument_stack).top_element;
+	void **args = cur_arg_pos;
+	int arg_stack_consistent = 0;
+	int frames_on_stack = 0;
+
+	while (--args > EG(argument_stack).elements) {
+		if (*args--) {
+			break;
+		}
+		args -= *(ulong*)args;
+		frames_on_stack++;
+
+		/* skip args from incomplete frames */
+		while (((args-1) > EG(argument_stack).elements) && *(args-1)) {
+			args--;
+		}
+
+		if ((args-1) == EG(argument_stack).elements) {
+			arg_stack_consistent = 1;
+			break;
+		}
+	}
 
 	ptr = EG(current_execute_data);
+
+	ptr = ptr->prev_execute_data;
+	cur_arg_pos -= 2;
+	frames_on_stack--;
 
 	while (ptr) {
 		char *free_class_name = NULL;
@@ -447,6 +507,12 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 			} else {
 				class_name = NULL;
 				call_type = NULL;
+			}
+			if ((! ptr->opline) || ((ptr->opline->opcode == ZEND_DO_FCALL_BY_NAME) || (ptr->opline->opcode == ZEND_DO_FCALL))) {
+				if (arg_stack_consistent && (frames_on_stack > 0)) {
+					arg_array = debug_backtrace_get_args(&cur_arg_pos TSRMLS_CC);
+					frames_on_stack--;
+				}
 			}
 		} else {
 			/* i know this is kinda ugly, but i'm trying to avoid extra cycles in the main execution loop */
