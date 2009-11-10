@@ -609,7 +609,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-		                  type, error_filename, error_lineno, msg, trace_str.c);
+		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace_str.c ? trace_str.c : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
 
