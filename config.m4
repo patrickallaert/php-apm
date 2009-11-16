@@ -5,18 +5,13 @@ dnl    Copyright (C) 2008  Davide Mendolia, Patrick Allaert
 dnl
 dnl    This file is part of APM.
 dnl
-dnl    APM is free software: you can redistribute it and/or modify
-dnl    it under the terms of the GNU General Public License as published by
-dnl    the Free Software Foundation, either version 3 of the License, or
-dnl    (at your option) any later version.
-dnl
-dnl    APM is distributed in the hope that it will be useful,
-dnl    but WITHOUT ANY WARRANTY; without even the implied warranty of
-dnl    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-dnl    GNU General Public License for more details.
-dnl
-dnl    You should have received a copy of the GNU General Public License
-dnl    along with APM.  If not, see <http://www.gnu.org/licenses/>.
+dnl    This source file is subject to version 3.01 of the PHP license,
+dnl    that is bundled with this package in the file LICENSE, and is
+dnl    available through the world-wide-web at the following url:
+dnl    http://www.php.net/license/3_01.txt
+dnl    If you did not receive a copy of the PHP license and are unable to
+dnl    obtain it through the world-wide-web, please send a note to
+dnl    license@php.net so we can mail you a copy immediately.
 
 PHP_ARG_ENABLE(apm, whether to enable apm support,
 [  --enable-apm           Enable apm support])
