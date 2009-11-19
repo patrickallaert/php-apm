@@ -386,14 +386,23 @@ static int perform_db_access_checks()
 
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 {
-	void **p = *curpos - 2;
-	zval *arg_array, **arg;
+#if PHP_API_VERSION >= 20090626
+	void **p = *curpos;
+#else
+        void **p = *curpos - 2;
+#endif
+        zval *arg_array, **arg;
 	int arg_count = (int)(zend_uintptr_t) *p;
+#if PHP_API_VERSION < 20090626
+ 	*curpos -= (arg_count+2);
 
-	*curpos -= (arg_count+2);
-
+#endif
 	MAKE_STD_ZVAL(arg_array);
+#if PHP_API_VERSION >= 20090626
+	array_init_size(arg_array, arg_count);
+#else
 	array_init(arg_array);
+#endif
 	p -= arg_count;
 
 	while (--arg_count >= 0) {
@@ -402,18 +411,24 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 			if (Z_TYPE_PP(arg) != IS_OBJECT) {
 				SEPARATE_ZVAL_TO_MAKE_IS_REF(arg);
 			}
+#if PHP_API_VERSION >= 20090626
+			Z_ADDREF_PP(arg);
+#else
 			(*arg)->refcount++;
+#endif
 			add_next_index_zval(arg_array, *arg);
 		} else {
 			add_next_index_null(arg_array);
 		}
 	}
 
+#if PHP_API_VERSION < 20090626
 	/* skip args from incomplete frames */
 	while ((((*curpos)-1) > EG(argument_stack).elements) && *((*curpos)-1)) {
 		(*curpos)--;
 	}
 
+#endif
 	return arg_array;
 }
 
@@ -421,16 +436,28 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 /* Insert an event in the backend */
 static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
 {
-	zend_execute_data *ptr, *skip;
-	int lineno, indent = 0;
-	char *function_name, *filename, *class_name = NULL, *call_type, *include_filename = NULL, *sql;
-	zval *arg_array = NULL;
-	smart_str trace_str = {0};
+/* backtrace variables */
+        zend_execute_data *ptr, *skip;
+	int lineno;
+	char *function_name;
+	char *filename;
+	char *class_name = NULL;
+	char *call_type;
+	char *include_filename = NULL;
+        zval *arg_array = NULL;
+#if PHP_API_VERSION < 20090626
 	void **cur_arg_pos = EG(argument_stack).top_element;
 	void **args = cur_arg_pos;
 	int arg_stack_consistent = 0;
 	int frames_on_stack = 0;
+#endif
+        int indent = 0;
 
+/* sql variables */
+        char *sql;
+	smart_str trace_str = {0};
+
+#if PHP_API_VERSION < 20090626
 	while (--args > EG(argument_stack).elements) {
 		if (*args--) {
 			break;
@@ -448,13 +475,15 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 			break;
 		}
 	}
-
+#endif
 	ptr = EG(current_execute_data);
 
 	ptr = ptr->prev_execute_data;
+#if PHP_API_VERSION < 20090626
 	cur_arg_pos -= 2;
 	frames_on_stack--;
-
+#endif
+        
 	while (ptr) {
 		char *free_class_name = NULL;
 
@@ -505,12 +534,19 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 				call_type = NULL;
 			}
 			if ((! ptr->opline) || ((ptr->opline->opcode == ZEND_DO_FCALL_BY_NAME) || (ptr->opline->opcode == ZEND_DO_FCALL))) {
-				if (arg_stack_consistent && (frames_on_stack > 0)) {
+#if PHP_API_VERSION >= 20090626
+				if (ptr->function_state.arguments) {
+					arg_array = debug_backtrace_get_args(&ptr->function_state.arguments TSRMLS_CC);
+				}
+#else
+                            if (arg_stack_consistent && (frames_on_stack > 0)) {
 					arg_array = debug_backtrace_get_args(&cur_arg_pos TSRMLS_CC);
 					frames_on_stack--;
 				}
+#endif
 			}
 		} else {
+                        /*TODO continue review with debug_print_backtrace */
 			/* i know this is kinda ugly, but i'm trying to avoid extra cycles in the main execution loop */
 			zend_bool build_filename_arg = 1;
 
