@@ -45,6 +45,6 @@ if test "$PHP_APM" != "no"; then
 
   AC_DEFINE(HAVE_SQLITE3,1,[sqlite3 found and included])
 
-  PHP_NEW_EXTENSION(apm, "apm.c", $ext_shared)
+  PHP_NEW_EXTENSION(apm, apm.c backtrace.c, $ext_shared)
   PHP_SUBST(APM_SHARED_LIBADD)
 fi
