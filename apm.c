@@ -32,6 +32,7 @@
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_var.h"
 #include "Zend/zend_builtin_functions.h"
+#include "Zend/zend.h"
 
 #define DB_FILE "/events"
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
@@ -50,7 +51,8 @@ static int callback(void *, int, char **, char **);
 static int callback_slow_request(void *, int, char **, char **);
 static int perform_db_access_checks();
 static void insert_event(int, char *, uint, char *);
-void debug_print_backtrace_args(zval * TSRMLS_DC);
+
+void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
 
 sqlite3 *event_db;
 char *db_file;
@@ -432,6 +434,127 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 	return arg_array;
 }
 
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str) /* {{{ */
+{
+	zval **tmp;
+	char *string_key;
+	HashPosition iterator;
+	ulong num_key;
+	uint str_len;
+	int i = 0;
+
+	zend_hash_internal_pointer_reset_ex(ht, &iterator);
+	while (zend_hash_get_current_data_ex(ht, (void **) &tmp, &iterator) == SUCCESS) {
+		if (i++ > 0) {
+			smart_str_appends(&trace_str, ",");
+		}
+		smart_str_appends(trace_str, "[");
+		switch (zend_hash_get_current_key_ex(ht, &string_key, &str_len, &num_key, 0, &iterator)) {
+			case HASH_KEY_IS_STRING:
+				smart_str_appends(trace_str, string_key);
+				break;
+			case HASH_KEY_IS_LONG:
+				smart_str_append_long(trace_str, num_key);
+				break;
+		}
+		smart_str_appends(&trace_str, "] => ");
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
+		zend_hash_move_forward_ex(ht, &iterator);
+	}
+}
+
+
+void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str) /* {{{ */
+{
+	switch (Z_TYPE_P(expr)) {
+		case IS_ARRAY:
+                        smart_str_appends(trace_str, "Array (");
+			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
+				smart_str_appends(&trace_str, " *RECURSION*");
+				Z_ARRVAL_P(expr)->nApplyCount--;
+				return;
+			}
+			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str);
+			smart_str_appends(&trace_str, ")");
+			Z_ARRVAL_P(expr)->nApplyCount--;
+			break;
+		case IS_OBJECT:
+		{
+			HashTable *properties = NULL;
+			char *class_name = NULL;
+			zend_uint clen;
+
+			if (Z_OBJ_HANDLER_P(expr, get_class_name)) {
+				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, &class_name, &clen, 0 TSRMLS_CC);
+			}
+			if (class_name) {
+                                smart_str_appends(trace_str, class_name);
+				smart_str_appends(trace_str, " Object (");
+			} else {
+				smart_str_appends(trace_str, "Unknown Class Object (");
+			}
+			if (class_name) {
+				efree(class_name);
+			}
+			if (Z_OBJ_HANDLER_P(expr, get_properties)) {
+				properties = Z_OBJPROP_P(expr);
+			}
+			if (properties) {
+				if (++properties->nApplyCount>1) {
+					smart_str_appends(trace_str, " *RECURSION*");
+					properties->nApplyCount--;
+					return;
+				}
+				append_flat_hash(properties TSRMLS_CC, trace_str);
+				properties->nApplyCount--;
+			}
+			smart_str_appends(trace_str, ")");
+			break;
+		}
+		default:
+			append_variable(expr, trace_str);
+			break;
+	}
+}
+
+int append_variable(zval *expr, smart_str *trace_str) /* {{{ */
+{
+	zval expr_copy;
+	int use_copy;
+
+	zend_make_printable_zval(expr, &expr_copy, &use_copy);
+	if (use_copy) {
+		expr = &expr_copy;
+	}
+	if (Z_STRLEN_P(expr) == 0) { /* optimize away empty strings */
+		if (use_copy) {
+			zval_dtor(expr);
+		}
+		return 0;
+	}
+	smart_str_appends(trace_str, (Z_STRVAL_P(expr)));
+	if (use_copy) {
+		zval_dtor(expr);
+	}
+	return Z_STRLEN_P(expr);
+}
+
+
+void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str)
+{
+	zval **tmp;
+	HashPosition iterator;
+	int i = 0;
+
+	zend_hash_internal_pointer_reset_ex(arg_array->value.ht, &iterator);
+	while (zend_hash_get_current_data_ex(arg_array->value.ht, (void **) &tmp, &iterator) == SUCCESS) {
+		if (i++) {
+                    smart_str_appends(trace_str, ", ");
+		}
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
+		zend_hash_move_forward_ex(arg_array->value.ht, &iterator);
+	}
+}
 
 /* Insert an event in the backend */
 static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
@@ -478,7 +601,6 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 #endif
 	ptr = EG(current_execute_data);
 
-	ptr = ptr->prev_execute_data;
 #if PHP_API_VERSION < 20090626
 	cur_arg_pos -= 2;
 	frames_on_stack--;
@@ -546,7 +668,6 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 #endif
 			}
 		} else {
-                        /*TODO continue review with debug_print_backtrace */
 			/* i know this is kinda ugly, but i'm trying to avoid extra cycles in the main execution loop */
 			zend_bool build_filename_arg = 1;
 
@@ -597,7 +718,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		smart_str_appends(&trace_str, function_name?function_name:"main");
 		smart_str_appendc(&trace_str, '(');
 		if (arg_array) {
-			debug_print_backtrace_args(arg_array TSRMLS_CC);
+			debug_print_backtrace_args(arg_array TSRMLS_CC, &trace_str);
 			zval_ptr_dtor(&arg_array);
 		}
 		if (filename) {
