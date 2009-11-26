@@ -64,11 +64,6 @@ extern void append_backtrace(smart_str *trace_str)
 #endif
 	ptr = EG(current_execute_data);
 
-#if PHP_API_VERSION < 20090626
-	cur_arg_pos -= 2;
-	frames_on_stack--;
-#endif
-
 	while (ptr) {
 		char *free_class_name = NULL;
 
