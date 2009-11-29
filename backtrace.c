@@ -17,13 +17,13 @@
 #include "php.h"
 #include "ext/standard/php_smart_str.h"
 
-void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
-void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
+static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str);
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 
 
-extern void append_backtrace(smart_str *trace_str)
+void append_backtrace(smart_str *trace_str)
 {
     /* backtrace variables */
         zend_execute_data *ptr, *skip;
@@ -217,7 +217,7 @@ extern void append_backtrace(smart_str *trace_str)
 	}
 }
 
-void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str)
+static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str)
 {
 	zval **tmp;
 	HashPosition iterator;
@@ -234,7 +234,7 @@ void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str)
 }
 
 
-void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str) /* {{{ */
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str) /* {{{ */
 {
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:

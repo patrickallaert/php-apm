@@ -19,7 +19,7 @@
 
 #include "ext/standard/php_smart_str.h"
 
-extern void append_backtrace(smart_str *trace_str);
+void append_backtrace(smart_str *trace_str);
 
 #endif
 
