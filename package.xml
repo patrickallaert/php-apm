@@ -40,7 +40,14 @@
    <file name="apm.ini" role="data" />
    <file name="AUTHORS" role="doc" />
    <file name="NEWS" role="doc" />
-   <file name="LICENSE" role="doc" /> 
+   <file name="LICENSE" role="doc" />
+   <dir name="web">
+    <file name="apm.php" role="php" />
+    <dir name="php-5-3">
+     <file name="index.php" role="php" />
+     <file name="event.php" role="php" />
+    </dir>
+   </dir>
   </dir>
  </contents>
  <dependencies>
