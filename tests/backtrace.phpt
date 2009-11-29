@@ -23,5 +23,5 @@ function trigger1($a, $b, $c, $d, $e) {
 $z = 1; $y = ''; $x = array(0, 'key' => 'value'); $w = new stdClass(); $v = null;
 trigger1($z, $y, $x, $w, $v);
 ?>
---EXPECT--
-Notice: error in /home/davide/peclapm/tests/backtrace.php on line 9
+--EXPECTF--
+Notice: error in %s/tests/backtrace.php on line 9

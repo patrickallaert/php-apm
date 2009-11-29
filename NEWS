@@ -1,3 +1,8 @@
+APM 1.0.0beta2   29 Nov 2009
+----------------------------
+Fixed:
+- Path used in tests were hardly fixed
+
 APM 1.0.0beta1   29 Nov 2009
 ----------------------------
 - Initial release.
