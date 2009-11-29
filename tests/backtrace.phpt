@@ -1,5 +1,5 @@
 --TEST--
-Parse error test
+Backtrace test
 --SKIPIF--
 <?php 
 require_once('skipif.inc'); 
