@@ -14,7 +14,7 @@
  +----------------------------------------------------------------------+
  */
 
-#define APM_VERSION "1.0.0RC1"
+#define APM_VERSION "1.0.0beta1"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

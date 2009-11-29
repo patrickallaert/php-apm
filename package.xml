@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package packagerversion="1.7.1" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
- <name>apm</name>
+<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.7" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+ <name>APM</name>
  <channel>pecl.php.net</channel>
  <summary>Alternative PHP Monitor</summary>
  <description>Monitoring extension for PHP, collects error events and store them in a local SQLite database.</description>
@@ -16,10 +16,9 @@
   <email>patrick.allaert@gmail.com</email>
   <active>yes</active>
  </lead>
- <date>2008-11-09</date>
- <time>11:44:00</time>
+ <date>2009-11-29</date>
  <version>
-  <release>1.0.0RC1</release>
+  <release>1.0.0beta1</release>
   <api>1.0.0</api>
  </version>
  <stability>
@@ -32,23 +31,25 @@
 </notes>
  <contents>
   <dir name="/">
-   <file md5sum="95b29f6411964cbc4f76b80465a607a9" name="config.m4" role="src" />
-   <file md5sum="ca60168a039e91b697a8e2199745964e" name="php_apm.h" role="src" />
-   <file md5sum="f119506e29a8896e3860fa1edbfcbe52" name="apm.c" role="src" />
-   <file md5sum="af7e2d71a612126b6546d965dbc12826" name="apm.sql" role="data" />
-   <file md5sum="c7481d025804f5138b8a21abfb88f76c" name="apm.ini" role="data" />
-   <file md5sum="d32239bcb673463ab874e80d47fae504" name="COPYING" role="doc" />
-   <file md5sum="fb23be1607ea11d233f9437b40ab1d15" name="AUTHORS" role="doc" />
-   <file md5sum="              FIXME             " name="NEWS" role="doc" />
+   <file name="config.m4" role="src" />
+   <file name="php_apm.h" role="src" />
+   <file name="apm.c" role="src" />
+   <file name="backtrace.h" role="src" />
+   <file name="backtrace.c" role="src" />
+   <file name="apm.sql" role="data" />
+   <file name="apm.ini" role="data" />
+   <file name="AUTHORS" role="doc" />
+   <file name="NEWS" role="doc" />
+   <file name="LICENSE" role="doc" /> 
   </dir>
  </contents>
  <dependencies>
   <required>
    <php>
-    <min>4.0.0</min>
+    <min>5.2.0</min>
    </php>
    <pearinstaller>
-    <min>1.4.0b1</min>
+    <min>1.4.0</min>
    </pearinstaller>
   </required>
  </dependencies>
