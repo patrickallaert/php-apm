@@ -6,14 +6,14 @@
  <description>Monitoring extension for PHP, collects error events and store them in a local SQLite database.</description>
  <lead>
   <name>Davide Mendolia</name>
-  <user></user>
-  <email>idaf_1er@gmail.com</email>
+  <user>dmendolia</user>
+  <email>dmendolia@php.net</email>
   <active>yes</active>
  </lead>
  <lead>
   <name>Patrick Allaert</name>
-  <user></user>
-  <email>patrick.allaert@gmail.com</email>
+  <user>patrickallaert</user>
+  <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
  <date>2009-11-29</date>
