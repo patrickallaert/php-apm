@@ -23,7 +23,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str);
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 
 
-void append_backtrace(smart_str *trace_str)
+void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
     /* backtrace variables */
         zend_execute_data *ptr, *skip;

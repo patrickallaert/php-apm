@@ -51,6 +51,13 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool slow_request_enabled;
 	/* Path to the SQLite database file */
 	char     *db_path;
+	
+	/* The actual db file */
+	char     db_file[MAXPATHLEN];
+	
+	/* DB handle */
+	sqlite3 *event_db;
+	
 	/* Max timeout to wait for storing the event in the DB */
 	long      timeout;
 	/* Time (in ms) before a request is considered 'slow' */

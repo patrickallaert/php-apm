@@ -19,7 +19,7 @@
 
 #include "ext/standard/php_smart_str.h"
 
-void append_backtrace(smart_str *trace_str);
+void append_backtrace(smart_str *trace_str TSRMLS_DC);
 
 #endif
 

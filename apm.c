@@ -20,10 +20,14 @@
 #include "config.h"
 #endif
 
-#include <sys/time.h>
+/* gettimeofday */
+#ifdef PHP_WIN32
+# include "win32/time.h"
+#else
+# include "main/php_config.h"
+#endif
+
 #include <sqlite3.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
@@ -31,14 +35,16 @@
 #include "backtrace.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_filestat.h"
 
-#define DB_FILE "/events"
+#define DB_FILE "events"
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
 #define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
-ZEND_API void (*old_error_cb)(int type, const char *error_filename,
-                              const uint error_lineno, const char *format,
-                              va_list args);
+void (*old_error_cb)(int type, const char *error_filename,
+                     const uint error_lineno, const char *format,
+                     va_list args);
+
 void apm_error_cb(int type, const char *error_filename, 
                   const uint error_lineno, const char *format,
                   va_list args);
@@ -47,13 +53,11 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
 static int callback(void *, int, char **, char **);
 static int callback_slow_request(void *, int, char **, char **);
-static int perform_db_access_checks();
-static void insert_event(int, char *, uint, char *);
+static int perform_db_access_checks(const char *path TSRMLS_DC);
+static void insert_event(int, char *, uint, char * TSRMLS_DC);
 
 void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
 
-sqlite3 *event_db;
-char *db_file;
 static int odd_event_list = 1;
 static int odd_slow_request = 1;
 
@@ -89,6 +93,22 @@ ZEND_GET_MODULE(apm)
 
 ZEND_DECLARE_MODULE_GLOBALS(apm)
 
+static PHP_INI_MH(OnUpdateDBFile)
+{
+	if (new_value && new_value_length > 0) {
+		snprintf(APM_G(db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
+
+		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
+			APM_G(enabled) = 0;
+			APM_G(event_enabled) = 0;
+		}
+	} else {
+		APM_G(enabled) = 0;
+		APM_G(event_enabled) = 0;
+	}
+	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+}
+
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the extension is globally active or not */
 	STD_PHP_INI_BOOLEAN("apm.enabled",                "1",                      PHP_INI_ALL, OnUpdateBool,   enabled,                zend_apm_globals, apm_globals)
@@ -99,7 +119,7 @@ PHP_INI_BEGIN()
 	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,                zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/db",        PHP_INI_ALL, OnUpdateString, db_path,                zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.db_path",                  "/var/php/apm/db",        PHP_INI_ALL, OnUpdateDBFile, db_path,                zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered 'slow' */
 	STD_PHP_INI_ENTRY("apm.slow_request_duration",    "100",                    PHP_INI_ALL, OnUpdateLong,   slow_request_duration,  zend_apm_globals, apm_globals)
 PHP_INI_END()
@@ -112,19 +132,6 @@ PHP_MINIT_FUNCTION(apm)
 {
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
-
-	if (APM_G(enabled)) {
-		if (perform_db_access_checks() == FAILURE) {
-			return FAILURE;
-		}
-
-		/* Defining full path to db file */
-		db_file = (char *) malloc((strlen(APM_G(db_path)) + strlen(DB_FILE) + 1) * sizeof(char));
-
-		strcpy(db_file, APM_G(db_path));
-		strcat(db_file, DB_FILE);
-	}
-
 	return SUCCESS;
 }
 
@@ -142,28 +149,26 @@ PHP_RINIT_FUNCTION(apm)
 {
 	/* Storing actual error callback function for later restore */
 	old_error_cb = zend_error_cb;
-
-	if (APM_G(enabled)) {
+	
+	if (APM_G(enabled)) {	
 		if (APM_G(event_enabled)) {
-			struct timezone begin_tz;
-			
 			/* storing timestamp of request */
-			gettimeofday(&begin_tp, &begin_tz);
+			gettimeofday(&begin_tp, NULL);
 		}
 		/* Opening the sqlite database file */
-		if (sqlite3_open(db_file, &event_db)) {
+		if (sqlite3_open(APM_G(db_file), &APM_G(event_db))) {
 			/*
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
-			sqlite3_close(event_db);
+			sqlite3_close(APM_G(event_db));
 			return FAILURE;
 		}
 
-		sqlite3_busy_timeout(event_db, APM_G(timeout));
+		sqlite3_busy_timeout(APM_G(event_db), APM_G(timeout));
 
 		/* Making the connection asynchronous, not waiting for data being really written to the disk */
-		sqlite3_exec(event_db, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+		sqlite3_exec(APM_G(event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
 
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
@@ -177,9 +182,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	if (APM_G(enabled) && APM_G(slow_request_enabled)) {
 		float duration;
 		struct timeval end_tp;
-		struct timezone end_tz;
 
-		gettimeofday(&end_tp, &end_tz);
+		gettimeofday(&end_tp, NULL);
 
 		/* Request longer than accepted thresold ? */
 		duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
@@ -209,10 +213,11 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			                      USEC_TO_SEC(duration), script_filename);
 
 			/* Executing SQL insert query */
-			sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+			sqlite3_exec(APM_G(event_db), sql, NULL, NULL, NULL);
 
 			sqlite3_free(sql);
 		}
+		
 	}
 
 	/* Restoring saved error callback function */
@@ -235,6 +240,8 @@ PHP_MINFO_FUNCTION(apm)
  *    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
+	TSRMLS_FETCH();
+	
 	if (APM_G(event_enabled)) {
 		char *msg;
 		va_list args_copy;
@@ -242,12 +249,13 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 		/* A copy of args is needed to be used for the old_error_cb */
 		va_copy(args_copy, args);
 		vspprintf(&msg, 0, format, args_copy);
+		va_end(args_copy);
 
 		/* We need to see if we have an uncaught exception fatal error now */
 		if (type == E_ERROR && strncmp(msg, "Uncaught exception", 18) == 0) {
 
 		} else {
-			insert_event(type, (char *) error_filename, error_lineno, msg);
+			insert_event(type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
 		}
 		efree(msg);
 	}
@@ -275,7 +283,7 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-		insert_event(E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message));
+		insert_event(E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
 }
 
@@ -285,7 +293,7 @@ PHP_FUNCTION(apm_get_events)
 {
 	sqlite3 *db;
 	/* Opening the sqlite database file */
-	if (sqlite3_open(db_file, &db)) {
+	if (sqlite3_open(APM_G(db_file), &db)) {
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
 		RETURN_FALSE;
@@ -323,7 +331,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 {
 	sqlite3 *db;
 	/* Opening the sqlite database file */
-	if (sqlite3_open(db_file, &db)) {
+	if (sqlite3_open(APM_G(db_file), &db)) {
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
 		RETURN_FALSE;
@@ -360,38 +368,40 @@ static int callback_slow_request(void *data, int num_fields, char **fields, char
 }
 
 /* Perform access checks on the DB path */
-static int perform_db_access_checks()
+static int perform_db_access_checks(const char *path TSRMLS_DC)
 {
-	struct stat db_path_stat;
+	zend_bool is_dir;
+	zval *stat;
 
+	MAKE_STD_ZVAL(stat);
+	php_stat(path, strlen(path), FS_IS_DIR, stat TSRMLS_CC);
+	
+	is_dir = Z_BVAL_P(stat);
+	zval_dtor(stat);
+	FREE_ZVAL(stat);
+		
 	/* Does db_path exists ? */
-	if (stat(APM_G(db_path), &db_path_stat) != 0) {
-		zend_error(E_CORE_WARNING, "APM cannot be loaded, an error occured while accessing %s", APM_G(db_path));
+	if (!is_dir) {
+		zend_error(E_CORE_WARNING, "APM cannot be enabled, '%s' is not directory", path);
 		return FAILURE;
 	}
 
-	/* Is this a directory ? */
-	if (! S_ISDIR(db_path_stat.st_mode)) {
-		zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be a directory", APM_G(db_path));
+	if (VCWD_ACCESS(path, W_OK | R_OK | X_OK) != SUCCESS) {
+		zend_error(E_CORE_WARNING, "APM cannot be enabled, %s needs to readable, writable and executable", path);
 		return FAILURE;
 	}
-
-	/* Does it have the correct permissions ? */
-	if (access(APM_G(db_path), R_OK | W_OK | X_OK) != 0) {
-		zend_error(E_CORE_WARNING, "APM cannot be loaded, %s should be readable, writable and executable", APM_G(db_path));
-		return FAILURE;
-	}
+	
 	return SUCCESS;
 }
 
 /* Insert an event in the backend */
-static void insert_event(int type, char * error_filename, uint error_lineno, char * msg)
+static void insert_event(int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
 {
-        /* sql variables */
-        char *sql;
+	/* sql variables */
+	char *sql;
 	smart_str trace_str = {0};
 
-        append_backtrace(&trace_str);
+	append_backtrace(&trace_str TSRMLS_CC);
         
 	smart_str_0(&trace_str);
 
@@ -399,7 +409,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
 		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace_str.c ? trace_str.c : "");
 	/* Executing SQL insert query */
-	sqlite3_exec(event_db, sql, NULL, NULL, NULL);
+	sqlite3_exec(APM_G(event_db), sql, NULL, NULL, NULL);
 
 	smart_str_free(&trace_str);
 	sqlite3_free(sql);
