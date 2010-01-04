@@ -33,7 +33,6 @@ if test "$PHP_APM" != "no"; then
 
   AC_MSG_CHECKING([for SQLite 3.*])
   PHP_CHECK_LIBRARY(sqlite3, sqlite3_open, [
-    AC_MSG_RESULT(found)
     PHP_ADD_LIBRARY_WITH_PATH(sqlite3, $SQLITE3_DIR/lib, APM_SHARED_LIBADD)
     PHP_ADD_INCLUDE($SQLITE3_DIR/include)
   ],[
