@@ -1,0 +1,11 @@
+ARG_WITH('apm', 'Whether to enable APM support', 'no');
+  
+  if (PHP_APM != 'no') {
+    ADD_EXTENSION_DEP('apm', 'sqlite3', true);
+    
+    EXTENSION('apm', 'apm.c backtrace.c', null, "/DSQLITE_THREADSAFE=" + (PHP_ZTS == "yes" ? "1" : "0") + " /D SQLITE_ENABLE_FTS3=1 /D SQLITE_ENABLE_COLUMN_METADATA=1 /D SQLITE_CORE=1 /I" + CWD + "/ext/sqlite3/libsqlite /I" + configure_module_dirname);
+    
+    if (PHP_APM_SHARED || PHP_SQLITE3_SHARED || PHP_SQLITE3 == 'no') {
+      ADD_SOURCES(CWD + "/ext/sqlite3/libsqlite", "sqlite3.c", "apm");
+    }
+}
