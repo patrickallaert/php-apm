@@ -288,10 +288,19 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 }
 
 
-/* Return an HTML table with all events */
+/* {{{ proto float apm_get_events([, int limit[, int offset]]) U
+   Return an HTML table with all events */
 PHP_FUNCTION(apm_get_events)
 {
 	sqlite3 *db;
+	long limit = 25;
+	long offset = 0;
+	char *sql;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &limit, &offset) == FAILURE) {
+		return;
+	}
+
 	/* Opening the sqlite database file */
 	if (sqlite3_open(APM_G(db_file), &db)) {
 		/* Closing DB file and returning false */
@@ -302,7 +311,7 @@ PHP_FUNCTION(apm_get_events)
 	/* Results are printed in an HTML table */
 	odd_event_list = 1;
 	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
-	sqlite3_exec(db, "SELECT id, ts, CASE type \
+	sql = sqlite3_mprintf("SELECT id, ts, CASE type \
                           WHEN 1 THEN 'E_ERROR' \
                           WHEN 2 THEN 'E_WARNING' \
                           WHEN 4 THEN 'E_PARSE' \
@@ -319,17 +328,27 @@ PHP_FUNCTION(apm_get_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-                          file, line, message, backtrace FROM event ORDER BY id DESC", callback, NULL, NULL);
+							  file, line, message, backtrace FROM event ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset);
+	sqlite3_exec(db, sql, callback, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
 	RETURN_TRUE;
 }
 
-/* Return an HTML table with all events */
+/* {{{ proto float apm_get_slow_requests([, int limit[, int offset]]) U
+   Return an HTML table with all slow requests */
 PHP_FUNCTION(apm_get_slow_requests)
 {
 	sqlite3 *db;
+	long limit = 25;
+	long offset = 0;
+	char *sql;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &limit, &offset) == FAILURE) {
+		return;
+	}
+
 	/* Opening the sqlite database file */
 	if (sqlite3_open(APM_G(db_file), &db)) {
 		/* Closing DB file and returning false */
@@ -340,7 +359,8 @@ PHP_FUNCTION(apm_get_slow_requests)
 	/* Results are printed in an HTML table */
 	odd_slow_request = 1;
 	php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
-	sqlite3_exec(db, "SELECT id, ts, duration, file FROM slow_request ORDER BY id DESC", callback_slow_request, NULL, NULL);
+	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset);
+	sqlite3_exec(db, sql, callback_slow_request, NULL, NULL);
 	php_printf("</table>");
 
 	sqlite3_close(db);
