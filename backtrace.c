@@ -234,7 +234,7 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 }
 
 
-static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str) /* {{{ */
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 {
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:
@@ -287,7 +287,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str) /* {{
 	}
 }
 
-static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str) /* {{{ */
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str)
 {
 	zval **tmp;
 	char *string_key;
@@ -316,7 +316,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str) /* {
 	}
 }
 
-int append_variable(zval *expr, smart_str *trace_str) /* {{{ */
+int append_variable(zval *expr, smart_str *trace_str)
 {
 	zval expr_copy;
 	int use_copy;
