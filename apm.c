@@ -51,12 +51,24 @@ void apm_error_cb(int type, const char *error_filename,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
-static int callback(void *, int, char **, char **);
-static int callback_slow_request(void *, int, char **, char **);
+static int event_callback_html(void *, int, char **, char **);
+static int event_callback_json(void *, int, char **, char **);
+static int slow_request_callback_html(void *, int, char **, char **);
+static int slow_request_callback_json(void *, int, char **, char **);
+static int event_callback_count(void *count, int num_fields, char **fields, char **col_name);
+static long get_table_count(char * table);
 static int perform_db_access_checks(const char *path TSRMLS_DC);
 static void insert_event(int, char *, uint, char * TSRMLS_DC);
 
 void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
+
+#ifdef PHP_WIN32
+#define PHP_JSON_API __declspec(dllexport)
+#else
+#define PHP_JSON_API
+#endif
+
+PHP_JSON_API void php_json_encode(smart_str *buf, zval *val TSRMLS_DC);
 
 static int odd_event_list = 1;
 static int odd_slow_request = 1;
@@ -67,6 +79,8 @@ struct timeval begin_tp;
 function_entry apm_functions[] = {
         PHP_FE(apm_get_events, NULL)
         PHP_FE(apm_get_slow_requests, NULL)
+        PHP_FE(apm_get_events_count, NULL)
+        PHP_FE(apm_get_slow_requests_count, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -132,6 +146,13 @@ PHP_MINIT_FUNCTION(apm)
 {
 	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
+
+	REGISTER_LONG_CONSTANT("APM_ORDER_ID", APM_ORDER_ID, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("APM_ORDER_TIMESTAMP", APM_ORDER_TIMESTAMP, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("APM_ORDER_TYPE", APM_ORDER_TYPE, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("APM_ORDER_DURATION", APM_ORDER_DURATION, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("APM_ORDER_FILE", APM_ORDER_FILE, CONST_CS | CONST_PERSISTENT);
+
 	return SUCCESS;
 }
 
@@ -288,16 +309,19 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 }
 
 
-/* {{{ proto float apm_get_events([, int limit[, int offset]]) U
-   Return an HTML table with all events */
+/* {{{ proto bool apm_get_events([, int limit[, int offset[, int order[, bool asc[, bool json]]]]]) U
+   Returns HTML/JSON with all events */
 PHP_FUNCTION(apm_get_events)
 {
 	sqlite3 *db;
+	long order = APM_ORDER_ID;
 	long limit = 25;
 	long offset = 0;
 	char *sql;
+	zend_bool json = 0;
+	zend_bool asc = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &limit, &offset) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
 		return;
 	}
 
@@ -308,9 +332,15 @@ PHP_FUNCTION(apm_get_events)
 		RETURN_FALSE;
 	}
 
-	/* Results are printed in an HTML table */
-	odd_event_list = 1;
-	php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
+	if (!json) {
+		php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
+		odd_event_list = 1;
+	}
+
+	if (order < 1 || order > 4) {
+		order = 1;
+	}
+
 	sql = sqlite3_mprintf("SELECT id, ts, CASE type \
                           WHEN 1 THEN 'E_ERROR' \
                           WHEN 2 THEN 'E_WARNING' \
@@ -328,24 +358,30 @@ PHP_FUNCTION(apm_get_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-							  file, line, message, backtrace FROM event ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset);
-	sqlite3_exec(db, sql, callback, NULL, NULL);
-	php_printf("</table>");
+							  file, line, message, backtrace FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+	sqlite3_exec(db, sql, json ? event_callback_json : event_callback_html, NULL, NULL);
+	if (!json) {
+		php_printf("</table>");
+	}
 
+	sqlite3_free(sql);
 	sqlite3_close(db);
 	RETURN_TRUE;
 }
 
-/* {{{ proto float apm_get_slow_requests([, int limit[, int offset]]) U
-   Return an HTML table with all slow requests */
+/* {{{ proto bool apm_get_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]]) U
+   Returns HTML/JSON with all slow requests */
 PHP_FUNCTION(apm_get_slow_requests)
 {
 	sqlite3 *db;
+	long order = APM_ORDER_ID;
 	long limit = 25;
 	long offset = 0;
 	char *sql;
+	zend_bool json = 0;
+	zend_bool asc = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|ll", &limit, &offset) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
 		return;
 	}
 
@@ -356,19 +392,74 @@ PHP_FUNCTION(apm_get_slow_requests)
 		RETURN_FALSE;
 	}
 
-	/* Results are printed in an HTML table */
-	odd_slow_request = 1;
-	php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
-	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset);
-	sqlite3_exec(db, sql, callback_slow_request, NULL, NULL);
-	php_printf("</table>");
+	if (!json) {
+		php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
+		odd_slow_request = 1;
+	}
+	
+	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+	sqlite3_exec(db, sql, json ? slow_request_callback_json : slow_request_callback_html, NULL, NULL);
 
+	if (!json) {
+		php_printf("</table>");
+	}
+
+	sqlite3_free(sql);
 	sqlite3_close(db);
 	RETURN_TRUE;
 }
 
-/* Function called for every row returned by event query */
-static int callback(void *data, int num_fields, char **fields, char **col_name)
+/* {{{ proto int apm_get_events_count() U
+   Return the number of events */
+PHP_FUNCTION(apm_get_events_count)
+{
+	long count;
+
+	count = get_table_count("event");
+	if (count == -1) {
+		RETURN_FALSE;
+	}
+	RETURN_LONG(count);
+}
+
+/* {{{ proto int apm_get_events_count() U
+   Return the number of slow requests */
+PHP_FUNCTION(apm_get_slow_requests_count)
+{
+	long count;
+
+	count = get_table_count("slow_request");
+	if (count == -1) {
+		RETURN_FALSE;
+	}
+	RETURN_LONG(count);
+}
+
+/* Returns the number of rows of a table */
+static long get_table_count(char * table)
+{
+	sqlite3 *db;
+	char *sql;
+	long count;
+
+	/* Opening the sqlite database file */
+	if (sqlite3_open(APM_G(db_file), &db)) {
+		/* Closing DB file and returning false */
+		sqlite3_close(db);
+		return -1;
+	}
+
+	sql = sqlite3_mprintf("SELECT COUNT(*) FROM %s", table);
+	sqlite3_exec(db, sql, event_callback_count, &count, NULL);
+
+	sqlite3_free(sql);
+	sqlite3_close(db);
+
+	return count;
+}
+
+/* Function called for every row returned by event query (html version) */
+static int event_callback_html(void *data, int num_fields, char **fields, char **col_name)
 {
 	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
                    fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
@@ -377,12 +468,80 @@ static int callback(void *data, int num_fields, char **fields, char **col_name)
 	return 0;
 }
 
-/* Function called for every row returned by slow request query */
-static int callback_slow_request(void *data, int num_fields, char **fields, char **col_name)
+/* Function called for every row returned by event query (json version) */
+static int event_callback_json(void *data, int num_fields, char **fields, char **col_name)
+{
+	smart_str file = {0};
+	smart_str msg = {0};
+	smart_str trace = {0};
+	zval zfile, zmsg, ztrace;
+
+	Z_TYPE(zfile) = IS_STRING;
+    Z_STRVAL(zfile) = fields[3];
+    Z_STRLEN(zfile) = strlen(fields[3]);
+
+	Z_TYPE(zmsg) = IS_STRING;
+    Z_STRVAL(zmsg) = fields[5];
+    Z_STRLEN(zmsg) = strlen(fields[5]);
+
+	Z_TYPE(ztrace) = IS_STRING;
+    Z_STRVAL(ztrace) = fields[6];
+    Z_STRLEN(ztrace) = strlen(fields[6]);
+
+	php_json_encode(&file, &zfile TSRMLS_CC);
+	php_json_encode(&msg, &zmsg TSRMLS_CC);
+	php_json_encode(&trace, &ztrace TSRMLS_CC);
+
+	smart_str_0(&file);
+	smart_str_0(&msg);
+	smart_str_0(&trace);
+
+	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
+                   fields[0], fields[0], fields[1], fields[2], file.c, fields[4], msg.c, trace.c);
+
+	smart_str_free(&file);
+	smart_str_free(&msg);
+	smart_str_free(&trace);
+
+	return 0;
+}
+
+/* Function called for every row returned by slow request query (html version) */
+static int slow_request_callback_html(void *data, int num_fields, char **fields, char **col_name)
 {
 	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
                    odd_slow_request ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
 	odd_slow_request = !odd_slow_request;
+
+	return 0;
+}
+
+/* Function called for every row returned by slow request query (json version) */
+static int slow_request_callback_json(void *data, int num_fields, char **fields, char **col_name)
+{
+	smart_str file = {0};
+	zval zfile;
+
+	Z_TYPE(zfile) = IS_STRING;
+    Z_STRVAL(zfile) = fields[3];
+    Z_STRLEN(zfile) = strlen(fields[3]);
+
+	php_json_encode(&file, &zfile TSRMLS_CC);
+
+	smart_str_0(&file);
+
+	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
+                   fields[0], fields[0], fields[1], fields[2], file.c);
+
+	smart_str_free(&file);
+
+	return 0;
+}
+
+/* Callback function called for COUNT(*) queries */
+static int event_callback_count(void *count, int num_fields, char **fields, char **col_name)
+{
+	*(long *) count = atol(fields[0]);
 
 	return 0;
 }

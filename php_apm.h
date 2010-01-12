@@ -32,6 +32,12 @@ extern zend_module_entry apm_module_entry;
 #include "TSRM.h"
 #endif
 
+#define APM_ORDER_ID 1
+#define APM_ORDER_TIMESTAMP 2
+#define APM_ORDER_TYPE 3
+#define APM_ORDER_DURATION 3
+#define APM_ORDER_FILE 4
+
 PHP_MINIT_FUNCTION(apm);
 PHP_MSHUTDOWN_FUNCTION(apm);
 PHP_RINIT_FUNCTION(apm);
@@ -40,6 +46,8 @@ PHP_MINFO_FUNCTION(apm);
 
 PHP_FUNCTION(apm_get_events);
 PHP_FUNCTION(apm_get_slow_requests);
+PHP_FUNCTION(apm_get_events_count);
+PHP_FUNCTION(apm_get_slow_requests_count);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
