@@ -48,6 +48,7 @@ PHP_FUNCTION(apm_get_events);
 PHP_FUNCTION(apm_get_slow_requests);
 PHP_FUNCTION(apm_get_events_count);
 PHP_FUNCTION(apm_get_slow_requests_count);
+PHP_FUNCTION(apm_get_event_info);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
@@ -77,6 +78,15 @@ ZEND_END_MODULE_GLOBALS(apm)
 #else
 #define APM_G(v) (apm_globals.v)
 #endif
+
+typedef struct {
+    char *file;
+    long line;
+    long type;
+    long ts;
+    char *message;
+    char *stacktrace;
+} apm_event_info;
 
 #endif
 

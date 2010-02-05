@@ -20,33 +20,51 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <title>APM status</title>
-<link rel="stylesheet" type="text/css" media="screen" href="css/redmond/jquery-ui-1.7.1.custom.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/ui.jqgrid.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/greybox.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/apm.css" />
+<style type="text/css">
+#source {background-color: #ccc;}
+</style>
 </head>
-<body>
-<h1>APM status</h1>
+<body id="event">
 <?php
-if (function_exists('apm_get_events')) {
+$event = apm_get_event_info($_GET['id']);
+if ($event !== false) {
 ?>
-<h2>Faulty events</h2>
-<table id="events"></table>
-<div id="events-pager"></div>
-<h2>Slow requests</h2>
-<table id="slow-requests"></table>
-<div id="slow-requests-pager"></div>
+<div class="%s">
+<div>ID: <?php echo $_GET['id'] ?></div>
+<div>Date: <?php echo strftime('%F %T', $event['timestamp']) ?></div>
+<div>Type: <?php
+switch ($event['type']) {
+    case 1: echo 'E_ERROR'; break;
+    case 2: echo 'E_WARNING'; break;
+    case 4: echo 'E_PARSE'; break;
+    case 8: echo 'E_NOTICE'; break;
+    case 16: echo 'E_CORE_ERROR'; break;
+    case 32: echo 'E_CORE_WARNING'; break;
+    case 64: echo 'E_COMPILE_ERROR'; break;
+    case 128: echo 'E_COMPILE_WARNING'; break;
+    case 256: echo 'E_USER_ERROR'; break;
+    case 512: echo 'E_USER_WARNING'; break;
+    case 1024: echo 'E_USER_NOTICE'; break;
+    case 2048: echo 'E_STRICT'; break;
+    case 4096: echo 'E_RECOVERABLE_ERROR'; break;
+    case 8192: echo 'E_DEPRECATED'; break;
+    case 16384: echo 'E_USER_DEPRECATED'; break;
+}
+?></div>
+<div>File: <?php echo $event['file'] ?></div>
+<div>Line: <?php echo $event['line'] ?></div>
+<div>Message: <?php echo $event['message'] ?></div>
+<div>Stacktrace: <pre><?php echo $event['stacktrace'] ?></pre></div>
+<div id="source">
 <?php
-} else {
+if (is_readable($event['file'])) {
+    highlight_file($event['file']);
+}
 ?>
-<strong>APM extention does not seem to be active.</strong>
+</div>
+</div>
 <?php
 }
 ?>
-<script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>
-<script src="js/i18n/grid.locale-en.js" type="text/javascript"></script>
-<script src="js/jquery.jqGrid.min.js" type="text/javascript"></script>
-<script src="js/greybox.js" type="text/javascript"></script>
-<script src="js/apm.js" type="text/javascript"></script>
 </body>
 </html>

@@ -52,3 +52,5 @@ table#events tr.E_USER_NOTICE td,
 table#events tr.E_STRICT td,
 table#events tr.E_DEPRECATED td,
 table#events tr.E_USER_DEPRECATED td { background-color: #ff8; }
+
+body#event pre {background-color: red;}

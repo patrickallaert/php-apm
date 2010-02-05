@@ -28,12 +28,15 @@
 #endif
 
 #include <sqlite3.h>
+#include <time.h>
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
+#include "zend_alloc.h"
 #include "php_apm.h"
 #include "backtrace.h"
 #include "ext/standard/info.h"
+#include "ext/date/php_date.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
 
@@ -56,6 +59,7 @@ static int event_callback_json(void *, int, char **, char **);
 static int slow_request_callback_html(void *, int, char **, char **);
 static int slow_request_callback_json(void *, int, char **, char **);
 static int event_callback_count(void *count, int num_fields, char **fields, char **col_name);
+static int event_callback_event_info(void *filename, int num_fields, char **fields, char **col_name);
 static long get_table_count(char * table);
 static int perform_db_access_checks(const char *path TSRMLS_DC);
 static void insert_event(int, char *, uint, char * TSRMLS_DC);
@@ -81,6 +85,7 @@ function_entry apm_functions[] = {
         PHP_FE(apm_get_slow_requests, NULL)
         PHP_FE(apm_get_events_count, NULL)
         PHP_FE(apm_get_slow_requests_count, NULL)
+		PHP_FE(apm_get_event_info, NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -435,6 +440,49 @@ PHP_FUNCTION(apm_get_slow_requests_count)
 	RETURN_LONG(count);
 }
 
+/* {{{ proto array apm_get_event_into(int eventID) U
+   Returns all information available on a request */
+PHP_FUNCTION(apm_get_event_info)
+{
+	sqlite3 *db;
+	long id = 0;
+	char *sql;
+	apm_event_info info;
+	info.file = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &id) == FAILURE) {
+		return;
+	}
+
+	/* Opening the sqlite database file */
+	if (sqlite3_open(APM_G(db_file), &db)) {
+		/* Closing DB file and returning false */
+		sqlite3_close(db);
+		RETURN_FALSE;
+	}
+
+	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace FROM event WHERE id = %d", id);
+	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
+
+	sqlite3_free(sql);
+	sqlite3_close(db);
+
+	if (info.file == NULL) {
+		RETURN_FALSE;
+	}
+
+	array_init(return_value);
+
+	add_assoc_long(return_value, "timestamp", info.ts);
+	add_assoc_string(return_value, "file", info.file, 1);
+	add_assoc_long(return_value, "line", info.line);
+	add_assoc_long(return_value, "type", info.type);
+	add_assoc_string(return_value, "message", info.message, 1);
+	add_assoc_string(return_value, "stacktrace", info.stacktrace, 1);
+}
+
+/* }}} */
+
 /* Returns the number of rows of a table */
 static long get_table_count(char * table)
 {
@@ -464,6 +512,42 @@ static int event_callback_html(void *data, int num_fields, char **fields, char *
 	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
                    fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
 	odd_event_list = !odd_event_list;
+
+	return 0;
+}
+
+/* Function called for the row returned by event info query */
+static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name)
+{
+	// Most logic here is to transform the date from string format to unix timestamp
+	timelib_time *t, *now;
+	timelib_tzinfo *tzi;
+	int error1, error2;
+	long ts;
+	struct timelib_error_container *error;
+
+	tzi = get_timezone_info(TSRMLS_C);
+	now = timelib_time_ctor();
+	now->tz_info = tzi;
+	now->zone_type = TIMELIB_ZONETYPE_ID;
+	timelib_unixtime2local(now, (timelib_sll) time(NULL));
+
+	t = timelib_strtotime(fields[1], strlen(fields[1]), &error, timelib_builtin_db());
+	error1 = error->error_count;
+	timelib_error_container_dtor(error);
+	timelib_fill_holes(t, now, TIMELIB_NO_CLONE);
+	timelib_update_ts(t, tzi);
+	ts = timelib_date_to_int(t, &error2);
+
+	timelib_time_dtor(now);
+	timelib_time_dtor(t);
+
+	(*(apm_event_info *) info).ts = (!error1 && !error2) ? ts : -1;
+	(*(apm_event_info *) info).file = estrdup(fields[3]);
+	(*(apm_event_info *) info).line = atoi(fields[4]);
+	(*(apm_event_info *) info).type = atoi(fields[2]);
+	(*(apm_event_info *) info).message = estrdup(fields[5]);
+	(*(apm_event_info *) info).stacktrace = estrdup(fields[6]);
 
 	return 0;
 }

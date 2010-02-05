@@ -3,15 +3,14 @@ jQuery(document).ready(function(){
     url: 'events.php',
     datatype: 'json',
     mtype: 'GET',
-    colNames :['#', 'Time', 'Type', 'File', 'Line', 'Message', 'Backtrace'],
+    colNames :['#', 'Time', 'Type', 'File', 'Line', 'Message'],
     colModel :[
       {name:'id', index:'id', width:55},
       {name:'time', index:'time', width:130},
       {name:'type', index:'type', width:70},
       {name:'file', index:'file', width:300},
       {name:'line', index:'line', width:50, align:'right', sortable:false},
-      {name:'msg', index:'msg', width:250, sortable:false},
-      {name:'trace', index:'trace', width:350, sortable:false}
+      {name:'msg', index:'msg', width:250, sortable:false}
     ],
     pager: '#events-pager',
     rowNum: 20,
@@ -28,7 +27,11 @@ jQuery(document).ready(function(){
       for (var i = 0; i < _rows.length; i++) {
         _rows[i].attributes["class"].value += " " + _rows[i].childNodes[2].textContent;
       }
-    }
+    },
+    onSelectRow: function(id) {
+      GB_show(jQuery("#events").jqGrid('getCell', id, 5),"event.php?id=" + jQuery("#events").jqGrid('getCell', id, 0), 800, 1000);
+    },
+
   });
   jQuery("#slow-requests").jqGrid({
     url: 'slow_requests.php',
