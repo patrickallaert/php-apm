@@ -135,6 +135,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.event_enabled",          "1",                      PHP_INI_ALL, OnUpdateBool,   event_enabled,          zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled",   "1",                      PHP_INI_ALL, OnUpdateBool,   slow_request_enabled,   zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the the stacktrace should be generated or not */
+	STD_PHP_INI_BOOLEAN("apm.stacktrace_enabled",     "1",                      PHP_INI_ALL, OnUpdateBool,   stacktrace_enabled,     zend_apm_globals, apm_globals)
 	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.max_event_insert_timeout", "100",                    PHP_INI_ALL, OnUpdateLong,   timeout,                zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
@@ -664,13 +666,14 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	char *sql;
 	smart_str trace_str = {0};
 
-	append_backtrace(&trace_str TSRMLS_CC);
-        
-	smart_str_0(&trace_str);
+	if (APM_G(stacktrace_enabled)) {
+		append_backtrace(&trace_str TSRMLS_CC);
+		smart_str_0(&trace_str);
+	}
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace_str.c ? trace_str.c : "");
+		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_G(event_db), sql, NULL, NULL, NULL);
 

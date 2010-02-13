@@ -58,6 +58,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool event_enabled;
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	zend_bool slow_request_enabled;
+        /* Boolean controlling whether the the stacktrace should be generated or not */
+	zend_bool stacktrace_enabled;
 	/* Path to the SQLite database file */
 	char     *db_path;
 	
