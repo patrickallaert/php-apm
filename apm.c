@@ -375,6 +375,7 @@ PHP_FUNCTION(apm_get_events)
 	sqlite3_close(db);
 	RETURN_TRUE;
 }
+/* }}} */
 
 /* {{{ proto bool apm_get_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]]) U
    Returns HTML/JSON with all slow requests */
@@ -415,6 +416,7 @@ PHP_FUNCTION(apm_get_slow_requests)
 	sqlite3_close(db);
 	RETURN_TRUE;
 }
+/* }}} */
 
 /* {{{ proto int apm_get_events_count() U
    Return the number of events */
@@ -428,6 +430,7 @@ PHP_FUNCTION(apm_get_events_count)
 	}
 	RETURN_LONG(count);
 }
+/* }}} */
 
 /* {{{ proto int apm_get_events_count() U
    Return the number of slow requests */
@@ -441,6 +444,7 @@ PHP_FUNCTION(apm_get_slow_requests_count)
 	}
 	RETURN_LONG(count);
 }
+/* }}} */
 
 /* {{{ proto array apm_get_event_into(int eventID) U
    Returns all information available on a request */
@@ -482,7 +486,6 @@ PHP_FUNCTION(apm_get_event_info)
 	add_assoc_string(return_value, "message", info.message, 1);
 	add_assoc_string(return_value, "stacktrace", info.stacktrace, 1);
 }
-
 /* }}} */
 
 /* Returns the number of rows of a table */
