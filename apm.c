@@ -64,8 +64,6 @@ static long get_table_count(char * table);
 static int perform_db_access_checks(const char *path TSRMLS_DC);
 static void insert_event(int, char *, uint, char * TSRMLS_DC);
 
-void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
-
 #ifdef PHP_WIN32
 #define PHP_JSON_API __declspec(dllexport)
 #else
