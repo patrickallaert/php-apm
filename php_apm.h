@@ -58,7 +58,7 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool event_enabled;
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	zend_bool slow_request_enabled;
-        /* Boolean controlling whether the the stacktrace should be generated or not */
+	/* Boolean controlling whether the the stacktrace should be generated or not */
 	zend_bool stacktrace_enabled;
 	/* Path to the SQLite database file */
 	char     *db_path;
@@ -73,7 +73,7 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	long      timeout;
 	/* Time (in ms) before a request is considered 'slow' */
 	long      slow_request_duration;
-ZEND_END_MODULE_GLOBALS(apm) 
+ZEND_END_MODULE_GLOBALS(apm)
 
 #ifdef ZTS
 #define APM_G(v) TSRMG(apm_globals_id, zend_apm_globals *, v)
@@ -82,12 +82,12 @@ ZEND_END_MODULE_GLOBALS(apm)
 #endif
 
 typedef struct {
-    char *file;
-    long line;
-    long type;
-    long ts;
-    char *message;
-    char *stacktrace;
+	char *file;
+	long line;
+	long type;
+	long ts;
+	char *message;
+	char *stacktrace;
 } apm_event_info;
 
 #endif

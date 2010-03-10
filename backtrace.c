@@ -26,22 +26,22 @@ static int append_variable(zval *expr, smart_str *trace_str);
 
 void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
-    /* backtrace variables */
-        zend_execute_data *ptr, *skip;
+	/* backtrace variables */
+	zend_execute_data *ptr, *skip;
 	int lineno;
 	char *function_name;
 	char *filename;
 	char *class_name = NULL;
 	char *call_type;
 	char *include_filename = NULL;
-        zval *arg_array = NULL;
+	zval *arg_array = NULL;
 #if PHP_API_VERSION < 20090626
 	void **cur_arg_pos = EG(argument_stack).top_element;
 	void **args = cur_arg_pos;
 	int arg_stack_consistent = 0;
 	int frames_on_stack = 0;
 #endif
-        int indent = 0;
+	int indent = 0;
 
 
 #if PHP_API_VERSION < 20090626
@@ -120,7 +120,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 					arg_array = debug_backtrace_get_args(&ptr->function_state.arguments TSRMLS_CC);
 				}
 #else
-                            if (arg_stack_consistent && (frames_on_stack > 0)) {
+				if (arg_stack_consistent && (frames_on_stack > 0)) {
 					arg_array = debug_backtrace_get_args(&cur_arg_pos TSRMLS_CC);
 					frames_on_stack--;
 				}
@@ -227,7 +227,7 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 	zend_hash_internal_pointer_reset_ex(arg_array->value.ht, &iterator);
 	while (zend_hash_get_current_data_ex(arg_array->value.ht, (void **) &tmp, &iterator) == SUCCESS) {
 		if (i++) {
-                    smart_str_appends(trace_str, ", ");
+			smart_str_appends(trace_str, ", ");
 		}
 		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
 		zend_hash_move_forward_ex(arg_array->value.ht, &iterator);
@@ -239,7 +239,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 {
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:
-                        smart_str_appends(trace_str, "Array (");
+			smart_str_appends(trace_str, "Array (");
 			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
 				smart_str_appends(trace_str, " *RECURSION*");
 				Z_ARRVAL_P(expr)->nApplyCount--;
@@ -259,7 +259,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, &class_name, &clen, 0 TSRMLS_CC);
 			}
 			if (class_name) {
-                                smart_str_appends(trace_str, class_name);
+				smart_str_appends(trace_str, class_name);
 				smart_str_appends(trace_str, " Object (");
 			} else {
 				smart_str_appends(trace_str, "Unknown Class Object (");
@@ -344,12 +344,12 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 #if PHP_API_VERSION >= 20090626
 	void **p = *curpos;
 #else
-        void **p = *curpos - 2;
+	void **p = *curpos - 2;
 #endif
-        zval *arg_array, **arg;
+	zval *arg_array, **arg;
 	int arg_count = (int)(zend_uintptr_t) *p;
 #if PHP_API_VERSION < 20090626
- 	*curpos -= (arg_count+2);
+	*curpos -= (arg_count+2);
 
 #endif
 	MAKE_STD_ZVAL(arg_array);

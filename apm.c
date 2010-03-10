@@ -48,7 +48,7 @@ void (*old_error_cb)(int type, const char *error_filename,
                      const uint error_lineno, const char *format,
                      va_list args);
 
-void apm_error_cb(int type, const char *error_filename, 
+void apm_error_cb(int type, const char *error_filename,
                   const uint error_lineno, const char *format,
                   va_list args);
 
@@ -79,10 +79,10 @@ static int odd_slow_request = 1;
 struct timeval begin_tp;
 
 function_entry apm_functions[] = {
-        PHP_FE(apm_get_events, NULL)
-        PHP_FE(apm_get_slow_requests, NULL)
-        PHP_FE(apm_get_events_count, NULL)
-        PHP_FE(apm_get_slow_requests_count, NULL)
+		PHP_FE(apm_get_events, NULL)
+		PHP_FE(apm_get_slow_requests, NULL)
+		PHP_FE(apm_get_events_count, NULL)
+		PHP_FE(apm_get_slow_requests_count, NULL)
 		PHP_FE(apm_get_event_info, NULL)
 	{NULL, NULL, NULL}
 };
@@ -142,7 +142,7 @@ PHP_INI_BEGIN()
 	/* Time (in ms) before a request is considered 'slow' */
 	STD_PHP_INI_ENTRY("apm.slow_request_duration",    "100",                    PHP_INI_ALL, OnUpdateLong,   slow_request_duration,  zend_apm_globals, apm_globals)
 PHP_INI_END()
- 
+
 static void apm_init_globals(zend_apm_globals *apm_globals)
 {
 }
@@ -263,7 +263,7 @@ PHP_MINFO_FUNCTION(apm)
 }
 
 /* {{{ void apm_error(int type, const char *format, ...)
- *    This function provides a hook for error */
+   This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	TSRMLS_FETCH();
@@ -513,7 +513,7 @@ static long get_table_count(char * table)
 static int event_callback_html(void *data, int num_fields, char **fields, char **col_name)
 {
 	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
-                   fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
+               fields[2], odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
 	odd_event_list = !odd_event_list;
 
 	return 0;
@@ -564,16 +564,16 @@ static int event_callback_json(void *data, int num_fields, char **fields, char *
 	zval zfile, zmsg, ztrace;
 
 	Z_TYPE(zfile) = IS_STRING;
-    Z_STRVAL(zfile) = fields[3];
-    Z_STRLEN(zfile) = strlen(fields[3]);
+	Z_STRVAL(zfile) = fields[3];
+	Z_STRLEN(zfile) = strlen(fields[3]);
 
 	Z_TYPE(zmsg) = IS_STRING;
-    Z_STRVAL(zmsg) = fields[5];
-    Z_STRLEN(zmsg) = strlen(fields[5]);
+	Z_STRVAL(zmsg) = fields[5];
+	Z_STRLEN(zmsg) = strlen(fields[5]);
 
 	Z_TYPE(ztrace) = IS_STRING;
-    Z_STRVAL(ztrace) = fields[6];
-    Z_STRLEN(ztrace) = strlen(fields[6]);
+	Z_STRVAL(ztrace) = fields[6];
+	Z_STRLEN(ztrace) = strlen(fields[6]);
 
 	php_json_encode(&file, &zfile TSRMLS_CC);
 	php_json_encode(&msg, &zmsg TSRMLS_CC);
@@ -584,7 +584,7 @@ static int event_callback_json(void *data, int num_fields, char **fields, char *
 	smart_str_0(&trace);
 
 	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
-                   fields[0], fields[0], fields[1], fields[2], file.c, fields[4], msg.c, trace.c);
+               fields[0], fields[0], fields[1], fields[2], file.c, fields[4], msg.c, trace.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);
@@ -597,7 +597,7 @@ static int event_callback_json(void *data, int num_fields, char **fields, char *
 static int slow_request_callback_html(void *data, int num_fields, char **fields, char **col_name)
 {
 	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-                   odd_slow_request ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
+               odd_slow_request ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
 	odd_slow_request = !odd_slow_request;
 
 	return 0;
@@ -610,15 +610,15 @@ static int slow_request_callback_json(void *data, int num_fields, char **fields,
 	zval zfile;
 
 	Z_TYPE(zfile) = IS_STRING;
-    Z_STRVAL(zfile) = fields[3];
-    Z_STRLEN(zfile) = strlen(fields[3]);
+	Z_STRVAL(zfile) = fields[3];
+	Z_STRLEN(zfile) = strlen(fields[3]);
 
 	php_json_encode(&file, &zfile TSRMLS_CC);
 
 	smart_str_0(&file);
 
 	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
-                   fields[0], fields[0], fields[1], fields[2], file.c);
+               fields[0], fields[0], fields[1], fields[2], file.c);
 
 	smart_str_free(&file);
 
