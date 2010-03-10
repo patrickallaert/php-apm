@@ -12,7 +12,7 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- */
+*/
 
 #include "php.h"
 #include "ext/standard/php_smart_str.h"
