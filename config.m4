@@ -1,7 +1,7 @@
 dnl config.m4 for extension apm
 
 dnl    APM stands for Alternative PHP Monitor
-dnl    Copyright (C) 2008  Davide Mendolia, Patrick Allaert
+dnl    Copyright (C) 2008-2010  Davide Mendolia, Patrick Allaert
 dnl
 dnl    This file is part of APM.
 dnl

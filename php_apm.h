@@ -2,7 +2,7 @@
  +----------------------------------------------------------------------+
  |  APM stands for Alternative PHP Monitor                              |
  +----------------------------------------------------------------------+
- | Copyright (c) 2008-2009  Davide Mendolia, Patrick Allaert            |
+ | Copyright (c) 2008-2010  Davide Mendolia, Patrick Allaert            |
  +----------------------------------------------------------------------+
  | This source file is subject to version 3.01 of the PHP license,      |
  | that is bundled with this package in the file LICENSE, and is        |
