@@ -74,12 +74,12 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 		skip = ptr;
 		/* skip internal handler */
 		if (!skip->op_array &&
-		    skip->prev_execute_data &&
-		    skip->prev_execute_data->opline &&
-		    skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL &&
-		    skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL_BY_NAME &&
-		    skip->prev_execute_data->opline->opcode != ZEND_INCLUDE_OR_EVAL) {
-		  skip = skip->prev_execute_data;
+			skip->prev_execute_data &&
+			skip->prev_execute_data->opline &&
+			skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL &&
+			skip->prev_execute_data->opline->opcode != ZEND_DO_FCALL_BY_NAME &&
+			skip->prev_execute_data->opline->opcode != ZEND_INCLUDE_OR_EVAL) {
+			skip = skip->prev_execute_data;
 		}
 
 		if (skip->op_array) {
