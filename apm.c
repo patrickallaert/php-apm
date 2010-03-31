@@ -78,7 +78,7 @@ static int odd_slow_request = 1;
 /* recorded timestamp for the request */
 struct timeval begin_tp;
 
-function_entry apm_functions[] = {
+zend_function_entry apm_functions[] = {
 		PHP_FE(apm_get_events, NULL)
 		PHP_FE(apm_get_slow_requests, NULL)
 		PHP_FE(apm_get_events_count, NULL)
