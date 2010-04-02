@@ -52,5 +52,9 @@ table#events tr.E_USER_NOTICE td,
 table#events tr.E_STRICT td,
 table#events tr.E_DEPRECATED td,
 table#events tr.E_USER_DEPRECATED td { background-color: #ff8; }
-
 body#event pre {background-color: red;}
+
+#error_info { padding-top: 10px; padding-left: 10px; }
+
+#error_info dt { float: left; width: 100px; font-size: 0.9em; }
+#error_info dd { line-height: 20px; margin-left: 70px; font-size: 0.9em; } 

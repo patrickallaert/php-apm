@@ -3,7 +3,8 @@
  +----------------------------------------------------------------------+
  |  APM stands for Alternative PHP Monitor                              |
  +----------------------------------------------------------------------+
- | Copyright (c) 2008-2010  Davide Mendolia, Patrick Allaert            |
+ | Copyright (c) 2008-2010                                              |
+ | Davide Mendolia, Patrick Allaert, Paul Dragoonis                     |	
  +----------------------------------------------------------------------+
  | This source file is subject to version 3.01 of the PHP license,      |
  | that is bundled with this package in the file LICENSE, and is        |
@@ -19,50 +20,59 @@ require 'config.php';
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-<title>APM status</title>
-<style type="text/css">
-#source {background-color: #ccc;}
-</style>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" type="text/css" media="screen" href="css/apm.css" />
+	<script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>	
+	<script src="js/apm.js" type="text/javascript"></script>		
+	<title>APM status</title>
+	<style type="text/css">
+		#source {background-color: #ccc;}
+	</style>
 </head>
 <body id="event">
 <?php
 $event = apm_get_event_info($_GET['id']);
 if ($event !== false) {
 ?>
-<div class="%s">
-<div>ID: <?php echo $_GET['id'] ?></div>
-<div>Date: <?php echo strftime('%F %T', $event['timestamp']) ?></div>
-<div>Type: <?php
-switch ($event['type']) {
-    case 1: echo 'E_ERROR'; break;
-    case 2: echo 'E_WARNING'; break;
-    case 4: echo 'E_PARSE'; break;
-    case 8: echo 'E_NOTICE'; break;
-    case 16: echo 'E_CORE_ERROR'; break;
-    case 32: echo 'E_CORE_WARNING'; break;
-    case 64: echo 'E_COMPILE_ERROR'; break;
-    case 128: echo 'E_COMPILE_WARNING'; break;
-    case 256: echo 'E_USER_ERROR'; break;
-    case 512: echo 'E_USER_WARNING'; break;
-    case 1024: echo 'E_USER_NOTICE'; break;
-    case 2048: echo 'E_STRICT'; break;
-    case 4096: echo 'E_RECOVERABLE_ERROR'; break;
-    case 8192: echo 'E_DEPRECATED'; break;
-    case 16384: echo 'E_USER_DEPRECATED'; break;
-}
-?></div>
-<div>File: <?php echo $event['file'] ?></div>
-<div>Line: <?php echo $event['line'] ?></div>
-<div>Message: <?php echo $event['message'] ?></div>
-<div>Stacktrace: <pre><?php echo $event['stacktrace'] ?></pre></div>
-<div id="source">
-<?php
-if (is_readable($event['file'])) {
-    highlight_file($event['file']);
-}
-?>
+<div id="error_info">
+	<dl>
+		<dt>ID:</dt>
+		<dd><?php echo htmlentities($_GET['id'], null, 'UTF-8'); ?></dd>
+		
+		<dt>Date:</dt>
+		<dd><?php echo strftime('%F %T', $event['timestamp']) ?></dd>
+		
+		<dt>Error Type:</dt>
+		<dd><?php echo getErrorCodeFromID($event['type']); ?></dd>
+		
+		<dt>File:</dt>
+		<dd><?php echo htmlentities($event['file'], ENT_COMPAT, 'UTF-8'); ?></dd>
+		
+		<dt>Line:</dt>
+		<dd><?php echo htmlentities($event['line'], ENT_COMPAT, 'UTF-8'); ?></dd>
+		
+		<dt>Message:</dt>
+		<dd><?php echo htmlentities($event['message'], ENT_COMPAT, 'UTF-8'); ?></dd>
+</dl>
+
+<!-- Stacktrace -->
+<div id="stacktrace">
+	<label>Stacktrace</label>
+	<br />
+	<p><?php echo $event['stracktrace']; ?></p>
 </div>
+
+<!-- Source -->		
+<div style="margin: 5px;"><a id="source_toggle" href="javascript:void(0);">Show Sourcecode</a></div>
+<div id="source" style="display: none;">
+	<?php
+	if (is_readable($event['file'])) {
+	    highlight_file($event['file']);
+	} else {
+		echo '<p>Unable to read file: ' . htmlentities($event['file'], ENT_COMPAT, 'UTF-8') . '</p>';
+	}
+	?>
+	</div>
 </div>
 <?php
 }
