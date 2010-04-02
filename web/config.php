@@ -18,23 +18,4 @@
 define("APM_DRIVER", "sqlite");
 define("APM_LOADED", function_exists('apm_get_' . APM_DRIVER . '_events'));
 
-function apm_get_events() {
-    $args = func_get_args();
-    return call_user_func_array("apm_get_" . APM_DRIVER . "_events", $args);
-}
-function apm_get_events_count() {
-    $args = func_get_args();
-    return call_user_func_array("apm_get_" . APM_DRIVER . "_events_count", $args);
-}
-function apm_get_slow_requests() {
-    $args = func_get_args();
-    return call_user_func_array("apm_get_" . APM_DRIVER . "_slow_requests", $args);
-}
-function apm_get_slow_requests_count() {
-    $args = func_get_args();
-    return call_user_func_array("apm_get_" . APM_DRIVER . "_slow_requests_count", $args);
-}
-function apm_get_event_info() {
-    $args = func_get_args();
-    return call_user_func_array("apm_get_" . APM_DRIVER . "_event_info", $args);
-}
+include_once('lib.php');
