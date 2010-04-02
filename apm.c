@@ -133,6 +133,9 @@ PHP_MINIT_FUNCTION(apm)
 	REGISTER_LONG_CONSTANT("APM_ORDER_DURATION", APM_ORDER_DURATION, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("APM_ORDER_FILE", APM_ORDER_FILE, CONST_CS | CONST_PERSISTENT);
 
+	/* Storing actual error callback function for later restore */
+	old_error_cb = zend_error_cb;
+	
 	if (APM_G(enabled)) {
 		apm_driver_entry * driver_entry;
 
@@ -170,9 +173,6 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 
 PHP_RINIT_FUNCTION(apm)
 {
-	/* Storing actual error callback function for later restore */
-	old_error_cb = zend_error_cb;
-	
 	if (APM_G(enabled)) {
 		apm_driver_entry * driver_entry;
 
