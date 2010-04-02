@@ -105,7 +105,7 @@ PHP_INI_END()
 
 static void apm_init_globals(zend_apm_globals *apm_globals)
 {
-    apm_driver_entry **next;
+	apm_driver_entry **next;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
 	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
