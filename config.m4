@@ -14,36 +14,44 @@ dnl    obtain it through the world-wide-web, please send a note to
 dnl    license@php.net so we can mail you a copy immediately.
 
 PHP_ARG_ENABLE(apm, whether to enable apm support,
-[  --enable-apm           Enable apm support])
+[  --enable-apm           Enable apm support], yes)
+PHP_ARG_WITH(sqlite3, enable support for sqlite3,
+[  --with-sqlite3=DIR      Location of sqlite3 library], yes)
 
 if test "$PHP_APM" != "no"; then
 
-  AC_MSG_CHECKING([for sqlite3 files in default path])
-  for i in /usr/local /usr; do
-    if test -f $i/include/sqlite3.h; then
-      SQLITE3_DIR=$i
-      AC_MSG_RESULT(found in $i)
-    fi
-  done
+  AC_CONFIG_HEADERS()
 
-  if test -z "$SQLITE3_DIR"; then
-    AC_MSG_RESULT([not found])
-    AC_MSG_ERROR([Please reinstall the sqlite])
+  if test "$with_sqlite3" != "no"; then
+    sqlite3_driver="drivers/sqlite3.c"
+    AC_DEFINE(APM_DRIVER_SQLITE3, 1, [activate sqlite3 storage driver])
+    AC_MSG_CHECKING([for sqlite3 files in default path])
+    for i in /usr/local /usr; do
+      if test -f $i/include/sqlite3.h; then
+        SQLITE3_DIR=$i
+        AC_MSG_RESULT(found in $i)
+      fi
+    done
+
+    if test -z "$SQLITE3_DIR"; then
+      AC_MSG_RESULT([not found])
+      AC_MSG_ERROR([Please reinstall the sqlite])
+    fi
+
+    AC_MSG_CHECKING([for SQLite 3.*])
+    PHP_CHECK_LIBRARY(sqlite3, sqlite3_open, [
+      PHP_ADD_LIBRARY_WITH_PATH(sqlite3, $SQLITE3_DIR/lib, APM_SHARED_LIBADD)
+      PHP_ADD_INCLUDE($SQLITE3_DIR/include)
+    ],[
+      AC_MSG_RESULT([not found])
+      AC_MSG_ERROR([Please install SQLite 3.* first or check libsqlite3-dev is present])
+    ],[
+      APM_SHARED_LIBADD -lsqlite3
+    ])
+
+    AC_DEFINE(HAVE_SQLITE3,1,[sqlite3 found and included])
   fi
 
-  AC_MSG_CHECKING([for SQLite 3.*])
-  PHP_CHECK_LIBRARY(sqlite3, sqlite3_open, [
-    PHP_ADD_LIBRARY_WITH_PATH(sqlite3, $SQLITE3_DIR/lib, APM_SHARED_LIBADD)
-    PHP_ADD_INCLUDE($SQLITE3_DIR/include)
-  ],[
-    AC_MSG_RESULT([not found])
-    AC_MSG_ERROR([Please install SQLite 3.* first or check libsqlite3-dev is present])
-  ],[
-    APM_SHARED_LIBADD -lsqlite3
-  ])
-
-  AC_DEFINE(HAVE_SQLITE3,1,[sqlite3 found and included])
-
-  PHP_NEW_EXTENSION(apm, apm.c backtrace.c, $ext_shared)
+  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver drivers/mysql.c, $ext_shared)
   PHP_SUBST(APM_SHARED_LIBADD)
 fi

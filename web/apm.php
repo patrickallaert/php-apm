@@ -14,6 +14,7 @@
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
  */
+require 'config.php';
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -28,7 +29,7 @@
 <body>
 <h1>APM status</h1>
 <?php
-if (function_exists('apm_get_events')) {
+if (APM_LOADED) {
 ?>
 <h2>Faulty events</h2>
 <table id="events"></table>
@@ -39,7 +40,7 @@ if (function_exists('apm_get_events')) {
 <?php
 } else {
 ?>
-<strong>APM extention does not seem to be active.</strong>
+<strong>APM extention does not seem to be active or properly configured.</strong>
 <?php
 }
 ?>

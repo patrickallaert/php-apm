@@ -28,9 +28,7 @@ extern zend_module_entry apm_module_entry;
 #define PHP_APM_API
 #endif
 
-#ifdef ZTS
 #include "TSRM.h"
-#endif
 
 #define APM_ORDER_ID 1
 #define APM_ORDER_TIMESTAMP 2
@@ -38,17 +36,48 @@ extern zend_module_entry apm_module_entry;
 #define APM_ORDER_DURATION 3
 #define APM_ORDER_FILE 4
 
+typedef struct {
+	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
+	int (* minit)(int);
+	int (* rinit)();
+	int (* mshutdown)();
+	int (* rshutdown)();
+	void (* insert_slow_request)(float, char *);
+} apm_driver;
+
+typedef struct apm_driver_entry {
+	apm_driver driver;
+	struct apm_driver_entry *next;
+} apm_driver_entry;
+
+#define APM_DRIVER_CREATE(name) \
+apm_driver_entry * apm_driver_##name##_create() \
+{ \
+	apm_driver_entry * driver_entry; \
+	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
+	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
+	driver_entry->driver.minit = apm_driver_##name##_minit; \
+	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
+	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
+	driver_entry->driver.rshutdown = apm_driver_##name##_rshutdown; \
+	driver_entry->driver.insert_slow_request = apm_driver_##name##_insert_slow_request; \
+	driver_entry->next = NULL; \
+	return driver_entry; \
+}
+
 PHP_MINIT_FUNCTION(apm);
 PHP_MSHUTDOWN_FUNCTION(apm);
 PHP_RINIT_FUNCTION(apm);
 PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
-PHP_FUNCTION(apm_get_events);
-PHP_FUNCTION(apm_get_slow_requests);
-PHP_FUNCTION(apm_get_events_count);
-PHP_FUNCTION(apm_get_slow_requests_count);
-PHP_FUNCTION(apm_get_event_info);
+#ifdef APM_DRIVER_SQLITE3
+PHP_FUNCTION(apm_get_sqlite_events);
+PHP_FUNCTION(apm_get_sqlite_slow_requests);
+PHP_FUNCTION(apm_get_sqlite_events_count);
+PHP_FUNCTION(apm_get_sqlite_slow_requests_count);
+PHP_FUNCTION(apm_get_sqlite_event_info);
+#endif
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
@@ -60,19 +89,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool slow_request_enabled;
 	/* Boolean controlling whether the the stacktrace should be generated or not */
 	zend_bool stacktrace_enabled;
-	/* Path to the SQLite database file */
-	char     *db_path;
-	
-	/* The actual db file */
-	char     db_file[MAXPATHLEN];
-	
-	/* DB handle */
-	sqlite3 *event_db;
-	
-	/* Max timeout to wait for storing the event in the DB */
-	long      timeout;
 	/* Time (in ms) before a request is considered 'slow' */
 	long      slow_request_duration;
+	apm_driver_entry *drivers;
 ZEND_END_MODULE_GLOBALS(apm)
 
 #ifdef ZTS
@@ -89,6 +108,9 @@ typedef struct {
 	char *message;
 	char *stacktrace;
 } apm_event_info;
+
+#define SEC_TO_USEC(sec) ((sec) * 1000000.00)
+#define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
 #endif
 

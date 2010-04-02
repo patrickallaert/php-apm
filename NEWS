@@ -1,3 +1,8 @@
+APM 1.0.0beta3
+----------------------------
+Changed:
+- Code refactored to make use of 'APM drivers'
+
 APM 1.0.0beta2   29 Nov 2009
 ----------------------------
 Fixed:
