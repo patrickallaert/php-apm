@@ -12,6 +12,9 @@ dnl    http://www.php.net/license/3_01.txt
 dnl    If you did not receive a copy of the PHP license and are unable to
 dnl    obtain it through the world-wide-web, please send a note to
 dnl    license@php.net so we can mail you a copy immediately.
+dnl
+dnl    Authors: Davide Mendolia <dmendolia@php.net>
+dnl             Patrick Allaert <patrickallaert@php.net>
 
 PHP_ARG_ENABLE(apm, whether to enable apm support,
 [  --enable-apm           Enable apm support], yes)

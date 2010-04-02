@@ -13,7 +13,10 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- */
+ | Authors: Davide Mendolia <dmendolia@php.net>                         |
+ |          Patrick Allaert <patrickallaert@php.net>                    |
+ +----------------------------------------------------------------------+
+*/
 require 'config.php';
 $records = apm_get_events_count();
 switch ($_GET['sidx']) {

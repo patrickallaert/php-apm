@@ -12,6 +12,9 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
+ | Authors: Davide Mendolia <dmendolia@php.net>                         |
+ |          Patrick Allaert <patrickallaert@php.net>                    |
+ +----------------------------------------------------------------------+
 */
 
 #define APM_VERSION "1.0.0beta2"
