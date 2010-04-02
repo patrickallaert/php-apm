@@ -57,14 +57,14 @@ if ($event !== false) {
 
 <!-- Stacktrace -->
 <div id="stacktrace">
-	<label>Stacktrace</label>
+	<label class="strong">Stacktrace</label>
 	<br />
-	<p><?php echo $event['stracktrace']; ?></p>
+	<p><?php echo nl2br($event['stacktrace']); ?></p>
 </div>
 
 <!-- Source -->		
 <div style="margin: 5px;"><a id="source_toggle" href="javascript:void(0);">Show Sourcecode</a></div>
-<div id="source" style="display: none;">
+<div id="source" style="display: none; font-size: 10px; padding-top: 5px; padding-left: 5px;">
 	<?php
 	if (is_readable($event['file'])) {
 	    highlight_file($event['file']);
