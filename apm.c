@@ -38,7 +38,10 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
 #ifdef APM_DRIVER_SQLITE3
-# include "drivers/sqlite3.h"
+  #include "drivers/sqlite3.h"
+#endif
+#ifdef APM_DRIVER_MYSQL
+  #include "drivers/mysql.h"
 #endif
 
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
@@ -66,6 +69,13 @@ zend_function_entry apm_functions[] = {
 		PHP_FE(apm_get_sqlite_events_count, NULL)
 		PHP_FE(apm_get_sqlite_slow_requests_count, NULL)
 		PHP_FE(apm_get_sqlite_event_info, NULL)
+#endif
+#ifdef APM_DRIVER_MYSQL
+		PHP_FE(apm_get_mysql_events, NULL)
+		PHP_FE(apm_get_mysql_slow_requests, NULL)
+		PHP_FE(apm_get_mysql_events_count, NULL)
+		PHP_FE(apm_get_mysql_slow_requests_count, NULL)
+		PHP_FE(apm_get_mysql_event_info, NULL)
 #endif
 	{NULL, NULL, NULL}
 };
@@ -121,6 +131,10 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 	*next = (apm_driver_entry *) NULL;
 #ifdef APM_DRIVER_SQLITE3
 	*next = apm_driver_sqlite3_create();
+	next = &(*next)->next;
+#endif
+#ifdef APM_DRIVER_MYSQL
+	*next = apm_driver_mysql_create();
 	next = &(*next)->next;
 #endif
 }

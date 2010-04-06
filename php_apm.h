@@ -81,6 +81,13 @@ PHP_FUNCTION(apm_get_sqlite_events_count);
 PHP_FUNCTION(apm_get_sqlite_slow_requests_count);
 PHP_FUNCTION(apm_get_sqlite_event_info);
 #endif
+#ifdef APM_DRIVER_MYSQL
+PHP_FUNCTION(apm_get_mysql_events);
+PHP_FUNCTION(apm_get_mysql_slow_requests);
+PHP_FUNCTION(apm_get_mysql_events_count);
+PHP_FUNCTION(apm_get_mysql_slow_requests_count);
+PHP_FUNCTION(apm_get_mysql_event_info);
+#endif
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)

@@ -1,5 +1,8 @@
 APM 1.0.0beta3
 ----------------------------
+Added:
+- MySQL driver
+
 Changed:
 - Code refactored to make use of 'APM drivers'
 
