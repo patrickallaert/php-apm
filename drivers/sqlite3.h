@@ -17,8 +17,8 @@
  +----------------------------------------------------------------------+
 */
 
-#ifndef BACKEND_SQLITE3_H
-#define BACKEND_SQLITE3_H
+#ifndef DRIVER_SQLITE3_H
+#define DRIVER_SQLITE3_H
 
 #include <sqlite3.h>
 #include "zend_API.h"
