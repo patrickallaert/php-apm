@@ -35,6 +35,9 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool enabled;
+
 	/* Path to the SQLite database file */
 	char    *db_path;
 

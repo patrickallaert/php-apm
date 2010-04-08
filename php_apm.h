@@ -46,6 +46,7 @@ typedef struct {
 	int (* mshutdown)();
 	int (* rshutdown)();
 	void (* insert_slow_request)(float, char *);
+	zend_bool (* is_enabled)();
 } apm_driver;
 
 typedef struct apm_driver_entry {
@@ -53,7 +54,16 @@ typedef struct apm_driver_entry {
 	struct apm_driver_entry *next;
 } apm_driver_entry;
 
+#ifdef ZTS
+#define APM_GLOBAL(driver, v) TSRMG(apm_##driver##_globals_id, zend_apm_##driver##_globals *, v)
+#else
+#define APM_GLOBAL(driver, v) (apm_##driver##_globals.v)
+#endif
+
 #define APM_DRIVER_CREATE(name) \
+zend_bool apm_driver_##name##_is_enabled() { \
+	return APM_GLOBAL(name, enabled); \
+} \
 apm_driver_entry * apm_driver_##name##_create() \
 { \
 	apm_driver_entry * driver_entry; \
@@ -64,6 +74,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
 	driver_entry->driver.rshutdown = apm_driver_##name##_rshutdown; \
 	driver_entry->driver.insert_slow_request = apm_driver_##name##_insert_slow_request; \
+	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
 	driver_entry->next = NULL; \
 	return driver_entry; \
 }

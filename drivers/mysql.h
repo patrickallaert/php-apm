@@ -40,6 +40,8 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool enabled;
 	/* MySQL host */
 	char         *db_host;
 	/* MySQL port */
