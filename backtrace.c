@@ -18,6 +18,7 @@
 */
 
 #include "php.h"
+#include "zend_types.h"
 #include "ext/standard/php_smart_str.h"
 
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
