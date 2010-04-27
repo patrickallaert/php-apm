@@ -6,6 +6,9 @@ Added:
 Changed:
 - Code refactored to make use of 'APM drivers'
 
+Fixed:
+- APM cannot be compiled with PHP < 5.2.2
+
 APM 1.0.0beta2   29 Nov 2009
 ----------------------------
 Fixed:
