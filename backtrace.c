@@ -351,7 +351,13 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 	void **p = *curpos - 2;
 #endif
 	zval *arg_array, **arg;
-	int arg_count = (int)(zend_uintptr_t) *p;
+	int arg_count = 
+#if PHP_VERSION_ID >= 50202
+	(int)(zend_uintptr_t)
+#else
+	(ulong)
+#endif
+	*p;
 #if PHP_API_VERSION < 20090626
 	*curpos -= (arg_count+2);
 
