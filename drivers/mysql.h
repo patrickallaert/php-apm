@@ -24,6 +24,8 @@
 #define DB_HOST "localhost"
 #define DB_USER "root"
 
+#define APM_E_mysql APM_E_ALL
+
 #define MYSQL_INSTANCE_INIT_EX(ret) MYSQL *connection = mysql_get_instance(); \
 	if (connection == NULL) { \
 		return ret; \
@@ -42,6 +44,8 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
 	/* Boolean controlling whether the driver is active or not */
 	zend_bool enabled;
+	/* driver error reporting */
+	int          error_reporting;
 	/* MySQL host */
 	char         *db_host;
 	/* MySQL port */

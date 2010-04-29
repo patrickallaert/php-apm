@@ -87,16 +87,18 @@ static PHP_INI_MH(OnUpdateDBFile)
 	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
 
+APM_DRIVER_CREATE(sqlite3)
+
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.sqlite_enabled",                "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled, zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	STD_PHP_INI_BOOLEAN("apm.sqlite_enabled",                "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	/* error_reporting of the driver */
+	STD_PHP_INI_ENTRY("apm.sqlite_error_reporting",          "E_ALL",         PHP_INI_ALL,    OnUpdateAPMsqlite3ErrorReporting,   error_reporting, zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* Path to the SQLite database file */
-	STD_PHP_INI_ENTRY("apm.sqlite_max_event_insert_timeout", "100",             PHP_INI_ALL,    OnUpdateLong,   timeout, zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	STD_PHP_INI_ENTRY("apm.sqlite_max_event_insert_timeout", "100",             PHP_INI_ALL,    OnUpdateLong,   timeout,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.sqlite_db_path",                  "/var/php/apm/db", PHP_INI_ALL,    OnUpdateDBFile, db_path, zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	STD_PHP_INI_ENTRY("apm.sqlite_db_path",                  "/var/php/apm/db", PHP_INI_ALL,    OnUpdateDBFile, db_path,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
 PHP_INI_END()
-
-APM_DRIVER_CREATE(sqlite3)
 
 /* Insert an event in the backend */
 void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)

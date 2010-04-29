@@ -23,6 +23,8 @@
 #include <sqlite3.h>
 #include "zend_API.h"
 
+#define APM_E_sqlite3 APM_E_ALL
+
 #define DB_FILE "events"
 
 apm_driver_entry * apm_driver_sqlite3_create();
@@ -37,6 +39,9 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
 	/* Boolean controlling whether the driver is active or not */
 	zend_bool enabled;
+
+	/* driver error reporting */
+	int     error_reporting;
 
 	/* Path to the SQLite database file */
 	char    *db_path;

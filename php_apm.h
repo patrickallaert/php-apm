@@ -21,6 +21,7 @@
 #define PHP_APM_H
 
 #include "php.h"
+#include "zend_errors.h"
 
 extern zend_module_entry apm_module_entry;
 #define phpext_apm_ptr &apm_module_entry
@@ -39,6 +40,8 @@ extern zend_module_entry apm_module_entry;
 #define APM_ORDER_DURATION 3
 #define APM_ORDER_FILE 4
 
+#define APM_E_ALL (E_ALL | E_STRICT)
+
 typedef struct {
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
 	int (* minit)(int);
@@ -47,6 +50,7 @@ typedef struct {
 	int (* rshutdown)();
 	void (* insert_slow_request)(float, char *);
 	zend_bool (* is_enabled)();
+	int (* error_reporting)();
 } apm_driver;
 
 typedef struct apm_driver_entry {
@@ -61,8 +65,16 @@ typedef struct apm_driver_entry {
 #endif
 
 #define APM_DRIVER_CREATE(name) \
+static PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
+{ \
+	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_ALL ); \
+	return SUCCESS; \
+} \
 zend_bool apm_driver_##name##_is_enabled() { \
 	return APM_GLOBAL(name, enabled); \
+} \
+int apm_driver_##name##_error_reporting() { \
+	return APM_GLOBAL(name, error_reporting); \
 } \
 apm_driver_entry * apm_driver_##name##_create() \
 { \
@@ -75,6 +87,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry->driver.rshutdown = apm_driver_##name##_rshutdown; \
 	driver_entry->driver.insert_slow_request = apm_driver_##name##_insert_slow_request; \
 	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
+	driver_entry->driver.error_reporting = apm_driver_##name##_error_reporting; \
 	driver_entry->next = NULL; \
 	return driver_entry; \
 }

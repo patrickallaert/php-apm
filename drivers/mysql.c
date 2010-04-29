@@ -36,22 +36,24 @@ ZEND_EXTERN_MODULE_GLOBALS(apm)
 
 ZEND_DECLARE_MODULE_GLOBALS(apm_mysql)
 
-PHP_INI_BEGIN()
-	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.mysql_enabled",  "1",			     PHP_INI_PERDIR,    OnUpdateBool,   enabled,     zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql host */
-	STD_PHP_INI_ENTRY("apm.mysql_host",       "localhost",       PHP_INI_PERDIR, OnUpdateString, db_host,     zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql port */
-	STD_PHP_INI_ENTRY("apm.mysql_port",       "0",               PHP_INI_PERDIR, OnUpdateLong,   db_port,     zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql user */
-	STD_PHP_INI_ENTRY("apm.mysql_user",       "root",            PHP_INI_PERDIR, OnUpdateString, db_user,     zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql password */
-	STD_PHP_INI_ENTRY("apm.mysql_pass",       "",                PHP_INI_PERDIR, OnUpdateString, db_pass,     zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql database */
-	STD_PHP_INI_ENTRY("apm.mysql_db",         "apm",             PHP_INI_PERDIR, OnUpdateString, db_name,     zend_apm_mysql_globals, apm_mysql_globals)
-PHP_INI_END()
-
 APM_DRIVER_CREATE(mysql)
+
+PHP_INI_BEGIN()
+ 	/* Boolean controlling whether the driver is active or not */
+ 	STD_PHP_INI_BOOLEAN("apm.mysql_enabled",       "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* error_reporting of the driver */
+	STD_PHP_INI_ENTRY("apm.mysql_error_reporting", NULL,         PHP_INI_ALL,    OnUpdateAPMmysqlErrorReporting,   error_reporting,     zend_apm_mysql_globals, apm_mysql_globals)
+	/* mysql host */
+	STD_PHP_INI_ENTRY("apm.mysql_host",            "localhost",       PHP_INI_PERDIR, OnUpdateString, db_host,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* mysql port */
+	STD_PHP_INI_ENTRY("apm.mysql_port",            "0",               PHP_INI_PERDIR, OnUpdateLong,   db_port,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* mysql user */
+	STD_PHP_INI_ENTRY("apm.mysql_user",            "root",            PHP_INI_PERDIR, OnUpdateString, db_user,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* mysql password */
+	STD_PHP_INI_ENTRY("apm.mysql_pass",            "",                PHP_INI_PERDIR, OnUpdateString, db_pass,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* mysql database */
+	STD_PHP_INI_ENTRY("apm.mysql_db",              "apm",             PHP_INI_PERDIR, OnUpdateString, db_name,             zend_apm_mysql_globals, apm_mysql_globals)
+PHP_INI_END()
 
 /* Returns the MYSQL instance (singleton) */
 MYSQL * mysql_get_instance() {
