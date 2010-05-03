@@ -232,17 +232,9 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 			if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
 				Z_TYPE_PP(array) == IS_ARRAY &&
-#if (PHP_MAJOR_VERSION < 6)
 				zend_hash_find
-#else
-				zend_ascii_hash_find
-#endif
 					(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-#if (PHP_MAJOR_VERSION < 6)
 				script_filename = Z_STRVAL_PP(token);
-#else
-				script_filename = zend_unicode_to_ascii(Z_USTRVAL_PP(token), Z_USTRLEN_PP(token) TSRMLS_CC);
-#endif
 			}
 
 			driver_entry = APM_G(drivers);
