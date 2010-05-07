@@ -365,7 +365,7 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	t = timelib_strtotime(fields[1], strlen(fields[1]), &error, timelib_builtin_db());
 	error1 = error->error_count;
 	timelib_error_container_dtor(error);
-	timelib_fill_holes(t, now, TIMELIB_NO_CLONE);
+	timelib_fill_holes(t, now, TIMELIB_NONE);
 	timelib_update_ts(t, tzi);
 	ts = timelib_date_to_int(t, &error2);
 
