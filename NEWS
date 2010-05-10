@@ -9,6 +9,7 @@ Changed:
 
 Fixed:
 - APM cannot be compiled with PHP < 5.2.2
+- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled
 
 APM 1.0.0beta2   29 Nov 2009
 ----------------------------

@@ -216,31 +216,33 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
-	if (APM_G(enabled) && APM_G(slow_request_enabled)) {
-		float duration;
-		struct timeval end_tp;
-		apm_driver_entry * driver_entry;
+	if (APM_G(enabled)) {
+		if (APM_G(slow_request_enabled)) {
+			float duration;
+			struct timeval end_tp;
+			apm_driver_entry * driver_entry;
 
-		gettimeofday(&end_tp, NULL);
+			gettimeofday(&end_tp, NULL);
 
-		/* Request longer than accepted thresold ? */
-		duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
-		if (duration > 1000.0 * APM_G(slow_request_duration)) {
-			zval **array;
-			zval **token;
-			char *script_filename = NULL;
+			/* Request longer than accepted thresold ? */
+			duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
+			if (duration > 1000.0 * APM_G(slow_request_duration)) {
+				zval **array;
+				zval **token;
+				char *script_filename = NULL;
 
-			if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
-				Z_TYPE_PP(array) == IS_ARRAY &&
-				zend_hash_find
-					(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-				script_filename = Z_STRVAL_PP(token);
-			}
+				if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
+					Z_TYPE_PP(array) == IS_ARRAY &&
+					zend_hash_find
+						(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
+					script_filename = Z_STRVAL_PP(token);
+				}
 
-			driver_entry = APM_G(drivers);
-			while ((driver_entry = driver_entry->next) != NULL) {
-				if (driver_entry->driver.is_enabled()) {
-					driver_entry->driver.insert_slow_request(duration, script_filename);
+				driver_entry = APM_G(drivers);
+				while ((driver_entry = driver_entry->next) != NULL) {
+					if (driver_entry->driver.is_enabled()) {
+						driver_entry->driver.insert_slow_request(duration, script_filename);
+					}
 				}
 			}
 		}
