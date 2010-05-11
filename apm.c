@@ -112,6 +112,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled", "1",   PHP_INI_ALL, OnUpdateBool, slow_request_enabled,  zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the the stacktrace should be generated or not */
 	STD_PHP_INI_BOOLEAN("apm.stacktrace_enabled",   "1",   PHP_INI_ALL, OnUpdateBool, stacktrace_enabled,    zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
+	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered 'slow' */
 	STD_PHP_INI_ENTRY("apm.slow_request_duration",  "100", PHP_INI_ALL, OnUpdateLong, slow_request_duration, zend_apm_globals, apm_globals)
 PHP_INI_END()
@@ -137,6 +139,14 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 	*next = apm_driver_mysql_create();
 	next = &(*next)->next;
 #endif
+
+	apm_globals->events = (apm_event_entry *) malloc(sizeof(apm_event_entry));
+	apm_globals->events->event.type = 0;
+	apm_globals->events->event.error_filename = NULL;
+	apm_globals->events->event.error_lineno = 0;
+	apm_globals->events->event.msg = NULL;
+	apm_globals->events->next = NULL;
+	apm_globals->last_event = &apm_globals->events;
 }
 
 PHP_MINIT_FUNCTION(apm)
@@ -217,10 +227,10 @@ PHP_RINIT_FUNCTION(apm)
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	if (APM_G(enabled)) {
+		apm_driver_entry * driver_entry;
 		if (APM_G(slow_request_enabled)) {
 			float duration;
 			struct timeval end_tp;
-			apm_driver_entry * driver_entry;
 
 			gettimeofday(&end_tp, NULL);
 
@@ -246,6 +256,14 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			}
 		}
 
+		if (APM_G(deffered_processing) && APM_G(events) != *APM_G(last_event)) {
+			driver_entry = APM_G(drivers);
+			while ((driver_entry = driver_entry->next) != NULL) {
+				if (driver_entry->driver.is_enabled()) {
+					driver_entry->driver.insert_events(APM_G(events));
+				}
+			}
+		}
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled()) {
@@ -334,10 +352,39 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		smart_str_0(&trace_str);
 	}
 
-	driver_entry = APM_G(drivers);
-	while ((driver_entry = driver_entry->next) != NULL) {
-		if (driver_entry->driver.is_enabled() && driver_entry->driver.error_reporting() & type) {
-			driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "" TSRMLS_CC);
+	if (APM_G(deffered_processing)) {
+		(*APM_G(last_event))->next = (apm_event_entry *) malloc(sizeof(apm_event_entry));
+		(*APM_G(last_event))->next->event.type = type;
+
+		if (((*APM_G(last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
+			strcpy((*APM_G(last_event))->next->event.error_filename, error_filename);
+		} else {
+			(*APM_G(last_event))->next->event.error_filename = NULL;
+		}
+		
+		(*APM_G(last_event))->next->event.error_lineno = error_lineno;
+
+
+		if (((*APM_G(last_event))->next->event.msg = malloc(strlen(msg) + 1)) != NULL) {
+			strcpy((*APM_G(last_event))->next->event.msg, msg);
+		} else {
+			(*APM_G(last_event))->next->event.msg = NULL;
+		}
+
+		if (APM_G(stacktrace_enabled) && trace_str.c && (((*APM_G(last_event))->next->event.trace = malloc(strlen(trace_str.c) + 1)) != NULL)) {
+			strcpy((*APM_G(last_event))->next->event.trace, trace_str.c);
+		} else {
+			(*APM_G(last_event))->next->event.msg = NULL;
+		}
+
+		(*APM_G(last_event))->next->next = NULL;
+		APM_G(last_event) = &(*APM_G(last_event))->next;
+	} else {
+		driver_entry = APM_G(drivers);
+		while ((driver_entry = driver_entry->next) != NULL) {
+			if (driver_entry->driver.is_enabled()) {
+				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "" TSRMLS_CC);
+			}
 		}
 	}
 

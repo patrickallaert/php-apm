@@ -34,6 +34,7 @@
 
 apm_driver_entry * apm_driver_mysql_create();
 void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
+void apm_driver_mysql_insert_events(apm_event_entry * event_entry TSRMLS_DC);
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();

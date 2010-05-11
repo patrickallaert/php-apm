@@ -42,8 +42,22 @@ extern zend_module_entry apm_module_entry;
 
 #define APM_E_ALL (E_ALL | E_STRICT)
 
-typedef struct {
+typedef struct apm_event {
+	int type;
+	char * error_filename;
+	uint error_lineno;
+	char * msg;
+	char * trace;
+} apm_event;
+
+typedef struct apm_event_entry {
+	apm_event event;
+	struct apm_event_entry *next;
+} apm_event_entry;
+
+typedef struct apm_driver {
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
+	void (* insert_events)(apm_event_entry * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
@@ -81,6 +95,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	apm_driver_entry * driver_entry; \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
 	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
+	driver_entry->driver.insert_events = apm_driver_##name##_insert_events; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
@@ -123,9 +138,13 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool slow_request_enabled;
 	/* Boolean controlling whether the the stacktrace should be generated or not */
 	zend_bool stacktrace_enabled;
+	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
+	zend_bool deffered_processing;
 	/* Time (in ms) before a request is considered 'slow' */
 	long      slow_request_duration;
 	apm_driver_entry *drivers;
+	apm_event_entry *events;
+	apm_event_entry **last_event;
 ZEND_END_MODULE_GLOBALS(apm)
 
 #ifdef ZTS
