@@ -233,7 +233,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 				if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
 					Z_TYPE_PP(array) == IS_ARRAY &&
-					zend_hash_find (Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
+					zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
 					script_filename = Z_STRVAL_PP(token);
 				}
 
