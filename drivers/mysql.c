@@ -138,6 +138,7 @@ int apm_driver_mysql_rshutdown()
 {
 	if (APM_MY_G(event_db) != NULL) {
 		mysql_close(APM_MY_G(event_db));
+		APM_MY_G(event_db) = NULL;
 	}
 	return SUCCESS;
 }
