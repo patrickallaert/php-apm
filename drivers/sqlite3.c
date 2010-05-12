@@ -155,7 +155,7 @@ int apm_driver_sqlite3_mshutdown()
 
 int apm_driver_sqlite3_rshutdown()
 {
-	//sqlite3_close(APM_S3_G(event_db));
+	sqlite3_close(APM_S3_G(event_db));
 	return SUCCESS;
 }
 
