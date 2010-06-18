@@ -235,7 +235,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			gettimeofday(&end_tp, NULL);
 
 			/* Request longer than accepted thresold ? */
-			duration = SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec;
+			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
 			if (duration > 1000.0 * APM_G(slow_request_duration)) {
 				zval **array;
 				zval **token;
@@ -260,7 +260,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			driver_entry = APM_G(drivers);
 			while ((driver_entry = driver_entry->next) != NULL) {
 				if (driver_entry->driver.is_enabled()) {
-					driver_entry->driver.insert_events(APM_G(events));
+					driver_entry->driver.insert_events(APM_G(events) TSRMLS_CC);
 				}
 			}
 		}

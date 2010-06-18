@@ -139,7 +139,11 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 				function_name = "unknown";
 				build_filename_arg = 0;
 			} else
+#if ZEND_MODULE_API_NO >= 20100409 /* ZE2.4 */
+			switch (ptr->opline->op2.constant) {
+#else
 			switch (Z_LVAL(ptr->opline->op2.u.constant)) {
+#endif
 				case ZEND_EVAL:
 					function_name = "eval";
 					build_filename_arg = 0;
@@ -203,7 +207,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 					smart_str_appends(trace_str, ") called at [");
 					smart_str_appends(trace_str, prev->op_array->filename);
 					smart_str_appendc(trace_str, ':');
-					smart_str_append_long(trace_str, prev->opline->lineno);
+					smart_str_append_long(trace_str, (long) prev->opline->lineno);
 					smart_str_appends(trace_str, "]\n");
 					break;
 				}
@@ -312,7 +316,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str)
 				smart_str_appends(trace_str, string_key);
 				break;
 			case HASH_KEY_IS_LONG:
-				smart_str_append_long(trace_str, num_key);
+				smart_str_append_long(trace_str, (long) num_key);
 				break;
 		}
 		smart_str_appends(trace_str, "] => ");
