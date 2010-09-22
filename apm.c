@@ -374,7 +374,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		if (APM_G(stacktrace_enabled) && trace_str.c && (((*APM_G(last_event))->next->event.trace = malloc(strlen(trace_str.c) + 1)) != NULL)) {
 			strcpy((*APM_G(last_event))->next->event.trace, trace_str.c);
 		} else {
-			(*APM_G(last_event))->next->event.msg = NULL;
+			(*APM_G(last_event))->next->event.trace = NULL;
 		}
 
 		(*APM_G(last_event))->next->next = NULL;
