@@ -263,6 +263,17 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 					driver_entry->driver.insert_events(APM_G(events) TSRMLS_CC);
 				}
 			}
+
+			apm_event_entry * event_entry_cursor = APM_G(events);
+			apm_event_entry * event_entry_cursor_next = event_entry_cursor->next;
+			while ((event_entry_cursor = event_entry_cursor_next) != NULL) {
+				free(event_entry_cursor->event.error_filename);
+				free(event_entry_cursor->event.msg);
+				free(event_entry_cursor->event.trace);
+				event_entry_cursor_next = event_entry_cursor->next;
+				free(event_entry_cursor);
+			}
+			APM_G(last_event) = &APM_G(events);
 		}
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
