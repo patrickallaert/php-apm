@@ -393,7 +393,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	} else {
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.is_enabled()) {
+			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
 				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "" TSRMLS_CC);
 			}
 		}
