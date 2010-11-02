@@ -27,10 +27,10 @@ AC_DEFUN([MYSQL_LIB_CHK], [
 ])
 
 PHP_ARG_ENABLE(apm, whether to enable apm support,
-[  --enable-apm           Enable apm support], yes)
+[  --enable-apm            Enable apm support], yes)
 PHP_ARG_WITH(sqlite3, enable support for sqlite3,
-[  --with-sqlite3=DIR      Location of sqlite3 library], yes)
-PHP_ARG_WITH(mysql,   enable support for MySQL,
+[  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
+PHP_ARG_WITH(mysql, enable support for MySQL,
 [  --with-mysql=DIR        Location of MySQL base directory], no, no)
 
 if test -z "$PHP_ZLIB_DIR"; then
@@ -42,7 +42,7 @@ if test "$PHP_APM" != "no"; then
 
   AC_CONFIG_HEADERS()
 
-  if test "$with_sqlite3" != "no"; then
+  if test "$PHP_SQLITE3" != "no"; then
     sqlite3_driver="drivers/sqlite3.c"
     AC_DEFINE(APM_DRIVER_SQLITE3, 1, [activate sqlite3 storage driver])
     AC_MSG_CHECKING([for sqlite3 files in default path])
@@ -72,7 +72,7 @@ if test "$PHP_APM" != "no"; then
     AC_DEFINE(HAVE_SQLITE3,1,[sqlite3 found and included])
   fi
 
-  if test "$with_mysql" != "no"; then
+  if test "$PHP_MYSQL" != "no"; then
     mysql_driver="drivers/mysql.c"
     AC_DEFINE(APM_DRIVER_MYSQL, 1, [activate MySQL storage driver])
 
