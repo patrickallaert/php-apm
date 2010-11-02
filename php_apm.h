@@ -81,7 +81,7 @@ typedef struct apm_driver_entry {
 #define APM_DRIVER_CREATE(name) \
 static PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
 { \
-	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_ALL ); \
+	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_##name ); \
 	return SUCCESS; \
 } \
 zend_bool apm_driver_##name##_is_enabled() { \
