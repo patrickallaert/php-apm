@@ -3,7 +3,11 @@
  <name>APM</name>
  <channel>pecl.php.net</channel>
  <summary>Alternative PHP Monitor</summary>
- <description>Monitoring extension for PHP, collects error events and store them in a local SQLite database.</description>
+ <description>
+Monitoring extension for PHP, collects error events and send them to one of the drivers.
+SQLite and MySQL drivers are storing those in a database.
+More drivers to come (SNMP, e-mail, Hadoop,...).
+ </description>
  <lead>
   <name>Davide Mendolia</name>
   <user>dmendolia</user>
@@ -16,9 +20,9 @@
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2009-11-29</date>
+ <date>2010-11-07</date>
  <version>
-  <release>1.0.0beta2</release>
+  <release>1.0.0beta3</release>
   <api>1.0.0</api>
  </version>
  <stability>
@@ -27,26 +31,118 @@
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-- Initial release
-</notes>
+Added:
+- MySQL driver
+- Per driver error reporting level
+- Asynchronous processing of events (config option: apm.deffered_processing)
+
+Changed:
+- Code refactored to make use of 'APM drivers'
+
+Fixed:
+- APM cannot be compiled with PHP &lt; 5.2.2.
+- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled.
+- Bug #17512: Sqlite connections aren't closed at the end of the request.
+- Bug #17513: Using MySQL driver, only events of the first incoming request are stored.
+- Bug #19421: apm.*_error_reporting is ignored.
+ </notes>
  <contents>
   <dir name="/">
-   <file name="config.m4" role="src" />
-   <file name="php_apm.h" role="src" />
-   <file name="apm.c" role="src" />
-   <file name="backtrace.h" role="src" />
-   <file name="backtrace.c" role="src" />
-   <file name="apm.sql" role="data" />
-   <file name="apm.ini" role="data" />
    <file name="AUTHORS" role="doc" />
-   <file name="NEWS" role="doc" />
    <file name="LICENSE" role="doc" />
+   <file name="NEWS" role="doc" />
+   <file name="apm.c" role="src" />
+   <file name="apm.ini" role="data" />
+   <file name="apm.sql" role="data" />
+   <file name="backtrace.c" role="src" />
+   <file name="backtrace.h" role="src" />
+   <file name="config.m4" role="src" />
+   <file name="config.w32" role="src" />
+   <dir name="drivers">
+    <file name="mysql.c" role="php" />
+    <file name="mysql.h" role="php" />
+    <file name="sqlite3.c" role="php" />
+    <file name="sqlite3.h" role="php" />
+   </dir>
+   <file name="php_apm.h" role="src" />
    <dir name="web">
     <file name="apm.php" role="php" />
+    <file name="config.php" role="php" />
+    <dir name="css">
+     <file name="apm.css" role="data" />
+     <file name="ellipsis-xbl.xml" role="data" />
+     <file name="greybox.css" role="data" />
+     <dir name="redmond">
+      <dir name="images">
+       <file name="ui-bg_flat_0_aaaaaa_40x100.png" role="data" />
+       <file name="ui-bg_flat_55_fbec88_40x100.png" role="data" />
+       <file name="ui-bg_glass_75_d0e5f5_1x400.png" role="data" />
+       <file name="ui-bg_glass_85_dfeffc_1x400.png" role="data" />
+       <file name="ui-bg_glass_95_fef1ec_1x400.png" role="data" />
+       <file name="ui-bg_gloss-wave_55_5c9ccc_500x100.png" role="data" />
+       <file name="ui-bg_inset-hard_100_f5f8f9_1x100.png" role="data" />
+       <file name="ui-bg_inset-hard_100_fcfdfd_1x100.png" role="data" />
+       <file name="ui-icons_217bc0_256x240.png" role="data" />
+       <file name="ui-icons_2e83ff_256x240.png" role="data" />
+       <file name="ui-icons_469bdd_256x240.png" role="data" />
+       <file name="ui-icons_6da8d5_256x240.png" role="data" />
+       <file name="ui-icons_cd0a0a_256x240.png" role="data" />
+       <file name="ui-icons_d8e7f3_256x240.png" role="data" />
+       <file name="ui-icons_d8e7f3_256x240.png1" role="data" />
+       <file name="ui-icons_f9bd01_256x240.png" role="data" />
+      </dir>
+      <file name="jquery-ui-1.7.1.custom.css" role="data" />
+     </dir>
+     <file name="ui.jqgrid.css" role="data" />
+    </dir>
+    <file name="event.php" role="php" />
+    <file name="events.php" role="php" />
+    <dir name="img">
+     <file name="blank.gif" role="data" />
+     <file name="close.gif" role="data" />
+     <file name="overlay.png" role="data" />
+    </dir>
+    <dir name="js">
+     <file name="apm.js" role="data" />
+     <file name="greybox.js" role="data" />
+     <dir name="i18n">
+      <file name="grid.locale-bg.js" role="data" />
+      <file name="grid.locale-bg1251.js" role="data" />
+      <file name="grid.locale-cat.js" role="data" />
+      <file name="grid.locale-cn.js" role="data" />
+      <file name="grid.locale-cs.js" role="data" />
+      <file name="grid.locale-de.js" role="data" />
+      <file name="grid.locale-dk.js" role="data" />
+      <file name="grid.locale-el.js" role="data" />
+      <file name="grid.locale-en.js" role="data" />
+      <file name="grid.locale-fa.js" role="data" />
+      <file name="grid.locale-fi.js" role="data" />
+      <file name="grid.locale-fr.js" role="data" />
+      <file name="grid.locale-he.js" role="data" />
+      <file name="grid.locale-is.js" role="data" />
+      <file name="grid.locale-it.js" role="data" />
+      <file name="grid.locale-jp.js" role="data" />
+      <file name="grid.locale-nl.js" role="data" />
+      <file name="grid.locale-no.js" role="data" />
+      <file name="grid.locale-pl.js" role="data" />
+      <file name="grid.locale-pt-br.js" role="data" />
+      <file name="grid.locale-pt.js" role="data" />
+      <file name="grid.locale-ro.js" role="data" />
+      <file name="grid.locale-ru.js" role="data" />
+      <file name="grid.locale-sp.js" role="data" />
+      <file name="grid.locale-sv.js" role="data" />
+      <file name="grid.locale-tr.js" role="data" />
+      <file name="grid.locale-ua.js" role="data" />
+     </dir>
+     <file name="jquery-1.3.2.min.js" role="data" />
+     <file name="jquery.jqGrid.min.js" role="data" />
+    </dir>
+    <file name="lib.php" role="php" />
     <dir name="php-5-3">
      <file name="index.php" role="php" />
      <file name="event.php" role="php" />
     </dir>
+    <file name="slow_requests.php" role="php" />
    </dir>
   </dir>
  </contents>
