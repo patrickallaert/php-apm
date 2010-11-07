@@ -10,7 +10,10 @@ Changed:
 
 Fixed:
 - APM cannot be compiled with PHP < 5.2.2
-- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled
+- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled.
+- Bug #17512: Sqlite connections aren't closed at the end of the request.
+- Bug #17513: Using MySQL driver, only events of the first incoming request are stored.
+- Bug #19421: apm.*_error_reporting is ignored.
 
 APM 1.0.0beta2   29 Nov 2009
 ----------------------------
