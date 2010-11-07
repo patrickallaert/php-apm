@@ -46,7 +46,7 @@ if ($event !== false) {
 		<dd><?php echo strftime('%F %T', $event['timestamp']) ?></dd>
 		
 		<dt>Error Type:</dt>
-		<dd><?php echo getErrorCodeFromID($event['type']); ?></dd>
+		<dd><?php echo APMgetErrorCodeFromID($event['type']); ?></dd>
 		
 		<dt>File:</dt>
 		<dd><?php echo htmlentities($event['file'], ENT_COMPAT, 'UTF-8'); ?></dd>

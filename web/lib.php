@@ -5,7 +5,7 @@
  * @param integer $p_iErrorID The Error ID
  * @return string The Error Code
  */
-function getErrorCodeFromID($p_iErrorID) {
+function APMgetErrorCodeFromID($p_iErrorID) {
 	$codes = array(
 		1      => 'E_ERROR',
 		2      => 'E_WARNING',
