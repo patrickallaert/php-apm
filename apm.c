@@ -241,6 +241,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				zval **token;
 				char *script_filename = NULL;
 
+				zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
 				if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
 					Z_TYPE_PP(array) == IS_ARRAY &&
 					zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
