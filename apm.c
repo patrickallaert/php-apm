@@ -44,6 +44,9 @@
   #include "drivers/mysql.h"
 #endif
 
+ZEND_DECLARE_MODULE_GLOBALS(apm);
+static PHP_GINIT_FUNCTION(apm);
+
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
@@ -94,14 +97,16 @@ zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	"0.1.0",
 #endif
-	STANDARD_MODULE_PROPERTIES
+	PHP_MODULE_GLOBALS(apm),
+	PHP_GINIT(apm),
+	NULL,
+	NULL,
+	STANDARD_MODULE_PROPERTIES_EX
 };
 
 #ifdef COMPILE_DL_APM
 ZEND_GET_MODULE(apm)
 #endif
-
-ZEND_DECLARE_MODULE_GLOBALS(apm)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the extension is globally active or not */
@@ -118,7 +123,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.slow_request_duration",  "100", PHP_INI_ALL, OnUpdateLong, slow_request_duration, zend_apm_globals, apm_globals)
 PHP_INI_END()
 
-static void apm_init_globals(zend_apm_globals *apm_globals)
+static PHP_GINIT_FUNCTION(apm)
 {
 	apm_driver_entry **next;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
@@ -151,7 +156,6 @@ static void apm_init_globals(zend_apm_globals *apm_globals)
 
 PHP_MINIT_FUNCTION(apm)
 {
-	ZEND_INIT_MODULE_GLOBALS(apm, apm_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
 	REGISTER_LONG_CONSTANT("APM_ORDER_ID", APM_ORDER_ID, CONST_CS | CONST_PERSISTENT);
