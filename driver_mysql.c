@@ -19,7 +19,7 @@
 #include <mysql/mysql.h>
 #include "php_apm.h"
 #include "php_ini.h"
-#include "mysql.h"
+#include "driver_mysql.h"
 #include "ext/standard/php_smart_str.h"
 
 static long get_table_count(char * table);

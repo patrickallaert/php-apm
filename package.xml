@@ -48,12 +48,10 @@ Fixed:
    <file name="backtrace.h" role="src" />
    <file name="config.m4" role="src" />
    <file name="config.w32" role="src" />
-   <dir name="drivers">
-    <file name="mysql.c" role="php" />
-    <file name="mysql.h" role="php" />
-    <file name="sqlite3.c" role="php" />
-    <file name="sqlite3.h" role="php" />
-   </dir>
+   <file name="driver_mysql.c" role="src" />
+   <file name="driver_mysql.h" role="src" />
+   <file name="driver_sqlite3.c" role="src" />
+   <file name="driver_sqlite3.h" role="src" />
    <file name="php_apm.h" role="src" />
    <dir name="web">
     <file name="apm.php" role="php" />

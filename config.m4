@@ -43,7 +43,7 @@ if test "$PHP_APM" != "no"; then
   AC_CONFIG_HEADERS()
 
   if test "$PHP_SQLITE3" != "no"; then
-    sqlite3_driver="drivers/sqlite3.c"
+    sqlite3_driver="driver_sqlite3.c"
     AC_DEFINE(APM_DRIVER_SQLITE3, 1, [activate sqlite3 storage driver])
     AC_MSG_CHECKING([for sqlite3 files in default path])
     for i in /usr/local /usr; do
@@ -73,7 +73,7 @@ if test "$PHP_APM" != "no"; then
   fi
 
   if test "$PHP_MYSQL" != "no"; then
-    mysql_driver="drivers/mysql.c"
+    mysql_driver="driver_mysql.c"
     AC_DEFINE(APM_DRIVER_MYSQL, 1, [activate MySQL storage driver])
 
     MYSQL_DIR=

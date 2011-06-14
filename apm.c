@@ -38,10 +38,10 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
 #ifdef APM_DRIVER_SQLITE3
-  #include "drivers/sqlite3.h"
+  #include "driver_sqlite3.h"
 #endif
 #ifdef APM_DRIVER_MYSQL
-  #include "drivers/mysql.h"
+  #include "driver_mysql.h"
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);

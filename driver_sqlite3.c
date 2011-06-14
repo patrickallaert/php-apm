@@ -23,7 +23,7 @@
 #include "ext/date/php_date.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
-#include "sqlite3.h"
+#include "driver_sqlite3.h"
 
 static int event_callback_html(void *data, int num_fields, char **fields, char **col_name);
 static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name);
