@@ -170,7 +170,7 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 	efree(filename_esc);
 }
 
-/* {{{ proto bool apm_get_mysql_events([, int limit[, int offset[, int order[, bool asc[, bool json]]]]]) U
+/* {{{ proto bool apm_get_mysql_events([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
    Returns HTML/JSON with all events */
 PHP_FUNCTION(apm_get_mysql_events)
 {
@@ -274,7 +274,7 @@ file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld",
 }
 /* }}} */
 
-/* {{{ proto bool apm_get_mysql_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]]) U
+/* {{{ proto bool apm_get_mysql_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
    Returns HTML/JSON with all slow requests */
 PHP_FUNCTION(apm_get_mysql_slow_requests)
 {
@@ -337,7 +337,7 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 }
 /* }}} */
 
-/* {{{ proto int apm_get_mysql_events_count() U
+/* {{{ proto int apm_get_mysql_events_count()
    Return the number of events */
 PHP_FUNCTION(apm_get_mysql_events_count)
 {
@@ -351,7 +351,7 @@ PHP_FUNCTION(apm_get_mysql_events_count)
 }
 /* }}} */
 
-/* {{{ proto int apm_get_mysql_slow_requests_count() U
+/* {{{ proto int apm_get_mysql_slow_requests_count()
    Return the number of slow requests */
 PHP_FUNCTION(apm_get_mysql_slow_requests_count)
 {
@@ -365,7 +365,7 @@ PHP_FUNCTION(apm_get_mysql_slow_requests_count)
 }
 /* }}} */
 
-/* {{{ proto array apm_get_mysql_event_into(int eventID) U
+/* {{{ proto array apm_get_mysql_event_into(int eventID)
    Returns all information available on a request */
 PHP_FUNCTION(apm_get_mysql_event_info)
 {
