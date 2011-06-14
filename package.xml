@@ -146,8 +146,8 @@ Fixed:
  </dependencies>
  <providesextension>apm</providesextension>
  <extsrcrelease>
-  <configureoption name="--with-sqlite3" default="yes" prompt="Enable Sqlite3 support"/>
-  <configureoption name="--with-mysql" default="yes" prompt="Enable MySQL support"/>
+  <configureoption name="with-sqlite3" default="yes" prompt="Enable Sqlite3 support"/>
+  <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
   <release>
