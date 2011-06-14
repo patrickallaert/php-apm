@@ -20,31 +20,21 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2010-11-07</date>
+ <date>2011-06-02</date>
  <version>
-  <release>1.0.0beta3</release>
+  <release>1.0.0</release>
   <api>1.0.0</api>
  </version>
  <stability>
-  <release>beta</release>
-  <api>beta</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-Added:
-- MySQL driver
-- Per driver error reporting level
-- Asynchronous processing of events (config option: apm.deffered_processing)
-
-Changed:
-- Code refactored to make use of 'APM drivers'
+This is the initial stable release of APM.
 
 Fixed:
-- APM cannot be compiled with PHP &lt; 5.2.2.
-- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled.
-- Bug #17512: Sqlite connections aren't closed at the end of the request.
-- Bug #17513: Using MySQL driver, only events of the first incoming request are stored.
-- Bug #19421: apm.*_error_reporting is ignored.
+- Script filename could possibly not be filled in case of slow request.
  </notes>
  <contents>
   <dir name="/">
@@ -157,5 +147,86 @@ Fixed:
   </required>
  </dependencies>
  <providesextension>apm</providesextension>
- <extsrcrelease />
+ <extsrcrelease>
+  <configureoption name="--with-sqlite3" default="yes" prompt="Enable Sqlite3 support"/>
+  <configureoption name="--with-mysql" default="yes" prompt="Enable MySQL support"/>
+ </extsrcrelease>
+ <changelog>
+  <release>
+   <version>
+    <release>1.0.0</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2011-06-02</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+This is the initial stable release of APM.
+
+Fixed:
+- Script filename could possibly not be filled in case of slow request.
+   </notes>
+  </release>
+  <release>
+   <version>
+    <release>1.0.0beta3</release>
+    <api>1.0.0beta3</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2010-11-07</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Added:
+- MySQL driver
+- Per driver error reporting level
+- Asynchronous processing of events (config option: apm.deffered_processing)
+
+Changed:
+- Code refactored to make use of 'APM drivers'
+
+Fixed:
+- APM cannot be compiled with PHP &lt; 5.2.2.
+- Bug #17502: Drivers' rshutdown run only when slow_request tracking is enabled.
+- Bug #17512: Sqlite connections aren't closed at the end of the request.
+- Bug #17513: Using MySQL driver, only events of the first incoming request are stored.
+- Bug #19421: apm.*_error_reporting is ignored.
+   </notes>
+  </release>
+  <release>
+   <version>
+    <release>1.0.0beta2</release>
+    <api>1.0.0beta2</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2010-01-30</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Second beta release.
+   </notes>
+  </release>
+  <release>
+   <version>
+    <release>1.0.0beta1</release>
+    <api>1.0.0beta1</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2009-11-29</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Initial beta release.
+   </notes>
+  </release>
+ </changelog>
 </package>
