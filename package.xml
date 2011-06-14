@@ -20,7 +20,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2011-06-02</date>
+ <date>2011-06-14</date>
  <version>
   <release>1.0.0</release>
   <api>1.0.0</api>
@@ -159,7 +159,7 @@ Fixed:
     <release>stable</release>
     <api>stable</api>
    </stability>
-   <date>2011-06-02</date>
+   <date>2011-06-14</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
 This is the initial stable release of APM.
