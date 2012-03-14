@@ -5,13 +5,14 @@ jQuery(document).ready(function(){
 	    url: 'events.php',
 	    datatype: 'json',
 	    mtype: 'GET',
-	    colNames :['#', 'Time', 'Type', 'File', 'Line', 'Message'],
+	    colNames :['#', 'Time', 'Type', 'File', 'Line', 'IP', 'Message'],
 	    colModel :[
 	      {name:'id', index:'id', width:55},
 	      {name:'time', index:'time', width:130},
 	      {name:'type', index:'type', width:70},
 	      {name:'file', index:'file', width:300},
 	      {name:'line', index:'line', width:50, align:'right', sortable:false},
+	      {name:'ip', index:'ip', width:70},
 	      {name:'msg', index:'msg', width:250, sortable:false}
 	    ],
 	    pager: '#events-pager',

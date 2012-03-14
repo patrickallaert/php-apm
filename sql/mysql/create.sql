@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS event (
     line MEDIUMINT UNSIGNED NOT NULL,
     message TEXT NOT NULL,
     backtrace TEXT NOT NULL,
-    uri TEXT NOT NULL);
+    uri TEXT NOT NULL,
+    ip INTEGER UNSIGNED NOT NULL);
 
 CREATE TABLE IF NOT EXISTS slow_request (
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,

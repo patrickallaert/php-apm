@@ -21,6 +21,12 @@
 #include "php_ini.h"
 #include "driver_mysql.h"
 #include "ext/standard/php_smart_str.h"
+#ifdef NETWARE
+#include <netinet/in.h>
+#endif
+#if HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
 
 static long get_table_count(char * table);
 
@@ -70,12 +76,13 @@ MYSQL * mysql_get_instance() {
 }
 
 /* Insert an event in the backend */
-void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri TSRMLS_DC)
+void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip TSRMLS_DC)
 {
 	MYSQL_INSTANCE_INIT
 
 	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *uri_esc = NULL, *sql = NULL;
-	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0;
+	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0, ip_int = 0;
+	struct in_addr ip_addr;
 
 	if (error_filename) {
 		filename_len = strlen(error_filename);
@@ -101,11 +108,15 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 		uri_len = mysql_real_escape_string(connection, uri_esc, uri, uri_len);
 	}
 
-	sql = emalloc(100 + filename_len + msg_len + trace_len + uri_len);
+	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
+		ip_int = ntohl(ip_addr.s_addr);
+	}
+	
+	sql = emalloc(120 + filename_len + msg_len + trace_len + uri_len);
 	sprintf(
 		sql,
-		"INSERT INTO event (type, file, line, message, backtrace, uri) VALUES (%d, '%s', %u, '%s', '%s', '%s')",
-		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "");
+		"INSERT INTO event (type, file, line, message, backtrace, uri, ip) VALUES (%d, '%s', %u, '%s', '%s', '%s', %u)",
+		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "", ip_int);
 
 	mysql_query(connection, sql);
 
@@ -176,6 +187,13 @@ PHP_FUNCTION(apm_get_mysql_events)
 	long offset = 0;
 	char sql[600];
 	zend_bool asc = 0;
+	struct in_addr myaddr;
+	unsigned long n;
+#ifdef HAVE_INET_PTON
+    char ip_str[40];
+#else
+	char *ip_str;
+#endif
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
@@ -183,7 +201,7 @@ PHP_FUNCTION(apm_get_mysql_events)
 
 	MYSQL_INSTANCE_INIT
 
-	if (order < 1 || order > 4) {
+	if (order < 1 || order > 5) {
 		order = 1;
 	}
 
@@ -206,7 +224,7 @@ PHP_FUNCTION(apm_get_mysql_events)
  WHEN 8192 THEN 'E_DEPRECATED' \
  WHEN 16384 THEN 'E_USER_DEPRECATED' \
  END, \
-file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
+file, ip, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 
 	mysql_query(connection, sql);
 
@@ -223,12 +241,12 @@ file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld",
 		Z_STRLEN(zfile) = strlen(row[3]);
 
 		Z_TYPE(zmsg) = IS_STRING;
-		Z_STRVAL(zmsg) = row[5];
-		Z_STRLEN(zmsg) = strlen(row[5]);
+		Z_STRVAL(zmsg) = row[6];
+		Z_STRLEN(zmsg) = strlen(row[6]);
 
 		Z_TYPE(ztrace) = IS_STRING;
-		Z_STRVAL(ztrace) = row[6];
-		Z_STRLEN(ztrace) = strlen(row[6]);
+		Z_STRVAL(ztrace) = row[7];
+		Z_STRLEN(ztrace) = strlen(row[7]);
 
 		php_json_encode(&file, &zfile TSRMLS_CC);
 		php_json_encode(&msg, &zmsg TSRMLS_CC);
@@ -238,8 +256,18 @@ file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld",
 		smart_str_0(&msg);
 		smart_str_0(&trace);
 
-		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
-					   row[0], row[0], row[1], row[2], file.c, row[4], msg.c, trace.c);
+		n = strtoul(row[4], NULL, 0);
+
+		myaddr.s_addr = htonl(n);
+
+#ifdef HAVE_INET_PTON
+		inet_ntop(AF_INET, &myaddr, ip_str, sizeof(ip_str));
+#else
+		ip_str = inet_ntoa(myaddr);
+#endif
+
+		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s, %s]},\n",
+					   row[0], row[0], row[1], row[2], file.c, row[5], ip_str, msg.c, trace.c);
 
 		smart_str_free(&file);
 		smart_str_free(&msg);

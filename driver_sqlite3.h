@@ -28,7 +28,7 @@
 #define DB_FILE "events"
 
 apm_driver_entry * apm_driver_sqlite3_create();
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri TSRMLS_DC);
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip TSRMLS_DC);
 int apm_driver_sqlite3_minit(int);
 int apm_driver_sqlite3_rinit();
 int apm_driver_sqlite3_mshutdown();

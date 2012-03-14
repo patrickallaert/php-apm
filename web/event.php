@@ -65,6 +65,13 @@ if ($event !== false) {
 	<p><?php echo nl2br($event['stacktrace']); ?></p>
 </div>
 
+<!-- Ip -->
+<div id="stacktrace">
+	<label class="strong">IP</label>
+	<br />
+	<p><?php echo long2ip($event['ip']); ?></p>
+</div>
+
 <!-- Source -->		
 <div style="margin: 5px;"><a id="source_toggle" href="javascript:void(0);">Show Sourcecode</a></div>
 <div id="source" style="display: none; font-size: 10px; padding-top: 5px; padding-left: 5px;">

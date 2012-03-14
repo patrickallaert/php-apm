@@ -24,6 +24,12 @@
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
 #include "driver_sqlite3.h"
+#ifdef NETWARE
+#include <netinet/in.h>
+#endif
+#if HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
 
 static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name);
 static int event_callback(void *data, int num_fields, char **fields, char **col_name);
@@ -99,13 +105,19 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri TSRMLS_DC)
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip TSRMLS_DC)
 {
 	char *sql;
+	int ip_int = 0;
+	struct in_addr ip_addr;
+
+	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
+		ip_int = ntohl(ip_addr.s_addr);
+	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri) VALUES (datetime(), %d, %Q, %d, %Q, %Q, %Q);",
-		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "");
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip) VALUES (datetime(), %d, %Q, %d, %Q, %Q, %Q, %d);",
+		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int);
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 
@@ -186,7 +198,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
 		RETURN_FALSE;
 	}
 
-	if (order < 1 || order > 4) {
+	if (order < 1 || order > 5) {
 		order = 1;
 	}
 
@@ -207,7 +219,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-							  file, line, message, backtrace FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+							  file, ip, line, message, backtrace FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
 	sqlite3_exec(db, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
@@ -297,7 +309,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 		RETURN_FALSE;
 	}
 
-	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace FROM event WHERE id = %d", id);
+	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip FROM event WHERE id = %d", id);
 	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
 
 	sqlite3_free(sql);
@@ -315,6 +327,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 	add_assoc_long(return_value, "type", info.type);
 	add_assoc_string(return_value, "message", info.message, 1);
 	add_assoc_string(return_value, "stacktrace", info.stacktrace, 1);
+	add_assoc_long(return_value, "ip", info.ip);
 }
 /* }}} */
 
@@ -350,6 +363,7 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	(*(apm_event_info *) info).type = atoi(fields[2]);
 	(*(apm_event_info *) info).message = estrdup(fields[5]);
 	(*(apm_event_info *) info).stacktrace = estrdup(fields[6]);
+	(*(apm_event_info *) info).ip = atoi(fields[7]);
 
 	return 0;
 }
@@ -361,18 +375,25 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	smart_str msg = {0};
 	smart_str trace = {0};
 	zval zfile, zmsg, ztrace;
+	struct in_addr myaddr;
+	unsigned long n;
+#ifdef HAVE_INET_PTON
+    char ip_str[40];
+#else
+	char *ip_str;
+#endif
 
 	Z_TYPE(zfile) = IS_STRING;
 	Z_STRVAL(zfile) = fields[3];
 	Z_STRLEN(zfile) = strlen(fields[3]);
 
 	Z_TYPE(zmsg) = IS_STRING;
-	Z_STRVAL(zmsg) = fields[5];
-	Z_STRLEN(zmsg) = strlen(fields[5]);
+	Z_STRVAL(zmsg) = fields[6];
+	Z_STRLEN(zmsg) = strlen(fields[6]);
 
 	Z_TYPE(ztrace) = IS_STRING;
-	Z_STRVAL(ztrace) = fields[6];
-	Z_STRLEN(ztrace) = strlen(fields[6]);
+	Z_STRVAL(ztrace) = fields[7];
+	Z_STRLEN(ztrace) = strlen(fields[7]);
 
 	php_json_encode(&file, &zfile TSRMLS_CC);
 	php_json_encode(&msg, &zmsg TSRMLS_CC);
@@ -382,8 +403,18 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	smart_str_0(&msg);
 	smart_str_0(&trace);
 
-	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
-               fields[0], fields[0], fields[1], fields[2], file.c, fields[4], msg.c, trace.c);
+	n = strtoul(fields[4], NULL, 0);
+
+	myaddr.s_addr = htonl(n);
+
+#ifdef HAVE_INET_PTON
+    inet_ntop(AF_INET, &myaddr, ip_str, sizeof(ip_str));
+#else
+	ip_str = inet_ntoa(myaddr);
+#endif
+
+	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s, %s]},\n",
+               fields[0], fields[0], fields[1], fields[2], file.c, fields[5], ip_str, msg.c, trace.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);

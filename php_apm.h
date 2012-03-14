@@ -39,6 +39,7 @@ extern zend_module_entry apm_module_entry;
 #define APM_ORDER_TYPE 3
 #define APM_ORDER_DURATION 3
 #define APM_ORDER_FILE 4
+#define APM_ORDER_IP 5
 
 #define APM_E_ALL (E_ALL | E_STRICT)
 
@@ -56,7 +57,7 @@ typedef struct apm_event_entry {
 } apm_event_entry;
 
 typedef struct apm_driver {
-	void (* insert_event)(int, char *, uint, char *, char *, char * TSRMLS_DC);
+	void (* insert_event)(int, char *, uint, char *, char *, char *, char * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
@@ -158,6 +159,7 @@ typedef struct {
 	long ts;
 	char *message;
 	char *stacktrace;
+	long ip;
 } apm_event_info;
 
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)

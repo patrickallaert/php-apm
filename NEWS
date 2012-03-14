@@ -1,5 +1,8 @@
 APM 1.1.0beta1   XX XXX XXXX
 ----------------------------
+Added:
+- New stored information: IP
+
 Removed:
 - JSON flag for apm_get_*_events and apm_get_*_slow_requests
 
