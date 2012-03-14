@@ -150,6 +150,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_globals->events->event.error_filename = NULL;
 	apm_globals->events->event.error_lineno = 0;
 	apm_globals->events->event.msg = NULL;
+	apm_globals->events->event.trace = NULL;
 	apm_globals->events->next = NULL;
 	apm_globals->last_event = &apm_globals->events;
 }
