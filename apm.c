@@ -394,15 +394,15 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		(*APM_G(last_event))->next->next = NULL;
 		APM_G(last_event) = &(*APM_G(last_event))->next;
 	} else {
-		zval **uri = NULL, **ip;
+		zval **uri = NULL, **ip, *tmp;
 		zend_bool uri_found = 0, ip_found = 0;
 
-		if (PG(http_globals)[TRACK_VARS_SERVER]) {
-			if ((zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
+		if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) {
+			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
 				(Z_TYPE_PP(uri) == IS_STRING)) {
 				uri_found = 1;
 			}
-			if ((zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
+			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
 				(Z_TYPE_PP(ip) == IS_STRING)) {
 				ip_found = 1;
 			}
@@ -422,15 +422,15 @@ static void deffered_insert_events(TSRMLS_D)
 {
 	apm_driver_entry * driver_entry = APM_G(drivers);
 	apm_event_entry * event_entry_cursor;
-	zval **uri = NULL, **ip;
+	zval **uri = NULL, **ip, *tmp;
 	zend_bool uri_found = 0, ip_found = 0;
 
-	if (PG(http_globals)[TRACK_VARS_SERVER]) {
-		if ((zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
+	if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) {
+		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
 			(Z_TYPE_PP(uri) == IS_STRING)) {
 			uri_found = 1;
 		}
-		if ((zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
+		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
 			(Z_TYPE_PP(ip) == IS_STRING)) {
 			ip_found = 1;
 		}
