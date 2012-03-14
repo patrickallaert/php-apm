@@ -22,7 +22,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  </lead>
  <date>2011-06-14</date>
  <version>
-  <release>1.0.0</release>
+  <release>1.0.1</release>
   <api>1.0.0</api>
  </version>
  <stability>
@@ -31,10 +31,11 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-This is the initial stable release of APM.
+Changed:
+- Base install dir for web files, now in php/PECL/APM
 
 Fixed:
-- Script filename could possibly not be filled in case of slow request.
+- Bug #60276 pecl install fail installing APM
  </notes>
  <contents>
   <dir name="/">
@@ -150,6 +151,25 @@ Fixed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>1.0.1</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2011-11-12</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Changed:
+- Base install dir for web files, now in php/PECL/APM
+
+Fixed:
+- Bug #60276 pecl install fail installing APM
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.0.0</release>
