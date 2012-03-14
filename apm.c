@@ -128,7 +128,7 @@ static PHP_GINIT_FUNCTION(apm)
 {
 	apm_driver_entry **next;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -393,10 +393,18 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		(*APM_G(last_event))->next->next = NULL;
 		APM_G(last_event) = &(*APM_G(last_event))->next;
 	} else {
+		zval **uri = NULL;
+		zend_bool uri_found = 0;
+
+		if (PG(http_globals)[TRACK_VARS_SERVER] &&
+			(zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
+			(Z_TYPE_PP(uri) == IS_STRING)) {
+			uri_found = 1;
+		}
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
-				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "" TSRMLS_CC);
+				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "", uri_found ? Z_STRVAL_PP(uri) : "" TSRMLS_CC);
 			}
 		}
 	}
@@ -408,13 +416,21 @@ static void deffered_insert_events(TSRMLS_D)
 {
 	apm_driver_entry * driver_entry = APM_G(drivers);
 	apm_event_entry * event_entry_cursor;
+	zval **uri = NULL;
+	zend_bool uri_found = 0;
+
+	if (PG(http_globals)[TRACK_VARS_SERVER] &&
+		(zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
+		(Z_TYPE_PP(uri) == IS_STRING)) {
+		uri_found = 1;
+	}
 
 	while ((driver_entry = driver_entry->next) != NULL) {
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
 				if (event_entry_cursor->event.type & apm_driver_mysql_error_reporting()) {
-					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace TSRMLS_CC);
+					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace, uri_found ? Z_STRVAL_PP(uri) : "" TSRMLS_CC);
 				}
 			}
 		}

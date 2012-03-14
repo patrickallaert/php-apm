@@ -101,13 +101,13 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri TSRMLS_DC)
 {
 	char *sql;
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace) VALUES (datetime(), %d, %Q, %d, %Q, %Q);",
-		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "");
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri) VALUES (datetime(), %d, %Q, %d, %Q, %Q, %Q);",
+		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 

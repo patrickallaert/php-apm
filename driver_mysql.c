@@ -70,12 +70,12 @@ MYSQL * mysql_get_instance() {
 }
 
 /* Insert an event in the backend */
-void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
+void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri TSRMLS_DC)
 {
 	MYSQL_INSTANCE_INIT
 
-	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *sql = NULL;
-	int filename_len = 0, msg_len = 0, trace_len = 0;
+	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *uri_esc = NULL, *sql = NULL;
+	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0;
 
 	if (error_filename) {
 		filename_len = strlen(error_filename);
@@ -95,12 +95,17 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 		trace_len = mysql_real_escape_string(connection, trace_esc, trace, trace_len);
 	}
 
-	sql = emalloc(100 + filename_len + msg_len + trace_len);
+	if (uri) {
+		uri_len = strlen(uri);
+		uri_esc = ecalloc(uri_len, 2);
+		uri_len = mysql_real_escape_string(connection, uri_esc, uri, uri_len);
+	}
+
+	sql = emalloc(100 + filename_len + msg_len + trace_len + uri_len);
 	sprintf(
 		sql,
-		"INSERT INTO event (type, file, line, message, backtrace) VALUES (%d, '%s', %u, '%s', '%s')",
-		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "");
-
+		"INSERT INTO event (type, file, line, message, backtrace, uri) VALUES (%d, '%s', %u, '%s', '%s', '%s')",
+		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "");
 
 	mysql_query(connection, sql);
 
@@ -108,6 +113,7 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 	efree(filename_esc);
 	efree(msg_esc);
 	efree(trace_esc);
+	efree(uri_esc);
 }
 int apm_driver_mysql_minit(int module_number)
 {
