@@ -55,7 +55,7 @@ Fixed:
    <file name="php_apm.h" role="src" />
    <dir name="web">
     <file name="apm.php" role="php" />
-    <file name="config.php" role="php" />
+    <file name="setup.php" role="php" />
     <dir name="css">
      <file name="apm.css" role="data" />
      <file name="ellipsis-xbl.xml" role="data" />

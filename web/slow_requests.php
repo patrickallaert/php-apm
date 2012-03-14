@@ -17,7 +17,7 @@
  |          Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
-require 'config.php';
+require 'setup.php';
 $records = apm_get_slow_requests_count();
 switch ($_GET['sidx']) {
     case 'time':

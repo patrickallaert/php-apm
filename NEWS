@@ -1,3 +1,8 @@
+APM 1.0.1        12 Nov 2011
+----------------------------
+Fixed:
+- Bug #60276 pecl install fail installing APM
+
 APM 1.0.0        14 Jun 2011
 ----------------------------
 Fixed:
