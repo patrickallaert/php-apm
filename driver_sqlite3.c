@@ -18,9 +18,9 @@
 */
 
 #include <sqlite3.h>
+#include <time.h>
 #include "php_apm.h"
 #include "php_ini.h"
-#include "ext/date/php_date.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
 #include "driver_sqlite3.h"
@@ -116,8 +116,8 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip) VALUES (datetime(), %d, %Q, %d, %Q, %Q, %Q, %d);",
-		                  type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int);
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %d);",
+		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int);
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 
@@ -334,30 +334,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 /* Function called for the row returned by event info query */
 static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name)
 {
-	// Most logic here is to transform the date from string format to unix timestamp
-	timelib_time *t, *now;
-	timelib_tzinfo *tzi;
-	int error1, error2;
-	long ts;
-	struct timelib_error_container *error;
-
-	tzi = get_timezone_info(TSRMLS_C);
-	now = timelib_time_ctor();
-	now->tz_info = tzi;
-	now->zone_type = TIMELIB_ZONETYPE_ID;
-	timelib_unixtime2local(now, (timelib_sll) time(NULL));
-
-	t = timelib_strtotime(fields[1], strlen(fields[1]), &error, timelib_builtin_db());
-	error1 = error->error_count;
-	timelib_error_container_dtor(error);
-	timelib_fill_holes(t, now, TIMELIB_NONE);
-	timelib_update_ts(t, tzi);
-	ts = timelib_date_to_int(t, &error2);
-
-	timelib_time_dtor(now);
-	timelib_time_dtor(t);
-
-	(*(apm_event_info *) info).ts = (!error1 && !error2) ? ts : -1;
+	(*(apm_event_info *) info).ts = atoi(fields[1]);
 	(*(apm_event_info *) info).file = estrdup(fields[3]);
 	(*(apm_event_info *) info).line = atoi(fields[4]);
 	(*(apm_event_info *) info).type = atoi(fields[2]);
@@ -376,6 +353,8 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	zval zfile, zmsg;
 	struct in_addr myaddr;
 	unsigned long n;
+	char datetime[20] = {0};
+	time_t ts;
 #ifdef HAVE_INET_PTON
     char ip_str[40];
 #else
@@ -406,8 +385,11 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	ip_str = inet_ntoa(myaddr);
 #endif
 
+	ts = atoi(fields[1]);
+	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
+
 	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s]},\n",
-               fields[0], fields[0], fields[1], fields[2], file.c, fields[5], ip_str, msg.c);
+               fields[0], fields[0], datetime, fields[2], file.c, fields[5], ip_str, msg.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);
