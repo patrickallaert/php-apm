@@ -449,7 +449,7 @@ static void deffered_insert_events(TSRMLS_D)
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
-				if (event_entry_cursor->event.type & apm_driver_mysql_error_reporting()) {
+				if (event_entry_cursor->event.type & driver_entry->driver.error_reporting()) {
 					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace, uri_found ? Z_STRVAL_PP(uri) : "", ip_found ? Z_STRVAL_PP(ip) : "", cookies_found ? cookies.c : "" TSRMLS_CC);
 				}
 			}
