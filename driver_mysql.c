@@ -165,8 +165,8 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 	efree(filename_esc);
 }
 
-/* {{{ proto bool apm_get_mysql_events([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
-   Returns HTML/JSON with all events */
+/* {{{ proto bool apm_get_mysql_events([, int limit[, int offset[, int order[, bool asc]]]])
+   Returns JSON with all events */
 PHP_FUNCTION(apm_get_mysql_events)
 {
 	MYSQL_RES *result;
@@ -175,20 +175,13 @@ PHP_FUNCTION(apm_get_mysql_events)
 	long limit = 25;
 	long offset = 0;
 	char sql[600];
-	zend_bool json = 0;
 	zend_bool asc = 0;
-	int odd = 1;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
 	}
 
 	MYSQL_INSTANCE_INIT
-
-	if (!json) {
-		php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
-		odd = 1;
-	}
 
 	if (order < 1 || order > 4) {
 		order = 1;
@@ -219,48 +212,38 @@ file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld",
 
 	result = mysql_use_result(connection);
 
-	if (!json) {
-		while ((row = mysql_fetch_row(result))) {
-			php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
-					   row[2], odd ? "odd" : "even", row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
-			odd = !odd;
-		}
-	
-		php_printf("</table>");
-	} else {
-		smart_str file = {0};
-		smart_str msg = {0};
-		smart_str trace = {0};
-		zval zfile, zmsg, ztrace;
+	smart_str file = {0};
+	smart_str msg = {0};
+	smart_str trace = {0};
+	zval zfile, zmsg, ztrace;
 
-		while ((row = mysql_fetch_row(result))) {
-			Z_TYPE(zfile) = IS_STRING;
-			Z_STRVAL(zfile) = row[3];
-			Z_STRLEN(zfile) = strlen(row[3]);
+	while ((row = mysql_fetch_row(result))) {
+		Z_TYPE(zfile) = IS_STRING;
+		Z_STRVAL(zfile) = row[3];
+		Z_STRLEN(zfile) = strlen(row[3]);
 
-			Z_TYPE(zmsg) = IS_STRING;
-			Z_STRVAL(zmsg) = row[5];
-			Z_STRLEN(zmsg) = strlen(row[5]);
+		Z_TYPE(zmsg) = IS_STRING;
+		Z_STRVAL(zmsg) = row[5];
+		Z_STRLEN(zmsg) = strlen(row[5]);
 
-			Z_TYPE(ztrace) = IS_STRING;
-			Z_STRVAL(ztrace) = row[6];
-			Z_STRLEN(ztrace) = strlen(row[6]);
+		Z_TYPE(ztrace) = IS_STRING;
+		Z_STRVAL(ztrace) = row[6];
+		Z_STRLEN(ztrace) = strlen(row[6]);
 
-			php_json_encode(&file, &zfile TSRMLS_CC);
-			php_json_encode(&msg, &zmsg TSRMLS_CC);
-			php_json_encode(&trace, &ztrace TSRMLS_CC);
+		php_json_encode(&file, &zfile TSRMLS_CC);
+		php_json_encode(&msg, &zmsg TSRMLS_CC);
+		php_json_encode(&trace, &ztrace TSRMLS_CC);
 
-			smart_str_0(&file);
-			smart_str_0(&msg);
-			smart_str_0(&trace);
+		smart_str_0(&file);
+		smart_str_0(&msg);
+		smart_str_0(&trace);
 
-			php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
-						   row[0], row[0], row[1], row[2], file.c, row[4], msg.c, trace.c);
+		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", %s, %s]},\n",
+					   row[0], row[0], row[1], row[2], file.c, row[4], msg.c, trace.c);
 
-			smart_str_free(&file);
-			smart_str_free(&msg);
-			smart_str_free(&trace);
-		}
+		smart_str_free(&file);
+		smart_str_free(&msg);
+		smart_str_free(&trace);
 	}
 
 	mysql_free_result(result);
@@ -269,8 +252,8 @@ file, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld",
 }
 /* }}} */
 
-/* {{{ proto bool apm_get_mysql_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
-   Returns HTML/JSON with all slow requests */
+/* {{{ proto bool apm_get_mysql_slow_requests([, int limit[, int offset[, int order[, bool asc]]]])
+   Returns JSON with all slow requests */
 PHP_FUNCTION(apm_get_mysql_slow_requests)
 {
 	MYSQL_RES *result;
@@ -279,51 +262,35 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 	long limit = 25;
 	long offset = 0;
 	char sql[128];
-	zend_bool json = 0;
 	zend_bool asc = 0;
-	int odd = 1;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
 	}
 
 	MYSQL_INSTANCE_INIT
-
-	if (!json) {
-		php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
-	}
 
 	sprintf(sql, "SELECT id, ts, duration, file FROM slow_request ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 	mysql_query(connection, sql);
 
 	result = mysql_use_result(connection);
 
-	if (!json) {
-		while ((row = mysql_fetch_row(result))) {
-			php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-					   odd ? "odd" : "even", row[0], row[1], row[2], row[3]);
-			odd = !odd;
-		}
+	smart_str file = {0};
+	zval zfile;
 
-		php_printf("</table>");
-	} else {
-		smart_str file = {0};
-		zval zfile;
+	while ((row = mysql_fetch_row(result))) {
+		Z_TYPE(zfile) = IS_STRING;
+		Z_STRVAL(zfile) = row[3];
+		Z_STRLEN(zfile) = strlen(row[3]);
 
-		while ((row = mysql_fetch_row(result))) {
-			Z_TYPE(zfile) = IS_STRING;
-			Z_STRVAL(zfile) = row[3];
-			Z_STRLEN(zfile) = strlen(row[3]);
+		php_json_encode(&file, &zfile TSRMLS_CC);
 
-			php_json_encode(&file, &zfile TSRMLS_CC);
+		smart_str_0(&file);
 
-			smart_str_0(&file);
+		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
+           row[0], row[0], row[1], row[2], file.c);
 
-			php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
-               row[0], row[0], row[1], row[2], file.c);
-
-			smart_str_free(&file);
-		}
+		smart_str_free(&file);
 	}
 
 	mysql_free_result(result);

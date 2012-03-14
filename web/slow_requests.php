@@ -40,7 +40,7 @@ switch ($_GET['sidx']) {
   records: "<?php echo $records ?>",
   rows : [
     <?php
-    apm_get_slow_requests($_GET['rows'], ($_GET['page'] - 1) * $_GET['rows'], $order, $_GET['sord'] === 'asc', true);
+    apm_get_slow_requests($_GET['rows'], ($_GET['page'] - 1) * $_GET['rows'], $order, $_GET['sord'] === 'asc');
     ?>
   ]
 }

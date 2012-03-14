@@ -1,3 +1,8 @@
+APM 1.1.0beta1   XX XXX XXXX
+----------------------------
+Removed:
+- JSON flag for apm_get_*_events and apm_get_*_slow_requests
+
 APM 1.0.1        12 Nov 2011
 ----------------------------
 Changed:

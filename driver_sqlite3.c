@@ -25,11 +25,9 @@
 #include "ext/standard/php_filestat.h"
 #include "driver_sqlite3.h"
 
-static int event_callback_html(void *data, int num_fields, char **fields, char **col_name);
 static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name);
-static int event_callback_json(void *data, int num_fields, char **fields, char **col_name);
-static int slow_request_callback_html(void *data, int num_fields, char **fields, char **col_name);
-static int slow_request_callback_json(void *data, int num_fields, char **fields, char **col_name);
+static int event_callback(void *data, int num_fields, char **fields, char **col_name);
+static int slow_request_callback(void *data, int num_fields, char **fields, char **col_name);
 static int event_callback_count(void *count, int num_fields, char **fields, char **col_name);
 static long get_table_count(char * table);
 
@@ -165,8 +163,8 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 	sqlite3_free(sql);
 }
 
-/* {{{ proto bool apm_get_sqlite_events([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
-   Returns HTML/JSON with all events */
+/* {{{ proto bool apm_get_sqlite_events([, int limit[, int offset[, int order[, bool asc]]]])
+   Returns JSON with all events */
 PHP_FUNCTION(apm_get_sqlite_events)
 {
 	sqlite3 *db;
@@ -174,11 +172,10 @@ PHP_FUNCTION(apm_get_sqlite_events)
 	long limit = 25;
 	long offset = 0;
 	char *sql;
-	zend_bool json = 0;
 	zend_bool asc = 0;
 	int odd_event_list = 1;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
 	}
 
@@ -187,10 +184,6 @@ PHP_FUNCTION(apm_get_sqlite_events)
 		/* Closing DB file and returning false */
 		sqlite3_close(db);
 		RETURN_FALSE;
-	}
-
-	if (!json) {
-		php_printf("<table id=\"event-list\"><tr><th>#</th><th>Time</th><th>Type</th><th>File</th><th>Line</th><th>Message</th><th>Backtrace</th></tr>\n");
 	}
 
 	if (order < 1 || order > 4) {
@@ -215,10 +208,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
 							  file, line, message, backtrace FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(db, sql, json ? event_callback_json : event_callback_html, &odd_event_list, NULL);
-	if (!json) {
-		php_printf("</table>");
-	}
+	sqlite3_exec(db, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
 	sqlite3_close(db);
@@ -226,8 +216,8 @@ PHP_FUNCTION(apm_get_sqlite_events)
 }
 /* }}} */
 
-/* {{{ proto bool apm_get_sqlite_slow_requests([, int limit[, int offset[, int order[, bool asc[, bool json]]]]])
-   Returns HTML/JSON with all slow requests */
+/* {{{ proto bool apm_get_sqlite_slow_requests([, int limit[, int offset[, int order[, bool asc]]]])
+   Returns JSON with all slow requests */
 PHP_FUNCTION(apm_get_sqlite_slow_requests)
 {
 	sqlite3 *db;
@@ -235,11 +225,10 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 	long limit = 25;
 	long offset = 0;
 	char *sql;
-	zend_bool json = 0;
 	zend_bool asc = 0;
 	int odd_slow_request = 1;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllbb", &limit, &offset, &order, &asc, &json) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
 	}
 
@@ -250,16 +239,8 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 		RETURN_FALSE;
 	}
 
-	if (!json) {
-		php_printf("<table id=\"slow-request-list\"><tr><th>#</th><th>Time</th><th>Duration</th><th>File</th></tr>\n");
-	}
-
 	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(db, sql, json ? slow_request_callback_json : slow_request_callback_html, &odd_slow_request, NULL);
-
-	if (!json) {
-		php_printf("</table>");
-	}
+	sqlite3_exec(db, sql, slow_request_callback, &odd_slow_request, NULL);
 
 	sqlite3_free(sql);
 	sqlite3_close(db);
@@ -337,16 +318,6 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 }
 /* }}} */
 
-/* Function called for every row returned by event query (html version) */
-static int event_callback_html(void *odd_event_list, int num_fields, char **fields, char **col_name)
-{
-	php_printf("<tr class=\"%s %s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><pre>%s</pre></td></tr>\n",
-               fields[2], *(int *)odd_event_list ? "odd" : "even", fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6]);
-	*(int *)odd_event_list = !*(int *)odd_event_list;
-
-	return 0;
-}
-
 /* Function called for the row returned by event info query */
 static int event_callback_event_info(void *info, int num_fields, char **fields, char **col_name)
 {
@@ -383,8 +354,8 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	return 0;
 }
 
-/* Function called for every row returned by event query (json version) */
-static int event_callback_json(void *data, int num_fields, char **fields, char **col_name)
+/* Function called for every row returned by event query */
+static int event_callback(void *data, int num_fields, char **fields, char **col_name)
 {
 	smart_str file = {0};
 	smart_str msg = {0};
@@ -421,18 +392,8 @@ static int event_callback_json(void *data, int num_fields, char **fields, char *
 	return 0;
 }
 
-/* Function called for every row returned by slow request query (html version) */
-static int slow_request_callback_html(void *odd_slow_request, int num_fields, char **fields, char **col_name)
-{
-	php_printf("<tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n",
-               *(int *)odd_slow_request ? "odd" : "even", fields[0], fields[1], fields[2], fields[3]);
-	*(int *)odd_slow_request = !*(int *)odd_slow_request;
-
-	return 0;
-}
-
-/* Function called for every row returned by slow request query (json version) */
-static int slow_request_callback_json(void *data, int num_fields, char **fields, char **col_name)
+/* Function called for every row returned by slow request query */
+static int slow_request_callback(void *data, int num_fields, char **fields, char **col_name)
 {
 	smart_str file = {0};
 	zval zfile;
