@@ -1,4 +1,4 @@
-APM 1.0.0beta4   ?? ??? 201?
+APM 1.0.0        14 Jun 2011
 ----------------------------
 Fixed:
 - Script filename could possibly not be filled in case of slow request
