@@ -28,9 +28,6 @@ require 'setup.php';
 	<script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>	
 	<script src="js/apm.js" type="text/javascript"></script>		
 	<title>APM status</title>
-	<style type="text/css">
-		#source {background-color: #ccc;}
-	</style>
 </head>
 <body id="event">
 <?php
@@ -62,7 +59,36 @@ if ($event !== false) {
 <div id="stacktrace">
 	<label class="strong">Stacktrace</label>
 	<br />
-	<p><?php echo nl2br($event['stacktrace']); ?></p>
+	<?php
+	$lines = array();
+	$filesSet = array();
+	foreach ( explode( "\n", $event['stacktrace'] ) as $line ) {
+		if ( preg_match( "/#\d+ (.*) called at \[(.*):(\d+)\]/", $line, $matches ) ) {
+			$lines[] = $matches;
+			$filesSet[$matches[2]] = true;
+		}
+	}
+	// Searching for the common path
+	$files = array_keys( $filesSet );
+	$path = dirname( array_shift( $files ) );
+	$previousPath = null;
+	foreach ( $files as $file ) {
+		while ( substr_compare( $path, $file, 0, strlen( $path ) ) !== 0 && $path !== $previousPath ) {
+			$previousPath = $path;
+			$path = dirname( $path );
+		}
+	}
+	$odd = true;
+	$pathLen = strlen( $path ) + 1;
+	echo $path;
+	?>
+	<table>
+	<?php
+	foreach ( $lines  as $line ) {
+		echo '<tr class="', ($odd = !$odd) ? "even" : "odd", '"><td>', ( $fileExists = file_exists( $line[2] ) ) ? '<a href="file://' . $line[2] . '">' : "", substr( $line[2], $pathLen ), $fileExists ? "</a>" : "", ":$line[3]</td><td>", str_replace( "&lt;?php&nbsp;", "", highlight_string( "<?php $line[1]", true ) ), "</td></tr>";
+	}
+	?>
+	</table>
 </div>
 
 <!-- Ip -->
@@ -73,8 +99,8 @@ if ($event !== false) {
 </div>
 
 <!-- Source -->		
-<div style="margin: 5px;"><a id="source_toggle" href="javascript:void(0);">Show Sourcecode</a></div>
-<div id="source" style="display: none; font-size: 10px; padding-top: 5px; padding-left: 5px;">
+<div id="source_toggle"><a href="javascript:void(0);">Show source code</a></div>
+<div id="source">
 	<?php
 	if (is_readable($event['file'])) {
 	    highlight_file($event['file']);

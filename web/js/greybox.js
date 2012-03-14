@@ -6,13 +6,13 @@
  */
 
 var GB_DONE = false;
-var GB_HEIGHT = 400;
-var GB_WIDTH = 400;
+var GB_HEIGHT = 80;
+var GB_WIDTH = 80;
 var GB_ANIMATION = true;
 
 function GB_show(caption, url, height, width) {
-  GB_HEIGHT = height || 400;
-  GB_WIDTH = width || 400;
+  GB_HEIGHT = height || 80;
+  GB_WIDTH = width || 80;
   if(!GB_DONE) {
     $(document.body)
       .append("<div id='GB_overlay'></div><div id='GB_window'><div id='GB_caption'></div>"
@@ -43,7 +43,8 @@ function GB_hide() {
 function GB_position() {
   var de = document.documentElement;
   var w = self.innerWidth || (de&&de.clientWidth) || document.body.clientWidth;
-  $("#GB_window").css({width:GB_WIDTH+"px",height:GB_HEIGHT+"px",
-    left: ((w - GB_WIDTH)/2)+"px" });
-  $("#GB_frame").css("height",GB_HEIGHT - 32 +"px");
+  $("#GB_window").css({width:GB_WIDTH+"%",height:GB_HEIGHT+"%",
+    left: ((100 - GB_WIDTH)/2)+"%", top: ((100 - GB_HEIGHT)/2)+"%",
+    position: "fixed"});
+  $("#GB_frame").css("height",GB_HEIGHT +"%");
 }

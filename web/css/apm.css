@@ -21,42 +21,28 @@ h2 {
   padding: 0.2em 0.6em;
   font-size: 1.4em;
 }
-table {
-  margin: 1em 1em 1.6em;
-  font-size: 1.2em;
-  border-collapse: collapse;
-}
-table th {
-  padding: 0 0.5em;
-  text-align: left;
-  border-bottom: 1px solid #999;
-}
-table td {
-  padding: 0.2em 0.5em;
-}
-table#slow-request-list td { border-bottom: 1px solid #ccc; }
-table#event-list td { border-bottom: 1px solid #999; }
-table#slow-request-list tr.odd td { background-color: #eee; }
-table#events tr.E_ERROR td,
-table#events tr.E_CORE_ERROR td,
-table#events tr.E_PARSE td,
-table#events tr.E_COMPILE_ERROR td,
-table#events tr.E_USER_ERROR td,
-table#events tr.E_RECOVERABLE_ERROR td { background-color: #fbc; }
-table#events tr.E_WARNING td,
-table#events tr.E_CORE_WARNING td,
-table#events tr.E_COMPILE_WARNING td,
-table#events tr.E_USER_WARNING td { background-color: #fc8; }
-table#events tr.E_NOTICE td,
-table#events tr.E_USER_NOTICE td,
-table#events tr.E_STRICT td,
-table#events tr.E_DEPRECATED td,
-table#events tr.E_USER_DEPRECATED td { background-color: #ff8; }
-body#event pre {background-color: red;}
+#gbox_events, #gbox_slow-requests { font-size: 1.2em; margin: 15px; }
+#events tr.E_ERROR td,
+#events tr.E_CORE_ERROR td,
+#events tr.E_PARSE td,
+#events tr.E_COMPILE_ERROR td,
+#events tr.E_USER_ERROR td,
+#events tr.E_RECOVERABLE_ERROR td { background-color: #fbc; }
+#events tr.E_WARNING td,
+#events tr.E_CORE_WARNING td,
+#events tr.E_COMPILE_WARNING td,
+#events tr.E_USER_WARNING td { background-color: #fc8; }
+#events tr.E_NOTICE td,
+#events tr.E_USER_NOTICE td,
+#events tr.E_STRICT td,
+#events tr.E_DEPRECATED td,
+#events tr.E_USER_DEPRECATED td { background-color: #ff8; }
 
-#error_info { padding-top: 10px; padding-left: 10px; }
+#event #source { display: none; padding-top: 5px; padding-left: 5px; background-color: #ccc; }
+#source_toggle { margin: 5px 0px; }
+#event #stacktrace td { vertical-align: top; }
+#event #stacktrace table tr.odd { background-color: #eee; }
 
-#error_info dt { float: left; width: 100px; font-size: 0.9em; font-weight: bold; }
-#error_info dd { line-height: 20px; margin-left: 70px; font-size: 0.9em; } 
-
-.strong { font-weight: bold; }
+#error_info { padding-top: 10px; padding-left: 10px; font-size: 1.5em; }
+#error_info dt { float: left; width: 100px; font-weight: bold; }
+#error_info dd { line-height: 20px; margin-left: 70px; }

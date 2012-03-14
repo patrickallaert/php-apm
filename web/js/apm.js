@@ -32,7 +32,7 @@ jQuery(document).ready(function(){
 	      }
 	    },
 	    onSelectRow: function(id) {
-	      GB_show(jQuery("#events").jqGrid('getCell', id, 5),"event.php?id=" + jQuery("#events").jqGrid('getCell', id, 0), 800, 1000);
+	      GB_show(jQuery("#events").jqGrid('getCell', id, 5),"event.php?id=" + jQuery("#events").jqGrid('getCell', id, 0), 90, 90);
 	    },
 	
 	  });
@@ -66,9 +66,9 @@ jQuery(document).ready(function(){
   
   var eventWindowSource = jQuery('#source');
   if(eventWindowSource.length > 0) {
-	 var sourceToggle = jQuery('#source_toggle');
+	 var sourceToggle = jQuery('#source_toggle a');
 	 sourceToggle.click(function() {
-		 sourceToggle.text(eventWindowSource.is(':visible') ? 'Show Sourcecode' : 'Hide Sourcecode');
+		 sourceToggle.text(eventWindowSource.is(':visible') ? 'Show source code' : 'Hide source code');
 		 eventWindowSource.slideToggle();
 		 
 	 });

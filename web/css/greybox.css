@@ -1,6 +1,6 @@
 #GB_overlay {
   background-image: url(../img/overlay.png); 
-  position: absolute;
+  position: fixed;
   margin: auto;
   top: 0;
   left: 0;
