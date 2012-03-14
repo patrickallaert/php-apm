@@ -1,5 +1,8 @@
 APM 1.0.1        12 Nov 2011
 ----------------------------
+Changed:
+- Base install dir for web files, now in php/PECL/APM
+
 Fixed:
 - Bug #60276 pecl install fail installing APM
 

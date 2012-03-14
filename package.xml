@@ -53,7 +53,7 @@ Fixed:
    <file name="driver_sqlite3.c" role="src" />
    <file name="driver_sqlite3.h" role="src" />
    <file name="php_apm.h" role="src" />
-   <dir name="web">
+   <dir baseinstalldir="PECL/APM" name="web">
     <file name="apm.php" role="php" />
     <file name="setup.php" role="php" />
     <dir name="css">
