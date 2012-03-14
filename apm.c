@@ -53,7 +53,7 @@ static PHP_GINIT_FUNCTION(apm);
 zend_bool uri_found = 0, ip_found = 0, cookies_found; \
 smart_str cookies = {0}; \
  \
-if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) { \
+if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
 	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) && \
 		(Z_TYPE_PP(uri) == IS_STRING)) { \
 		uri_found = 1; \
@@ -63,7 +63,7 @@ if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) { \
 		ip_found = 1; \
 	} \
 } \
-if (tmp = PG(http_globals)[TRACK_VARS_COOKIE]) { \
+if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
 	if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
 		APM_G(buffer) = &cookies; \
 		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
