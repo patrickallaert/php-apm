@@ -219,7 +219,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-							  file, ip, line, message, backtrace FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+							  file, ip, line, message FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
 	sqlite3_exec(db, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
@@ -373,8 +373,7 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 {
 	smart_str file = {0};
 	smart_str msg = {0};
-	smart_str trace = {0};
-	zval zfile, zmsg, ztrace;
+	zval zfile, zmsg;
 	struct in_addr myaddr;
 	unsigned long n;
 #ifdef HAVE_INET_PTON
@@ -391,17 +390,11 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	Z_STRVAL(zmsg) = fields[6];
 	Z_STRLEN(zmsg) = strlen(fields[6]);
 
-	Z_TYPE(ztrace) = IS_STRING;
-	Z_STRVAL(ztrace) = fields[7];
-	Z_STRLEN(ztrace) = strlen(fields[7]);
-
 	php_json_encode(&file, &zfile TSRMLS_CC);
 	php_json_encode(&msg, &zmsg TSRMLS_CC);
-	php_json_encode(&trace, &ztrace TSRMLS_CC);
 
 	smart_str_0(&file);
 	smart_str_0(&msg);
-	smart_str_0(&trace);
 
 	n = strtoul(fields[4], NULL, 0);
 
@@ -413,12 +406,11 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	ip_str = inet_ntoa(myaddr);
 #endif
 
-	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s, %s]},\n",
-               fields[0], fields[0], fields[1], fields[2], file.c, fields[5], ip_str, msg.c, trace.c);
+	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s]},\n",
+               fields[0], fields[0], fields[1], fields[2], file.c, fields[5], ip_str, msg.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);
-	smart_str_free(&trace);
 
 	return 0;
 }

@@ -224,7 +224,7 @@ PHP_FUNCTION(apm_get_mysql_events)
  WHEN 8192 THEN 'E_DEPRECATED' \
  WHEN 16384 THEN 'E_USER_DEPRECATED' \
  END, \
-file, ip, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
+file, ip, line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 
 	mysql_query(connection, sql);
 
@@ -232,8 +232,7 @@ file, ip, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %
 
 	smart_str file = {0};
 	smart_str msg = {0};
-	smart_str trace = {0};
-	zval zfile, zmsg, ztrace;
+	zval zfile, zmsg;
 
 	while ((row = mysql_fetch_row(result))) {
 		Z_TYPE(zfile) = IS_STRING;
@@ -244,17 +243,11 @@ file, ip, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %
 		Z_STRVAL(zmsg) = row[6];
 		Z_STRLEN(zmsg) = strlen(row[6]);
 
-		Z_TYPE(ztrace) = IS_STRING;
-		Z_STRVAL(ztrace) = row[7];
-		Z_STRLEN(ztrace) = strlen(row[7]);
-
 		php_json_encode(&file, &zfile TSRMLS_CC);
 		php_json_encode(&msg, &zmsg TSRMLS_CC);
-		php_json_encode(&trace, &ztrace TSRMLS_CC);
 
 		smart_str_0(&file);
 		smart_str_0(&msg);
-		smart_str_0(&trace);
 
 		n = strtoul(row[4], NULL, 0);
 
@@ -266,12 +259,11 @@ file, ip, line, message, backtrace FROM event ORDER BY %ld %s LIMIT %ld OFFSET %
 		ip_str = inet_ntoa(myaddr);
 #endif
 
-		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s, %s]},\n",
-					   row[0], row[0], row[1], row[2], file.c, row[5], ip_str, msg.c, trace.c);
+		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s]},\n",
+					   row[0], row[0], row[1], row[2], file.c, row[5], ip_str, msg.c);
 
 		smart_str_free(&file);
 		smart_str_free(&msg);
-		smart_str_free(&trace);
 	}
 
 	mysql_free_result(result);
