@@ -53,6 +53,9 @@ if ($event !== false) {
 		
 		<dt>Message:</dt>
 		<dd><?php echo htmlentities($event['message'], ENT_COMPAT, 'UTF-8'); ?></dd>
+		
+		<dt>Cookies:</dt>
+		<dd><pre><?php echo htmlentities($event['cookies'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
 </dl>
 
 <!-- Stacktrace -->

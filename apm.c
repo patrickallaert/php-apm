@@ -36,7 +36,6 @@
 #include "php_apm.h"
 #include "backtrace.h"
 #include "ext/standard/info.h"
-#include "ext/standard/php_smart_str.h"
 #ifdef APM_DRIVER_SQLITE3
   #include "driver_sqlite3.h"
 #endif
@@ -49,6 +48,35 @@ static PHP_GINIT_FUNCTION(apm);
 
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
+
+#define EXTRACT_DATA() zval **uri = NULL, **ip, *tmp; \
+zend_bool uri_found = 0, ip_found = 0, cookies_found; \
+smart_str cookies = {0}; \
+ \
+if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) { \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) && \
+		(Z_TYPE_PP(uri) == IS_STRING)) { \
+		uri_found = 1; \
+	} \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) && \
+		(Z_TYPE_PP(ip) == IS_STRING)) { \
+		ip_found = 1; \
+	} \
+} \
+if (tmp = PG(http_globals)[TRACK_VARS_COOKIE]) { \
+	if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+		APM_G(buffer) = &cookies; \
+		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+		cookies_found = 1; \
+	} \
+}
+
+static int apm_write(const char *str, uint length) {
+	TSRMLS_FETCH();
+	smart_str_appendl(APM_G(buffer), str, length);
+	smart_str_0(APM_G(buffer));
+	return length;
+}
 
 void (*old_error_cb)(int type, const char *error_filename,
                      const uint error_lineno, const char *format,
@@ -127,8 +155,9 @@ PHP_INI_END()
 static PHP_GINIT_FUNCTION(apm)
 {
 	apm_driver_entry **next;
+	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -394,25 +423,16 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		(*APM_G(last_event))->next->next = NULL;
 		APM_G(last_event) = &(*APM_G(last_event))->next;
 	} else {
-		zval **uri = NULL, **ip, *tmp;
-		zend_bool uri_found = 0, ip_found = 0;
+		EXTRACT_DATA();
 
-		if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) {
-			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
-				(Z_TYPE_PP(uri) == IS_STRING)) {
-				uri_found = 1;
-			}
-			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
-				(Z_TYPE_PP(ip) == IS_STRING)) {
-				ip_found = 1;
-			}
-		}
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
-				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "", uri_found ? Z_STRVAL_PP(uri) : "", ip_found ? Z_STRVAL_PP(ip) : "" TSRMLS_CC);
+				driver_entry->driver.insert_event(type, error_filename, error_lineno, msg, (APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "", uri_found ? Z_STRVAL_PP(uri) : "", ip_found ? Z_STRVAL_PP(ip) : "", cookies_found ? cookies.c : "" TSRMLS_CC);
 			}
 		}
+
+		smart_str_free(&cookies);
 	}
 
 	smart_str_free(&trace_str);
@@ -422,28 +442,19 @@ static void deffered_insert_events(TSRMLS_D)
 {
 	apm_driver_entry * driver_entry = APM_G(drivers);
 	apm_event_entry * event_entry_cursor;
-	zval **uri = NULL, **ip, *tmp;
-	zend_bool uri_found = 0, ip_found = 0;
 
-	if (tmp = PG(http_globals)[TRACK_VARS_SERVER]) {
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) &&
-			(Z_TYPE_PP(uri) == IS_STRING)) {
-			uri_found = 1;
-		}
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) &&
-			(Z_TYPE_PP(ip) == IS_STRING)) {
-			ip_found = 1;
-		}
-	}
+	EXTRACT_DATA();
 
 	while ((driver_entry = driver_entry->next) != NULL) {
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
 				if (event_entry_cursor->event.type & apm_driver_mysql_error_reporting()) {
-					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace, uri_found ? Z_STRVAL_PP(uri) : "", ip_found ? Z_STRVAL_PP(ip) : "" TSRMLS_CC);
+					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace, uri_found ? Z_STRVAL_PP(uri) : "", ip_found ? Z_STRVAL_PP(ip) : "", cookies_found ? cookies.c : "" TSRMLS_CC);
 				}
 			}
 		}
 	}
+
+	smart_str_free(&cookies);
 }

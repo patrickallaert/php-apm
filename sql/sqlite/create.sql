@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS event (
     message TEXT NOT NULL,
     backtrace TEXT NOT NULL,
     uri TEXT NOT NULL,
-    ip INTEGER UNSIGNED NOT NULL
+    ip INTEGER UNSIGNED NOT NULL,
+    cookies TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS slow_request (

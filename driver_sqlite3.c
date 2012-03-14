@@ -105,7 +105,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip TSRMLS_DC)
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip, char * cookies TSRMLS_DC)
 {
 	char *sql;
 	int ip_int = 0;
@@ -116,8 +116,8 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %d);",
-		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int);
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %d, %Q);",
+		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int, cookies ? cookies : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 
@@ -309,7 +309,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 		RETURN_FALSE;
 	}
 
-	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip FROM event WHERE id = %d", id);
+	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies FROM event WHERE id = %d", id);
 	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
 
 	sqlite3_free(sql);
@@ -328,6 +328,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 	add_assoc_string(return_value, "message", info.message, 1);
 	add_assoc_string(return_value, "stacktrace", info.stacktrace, 1);
 	add_assoc_long(return_value, "ip", info.ip);
+	add_assoc_string(return_value, "cookies", info.cookies, 1);
 }
 /* }}} */
 
@@ -341,6 +342,7 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	(*(apm_event_info *) info).message = estrdup(fields[5]);
 	(*(apm_event_info *) info).stacktrace = estrdup(fields[6]);
 	(*(apm_event_info *) info).ip = atoi(fields[7]);
+	(*(apm_event_info *) info).cookies = estrdup(fields[8]);
 
 	return 0;
 }
