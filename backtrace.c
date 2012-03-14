@@ -20,13 +20,16 @@
 #include "php.h"
 #include "zend_types.h"
 #include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_string.h"
+
+#define APM_DUMP_MAX_DEPTH 4
 
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
-static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str);
-static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str);
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit);
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char limit);
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 static int append_variable(zval *expr, smart_str *trace_str);
-
+static char *apm_addslashes(char *str, int length, int *new_length TSRMLS_DC);
 
 void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
@@ -240,14 +243,18 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 		if (i++) {
 			smart_str_appendl(trace_str, ", ", 2);
 		}
-		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, 0);
 		zend_hash_move_forward_ex(arg_array->value.ht, &iterator);
 	}
 }
 
 
-static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit)
 {
+	if (limit > APM_DUMP_MAX_DEPTH) {
+		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
+		return;
+	}
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:
 			smart_str_appendl(trace_str, "array(", 6);
@@ -256,7 +263,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 				Z_ARRVAL_P(expr)->nApplyCount--;
 				return;
 			}
-			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str);
+			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, limit + 1);
 			smart_str_appendc(trace_str, ')');
 			Z_ARRVAL_P(expr)->nApplyCount--;
 			break;
@@ -287,7 +294,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 					properties->nApplyCount--;
 					return;
 				}
-				append_flat_hash(properties TSRMLS_CC, trace_str);
+				append_flat_hash(properties TSRMLS_CC, trace_str, 1, limit + 1);
 				properties->nApplyCount--;
 			}
 			smart_str_appendc(trace_str, ')');
@@ -299,31 +306,45 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 	}
 }
 
-static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str)
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char limit)
 {
 	zval **tmp;
 	char *string_key;
+	char * temp;
 	HashPosition iterator;
 	ulong num_key;
 	uint str_len;
 	int i = 0;
+	int new_len;
 
 	zend_hash_internal_pointer_reset_ex(ht, &iterator);
 	while (zend_hash_get_current_data_ex(ht, (void **) &tmp, &iterator) == SUCCESS) {
 		if (i++ > 0) {
 			smart_str_appendl(trace_str, ", ", 2);
 		}
-		smart_str_appends(trace_str, "[");
 		switch (zend_hash_get_current_key_ex(ht, &string_key, &str_len, &num_key, 0, &iterator)) {
 			case HASH_KEY_IS_STRING:
-				smart_str_appends(trace_str, string_key);
+				if (is_object) {
+					if (*string_key == '\0') {
+						do {
+							++string_key;
+							--str_len;
+						} while (*(string_key) != '\0');
+						++string_key;
+						--str_len;
+					}
+				}
+				smart_str_appendc(trace_str, '"');
+				temp = apm_addslashes(string_key, str_len - 1, &new_len);
+				smart_str_appendl(trace_str, temp, new_len);
+				smart_str_appendc(trace_str, '"');
 				break;
 			case HASH_KEY_IS_LONG:
 				smart_str_append_long(trace_str, (long) num_key);
 				break;
 		}
 		smart_str_appendl(trace_str, " => ", 4);
-		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, limit + 1);
 		zend_hash_move_forward_ex(ht, &iterator);
 	}
 }
@@ -332,18 +353,37 @@ static int append_variable(zval *expr, smart_str *trace_str)
 {
 	zval expr_copy;
 	int use_copy;
+	char is_string = 0;
+	int new_len;
+
+	if (Z_TYPE_P(expr) == IS_STRING) {
+		smart_str_appendc(trace_str, '"');
+		is_string = 1;
+	}
 
 	zend_make_printable_zval(expr, &expr_copy, &use_copy);
 	if (use_copy) {
 		expr = &expr_copy;
 	}
 	if (Z_STRLEN_P(expr) == 0) { /* optimize away empty strings */
+		if (is_string) {
+			smart_str_appendc(trace_str, '"');
+		}
 		if (use_copy) {
 			zval_dtor(expr);
 		}
 		return 0;
 	}
-	smart_str_appends(trace_str, (Z_STRVAL_P(expr)));
+
+	if (is_string) {
+		char * temp;
+		temp = apm_addslashes(Z_STRVAL_P(expr), Z_STRLEN_P(expr), &new_len);
+		smart_str_appendl(trace_str, temp, new_len);
+		smart_str_appendc(trace_str, '"');
+	} else {
+		smart_str_appendl(trace_str, Z_STRVAL_P(expr), Z_STRLEN_P(expr));
+	}
+
 	if (use_copy) {
 		zval_dtor(expr);
 	}
@@ -402,4 +442,48 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 
 #endif
 	return arg_array;
+}
+
+static char *apm_addslashes(char *str, int length, int *new_length TSRMLS_DC)
+{
+	/* maximum string length, worst case situation */
+	char *new_str;
+	char *source, *target;
+	char *end;
+	int local_new_length;
+
+	if (!new_length) {
+		new_length = &local_new_length;
+	}
+
+	if (!str) {
+		*new_length = 0;
+		return str;
+	}
+	new_str = (char *) safe_emalloc(2, (length ? length : (length = strlen(str))), 1);
+	source = str;
+	end = source + length;
+	target = new_str;
+
+	while (source < end) {
+		switch (*source) {
+			case '\0':
+				*target++ = '\\';
+				*target++ = '0';
+				break;
+			case '\"':
+			case '\\':
+				*target++ = '\\';
+				/* break is missing *intentionally* */
+			default:
+				*target++ = *source;
+				break;
+		}
+
+		source++;
+	}
+
+	*target = 0;
+	*new_length = target - new_str;
+	return (char *) erealloc(new_str, *new_length + 1);
 }
