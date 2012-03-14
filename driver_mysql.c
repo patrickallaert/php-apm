@@ -371,7 +371,7 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 
 	MYSQL_INSTANCE_INIT
 
-	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, cookies FROM event WHERE id = %ld", id);
+	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies FROM event WHERE id = %ld", id);
 	mysql_query(connection, sql);
 
 	result = mysql_use_result(connection);
@@ -390,7 +390,8 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	add_assoc_long(return_value, "type", atoi(row[2]));
 	add_assoc_string(return_value, "message", estrdup(row[5]), 1);
 	add_assoc_string(return_value, "stacktrace", estrdup(row[6]), 1);
-	add_assoc_string(return_value, "cookies", estrdup(row[7]), 1);
+	add_assoc_long(return_value, "ip", atoi(row[7]));
+	add_assoc_string(return_value, "cookies", estrdup(row[8]), 1);
 
 	mysql_free_result(result);
 }
