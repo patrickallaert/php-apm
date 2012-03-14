@@ -47,7 +47,6 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 #endif
 	int indent = 0;
 
-
 #if PHP_API_VERSION < 20090626
 	while (--args > EG(argument_stack).elements) {
 		if (*args--) {
@@ -182,18 +181,22 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 			smart_str_appends(trace_str, class_name);
 			smart_str_appends(trace_str, call_type);
 		}
-		smart_str_appends(trace_str, function_name?function_name:"main");
+		if (function_name) {
+			smart_str_appends(trace_str, function_name);
+		} else {
+			smart_str_appendl(trace_str, "main", 4);
+		}
 		smart_str_appendc(trace_str, '(');
 		if (arg_array) {
 			debug_print_backtrace_args(arg_array TSRMLS_CC, trace_str);
 			zval_ptr_dtor(&arg_array);
 		}
 		if (filename) {
-			smart_str_appends(trace_str, ") called at [");
+			smart_str_appendl(trace_str, ") called at [", sizeof(") called at [") - 1);
 			smart_str_appends(trace_str, filename);
 			smart_str_appendc(trace_str, ':');
 			smart_str_append_long(trace_str, lineno);
-			smart_str_appends(trace_str, "]\n");
+			smart_str_appendl(trace_str, "]\n", 2);
 		} else {
 			zend_execute_data *prev = skip->prev_execute_data;
 
@@ -204,17 +207,17 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 					break;
 				}
 				if (prev->op_array) {
-					smart_str_appends(trace_str, ") called at [");
+					smart_str_appendl(trace_str, ") called at [", sizeof(") called at [") - 1);
 					smart_str_appends(trace_str, prev->op_array->filename);
 					smart_str_appendc(trace_str, ':');
 					smart_str_append_long(trace_str, (long) prev->opline->lineno);
-					smart_str_appends(trace_str, "]\n");
+					smart_str_appendl(trace_str, "]\n", 2);
 					break;
 				}
 				prev = prev->prev_execute_data;
 			}
 			if (!prev) {
-				smart_str_appends(trace_str, ")\n");
+				smart_str_appendl(trace_str, ")\n", 2);
 			}
 		}
 		include_filename = filename;
@@ -235,7 +238,7 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 	zend_hash_internal_pointer_reset_ex(arg_array->value.ht, &iterator);
 	while (zend_hash_get_current_data_ex(arg_array->value.ht, (void **) &tmp, &iterator) == SUCCESS) {
 		if (i++) {
-			smart_str_appends(trace_str, ", ");
+			smart_str_appendl(trace_str, ", ", 2);
 		}
 		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
 		zend_hash_move_forward_ex(arg_array->value.ht, &iterator);
@@ -247,14 +250,14 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 {
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:
-			smart_str_appends(trace_str, "Array (");
+			smart_str_appendl(trace_str, "array(", 6);
 			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
-				smart_str_appends(trace_str, " *RECURSION*");
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 				Z_ARRVAL_P(expr)->nApplyCount--;
 				return;
 			}
 			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str);
-			smart_str_appends(trace_str, ")");
+			smart_str_appendc(trace_str, ')');
 			Z_ARRVAL_P(expr)->nApplyCount--;
 			break;
 		case IS_OBJECT:
@@ -268,9 +271,9 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 			}
 			if (class_name) {
 				smart_str_appends(trace_str, class_name);
-				smart_str_appends(trace_str, " Object (");
+				smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
 			} else {
-				smart_str_appends(trace_str, "Unknown Class Object (");
+				smart_str_appendl(trace_str, "Unknown Class Object (", sizeof("Unknown Class Object (") - 1);
 			}
 			if (class_name) {
 				efree(class_name);
@@ -280,14 +283,14 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str)
 			}
 			if (properties) {
 				if (++properties->nApplyCount>1) {
-					smart_str_appends(trace_str, " *RECURSION*");
+					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 					properties->nApplyCount--;
 					return;
 				}
 				append_flat_hash(properties TSRMLS_CC, trace_str);
 				properties->nApplyCount--;
 			}
-			smart_str_appends(trace_str, ")");
+			smart_str_appendc(trace_str, ')');
 			break;
 		}
 		default:
@@ -308,7 +311,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str)
 	zend_hash_internal_pointer_reset_ex(ht, &iterator);
 	while (zend_hash_get_current_data_ex(ht, (void **) &tmp, &iterator) == SUCCESS) {
 		if (i++ > 0) {
-			smart_str_appends(trace_str, ",");
+			smart_str_appendl(trace_str, ", ", 2);
 		}
 		smart_str_appends(trace_str, "[");
 		switch (zend_hash_get_current_key_ex(ht, &string_key, &str_len, &num_key, 0, &iterator)) {
@@ -319,7 +322,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str)
 				smart_str_append_long(trace_str, (long) num_key);
 				break;
 		}
-		smart_str_appends(trace_str, "] => ");
+		smart_str_appendl(trace_str, " => ", 4);
 		append_flat_zval_r(*tmp TSRMLS_CC, trace_str);
 		zend_hash_move_forward_ex(ht, &iterator);
 	}
