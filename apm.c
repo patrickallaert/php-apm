@@ -61,6 +61,7 @@ void apm_error_cb(int type, const char *error_filename,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
 static void insert_event(int, char *, uint, char * TSRMLS_DC);
+static void deffered_insert_events(TSRMLS_D);
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
@@ -263,12 +264,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 		}
 
 		if (APM_G(deffered_processing) && APM_G(events) != *APM_G(last_event)) {
-			driver_entry = APM_G(drivers);
-			while ((driver_entry = driver_entry->next) != NULL) {
-				if (driver_entry->driver.is_enabled()) {
-					driver_entry->driver.insert_events(APM_G(events) TSRMLS_CC);
-				}
-			}
+			deffered_insert_events(TSRMLS_C);
 
 			apm_event_entry * event_entry_cursor = APM_G(events);
 			apm_event_entry * event_entry_cursor_next = event_entry_cursor->next;
@@ -406,4 +402,21 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	}
 
 	smart_str_free(&trace_str);
+}
+
+static void deffered_insert_events(TSRMLS_D)
+{
+	apm_driver_entry * driver_entry = APM_G(drivers);
+	apm_event_entry * event_entry_cursor;
+
+	while ((driver_entry = driver_entry->next) != NULL) {
+		if (driver_entry->driver.is_enabled()) {
+			event_entry_cursor = APM_G(events);
+			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
+				if (event_entry_cursor->event.type & apm_driver_mysql_error_reporting()) {
+					driver_entry->driver.insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace TSRMLS_CC);
+				}
+			}
+		}
+	}
 }

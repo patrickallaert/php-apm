@@ -57,7 +57,6 @@ typedef struct apm_event_entry {
 
 typedef struct apm_driver {
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
-	void (* insert_events)(apm_event_entry * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
@@ -95,7 +94,6 @@ apm_driver_entry * apm_driver_##name##_create() \
 	apm_driver_entry * driver_entry; \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
 	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
-	driver_entry->driver.insert_events = apm_driver_##name##_insert_events; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \

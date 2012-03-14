@@ -109,17 +109,6 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 	efree(msg_esc);
 	efree(trace_esc);
 }
-
-void apm_driver_mysql_insert_events(apm_event_entry * event_entry TSRMLS_DC)
-{
-	apm_event_entry * event_entry_cursor = event_entry;
-	while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
-		if (event_entry_cursor->event.type & apm_driver_mysql_error_reporting()) {
-			apm_driver_mysql_insert_event(event_entry_cursor->event.type, event_entry_cursor->event.error_filename, event_entry_cursor->event.error_lineno, event_entry_cursor->event.msg, event_entry_cursor->event.trace TSRMLS_CC);
-		}
-	}
-}
-
 int apm_driver_mysql_minit(int module_number)
 {
 	REGISTER_INI_ENTRIES();
