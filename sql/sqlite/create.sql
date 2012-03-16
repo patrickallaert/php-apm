@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS event (
     message TEXT NOT NULL,
     backtrace TEXT NOT NULL,
     uri TEXT NOT NULL,
+    host TEXT NOT NULL,
     ip INTEGER UNSIGNED NOT NULL,
     cookies TEXT NOT NULL
 );

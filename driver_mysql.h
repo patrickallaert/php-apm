@@ -33,7 +33,7 @@
 #define MYSQL_INSTANCE_INIT MYSQL_INSTANCE_INIT_EX()
 
 apm_driver_entry * apm_driver_mysql_create();
-void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip, char * cookies TSRMLS_DC);
+void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies TSRMLS_DC);
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();

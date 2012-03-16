@@ -58,7 +58,7 @@ typedef struct apm_event_entry {
 } apm_event_entry;
 
 typedef struct apm_driver {
-	void (* insert_event)(int, char *, uint, char *, char *, char *, char *, char * TSRMLS_DC);
+	void (* insert_event)(int, char *, uint, char *, char *, char *, char *, char *, char * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();

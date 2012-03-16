@@ -105,7 +105,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * ip, char * cookies TSRMLS_DC)
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies TSRMLS_DC)
 {
 	char *sql;
 	int ip_int = 0;
@@ -116,8 +116,8 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %d, %Q);",
-		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", ip_int, cookies ? cookies : "");
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, host, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %Q, %d, %Q);",
+		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 
