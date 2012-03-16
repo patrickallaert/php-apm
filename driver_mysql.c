@@ -86,25 +86,25 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 
 	if (error_filename) {
 		filename_len = strlen(error_filename);
-		filename_esc = ecalloc(filename_len, 2);
+		filename_esc = emalloc(filename_len * 2 + 1);
 		filename_len = mysql_real_escape_string(connection, filename_esc, error_filename, filename_len);
 	}
 
 	if (msg) {
 		msg_len = strlen(msg);
-		msg_esc = ecalloc(msg_len, 2);
+		msg_esc = emalloc(msg_len * 2 + 1);
 		msg_len = mysql_real_escape_string(connection, msg_esc, msg, msg_len);
 	}
 
 	if (trace) {
 		trace_len = strlen(trace);
-		trace_esc = ecalloc(trace_len, 2);
+		trace_esc = emalloc(trace_len * 2 + 1);
 		trace_len = mysql_real_escape_string(connection, trace_esc, trace, trace_len);
 	}
 
 	if (uri) {
 		uri_len = strlen(uri);
-		uri_esc = ecalloc(uri_len, 2);
+		uri_esc = emalloc(uri_len * 2 + 1);
 		uri_len = mysql_real_escape_string(connection, uri_esc, uri, uri_len);
 	}
 
@@ -114,11 +114,11 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 	
 	if (cookies) {
 		cookies_len = strlen(cookies);
-		cookies_esc = ecalloc(cookies_len, 2);
+		cookies_esc = emalloc(cookies_len * 2 + 1);
 		cookies_len = mysql_real_escape_string(connection, cookies_esc, cookies, cookies_len);
 	}
 
-	sql = emalloc(120 + filename_len + msg_len + trace_len + uri_len + cookies_len);
+	sql = emalloc(130 + filename_len + msg_len + trace_len + uri_len + cookies_len);
 	sprintf(
 		sql,
 		"INSERT INTO event (type, file, line, message, backtrace, uri, ip, cookies) VALUES (%d, '%s', %u, '%s', '%s', '%s', %u, '%s')",
@@ -167,7 +167,7 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 
 	if (script_filename) {
 		filename_len = strlen(script_filename);
-		filename_esc = ecalloc(filename_len, 2);
+		filename_esc = emalloc(filename_len * 2 + 1);
 		filename_len = mysql_real_escape_string(connection, filename_esc, script_filename, filename_len);
 	}
 
