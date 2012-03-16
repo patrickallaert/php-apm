@@ -117,7 +117,7 @@ if test "$PHP_APM" != "no"; then
     PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_close, [ ],
     [
       if test "$PHP_ZLIB_DIR" != "no"; then
-        PHP_ADD_LIBRARY_WITH_PATH(z, $PHP_ZLIB_DIR, MYSQL_SHARED_LIBADD)
+        PHP_ADD_LIBRARY_WITH_PATH(z, $PHP_ZLIB_DIR, APM_SHARED_LIBADD)
         PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_error, [], [
           AC_MSG_ERROR([mysql configure failed. Please check config.log for more information.])
         ], [
@@ -125,7 +125,7 @@ if test "$PHP_APM" != "no"; then
         ])  
         MYSQL_LIBS="-L$PHP_ZLIB_DIR/$PHP_LIBDIR -lz"
       else
-        PHP_ADD_LIBRARY(z,, MYSQL_SHARED_LIBADD)
+        PHP_ADD_LIBRARY(z,, APM_SHARED_LIBADD)
         PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_errno, [], [
           AC_MSG_ERROR([Try adding --with-zlib-dir=<DIR>. Please check config.log for more information.])
         ], [
@@ -137,7 +137,7 @@ if test "$PHP_APM" != "no"; then
       -L$MYSQL_LIB_DIR 
     ])
 
-    PHP_ADD_LIBRARY_WITH_PATH($MYSQL_LIBNAME, $MYSQL_LIB_DIR, MYSQL_SHARED_LIBADD)
+    PHP_ADD_LIBRARY_WITH_PATH($MYSQL_LIBNAME, $MYSQL_LIB_DIR, APM_SHARED_LIBADD)
     PHP_ADD_INCLUDE($MYSQL_INC_DIR)
 
     MYSQL_MODULE_TYPE=external
