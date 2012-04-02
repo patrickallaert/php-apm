@@ -60,8 +60,10 @@ if ($event !== false) {
 		<dt>IP:</dt>
 		<dd><?php echo long2ip($event['ip']); ?></dd>
 		
+		<?php if (!empty($event['cookies'])): ?>
 		<dt>Cookies:</dt>
 		<dd><pre><?php echo htmlentities($event['cookies'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
+		<?php endif; ?>
 </dl>
 
 <!-- Stacktrace -->
