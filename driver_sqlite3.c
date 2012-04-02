@@ -354,9 +354,7 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 /* Function called for every row returned by event query */
 static int event_callback(void *data, int num_fields, char **fields, char **col_name)
 {
-	smart_str file = {0};
-	smart_str msg = {0};
-	smart_str url = {0};
+	smart_str file = {0}, msg = {0}, url = {0};
 	zval zfile, zmsg, zurl;
 	struct in_addr myaddr;
 	unsigned long n;
@@ -371,21 +369,19 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	Z_TYPE(zfile) = IS_STRING;
 	Z_STRVAL(zfile) = fields[3];
 	Z_STRLEN(zfile) = strlen(fields[3]);
+	php_json_encode(&file, &zfile TSRMLS_CC);
+	smart_str_0(&file);
 
 	Z_TYPE(zmsg) = IS_STRING;
 	Z_STRVAL(zmsg) = fields[6];
 	Z_STRLEN(zmsg) = strlen(fields[6]);
+	php_json_encode(&msg, &zmsg TSRMLS_CC);
+	smart_str_0(&msg);
 
 	Z_TYPE(zurl) = IS_STRING;
 	Z_STRVAL(zurl) = fields[7];
 	Z_STRLEN(zurl) = strlen(fields[7]);
-
-	php_json_encode(&file, &zfile TSRMLS_CC);
-	php_json_encode(&msg, &zmsg TSRMLS_CC);
 	php_json_encode(&url, &zurl TSRMLS_CC);
-
-	smart_str_0(&file);
-	smart_str_0(&msg);
 	smart_str_0(&url);
 
 	n = strtoul(fields[4], NULL, 0);

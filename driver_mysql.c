@@ -244,31 +244,26 @@ file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]<
 
 	result = mysql_use_result(connection);
 
-	smart_str file = {0};
-	smart_str msg = {0};
-	smart_str url = {0};
+	smart_str file = {0}, msg = {0}, url = {0};
 	zval zfile, zmsg, zurl;
 
 	while ((row = mysql_fetch_row(result))) {
 		Z_TYPE(zfile) = IS_STRING;
 		Z_STRVAL(zfile) = row[3];
 		Z_STRLEN(zfile) = strlen(row[3]);
+		php_json_encode(&file, &zfile TSRMLS_CC);
+		smart_str_0(&file);
 
 		Z_TYPE(zmsg) = IS_STRING;
 		Z_STRVAL(zmsg) = row[6];
 		Z_STRLEN(zmsg) = strlen(row[6]);
+		php_json_encode(&msg, &zmsg TSRMLS_CC);
+		smart_str_0(&msg);
 
 		Z_TYPE(zurl) = IS_STRING;
 		Z_STRVAL(zurl) = row[7];
 		Z_STRLEN(zurl) = strlen(row[7]);
-
-
-		php_json_encode(&file, &zfile TSRMLS_CC);
-		php_json_encode(&msg, &zmsg TSRMLS_CC);
 		php_json_encode(&url, &zurl TSRMLS_CC);
-
-		smart_str_0(&file);
-		smart_str_0(&msg);
 		smart_str_0(&url);
 
 		n = strtoul(row[4], NULL, 0);
