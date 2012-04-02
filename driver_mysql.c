@@ -238,7 +238,7 @@ PHP_FUNCTION(apm_get_mysql_events)
  WHEN 8192 THEN 'E_DEPRECATED' \
  WHEN 16384 THEN 'E_USER_DEPRECATED' \
  END, \
-file, ip, line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
+file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END, uri) FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 
 	mysql_query(connection, sql);
 
@@ -246,7 +246,8 @@ file, ip, line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order,
 
 	smart_str file = {0};
 	smart_str msg = {0};
-	zval zfile, zmsg;
+	smart_str url = {0};
+	zval zfile, zmsg, zurl;
 
 	while ((row = mysql_fetch_row(result))) {
 		Z_TYPE(zfile) = IS_STRING;
@@ -257,11 +258,18 @@ file, ip, line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order,
 		Z_STRVAL(zmsg) = row[6];
 		Z_STRLEN(zmsg) = strlen(row[6]);
 
+		Z_TYPE(zurl) = IS_STRING;
+		Z_STRVAL(zurl) = row[7];
+		Z_STRLEN(zurl) = strlen(row[7]);
+
+
 		php_json_encode(&file, &zfile TSRMLS_CC);
 		php_json_encode(&msg, &zmsg TSRMLS_CC);
+		php_json_encode(&url, &zurl TSRMLS_CC);
 
 		smart_str_0(&file);
 		smart_str_0(&msg);
+		smart_str_0(&url);
 
 		n = strtoul(row[4], NULL, 0);
 
@@ -273,11 +281,12 @@ file, ip, line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order,
 		ip_str = inet_ntoa(myaddr);
 #endif
 
-		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s]},\n",
-					   row[0], row[0], row[1], row[2], file.c, row[5], ip_str, msg.c);
+		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
+					   row[0], row[0], row[1], row[2], url.c, file.c, row[5], ip_str, msg.c);
 
 		smart_str_free(&file);
 		smart_str_free(&msg);
+		smart_str_free(&url);
 	}
 
 	mysql_free_result(result);
@@ -378,7 +387,7 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 
 	MYSQL_INSTANCE_INIT
 
-	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies FROM event WHERE id = %ld", id);
+	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies, host, uri FROM event WHERE id = %ld", id);
 	mysql_query(connection, sql);
 
 	result = mysql_use_result(connection);
@@ -399,6 +408,8 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	add_assoc_string(return_value, "stacktrace", estrdup(row[6]), 1);
 	add_assoc_long(return_value, "ip", atoi(row[7]));
 	add_assoc_string(return_value, "cookies", estrdup(row[8]), 1);
+	add_assoc_string(return_value, "host", estrdup(row[9]), 1);
+	add_assoc_string(return_value, "uri", estrdup(row[10]), 1);
 
 	mysql_free_result(result);
 }

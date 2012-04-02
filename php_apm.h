@@ -41,6 +41,7 @@ extern zend_module_entry apm_module_entry;
 #define APM_ORDER_DURATION 3
 #define APM_ORDER_FILE 4
 #define APM_ORDER_IP 5
+#define APM_ORDER_URL 6
 
 #define APM_E_ALL (E_ALL | E_STRICT)
 
@@ -163,6 +164,8 @@ typedef struct {
 	char *stacktrace;
 	long ip;
 	char *cookies;
+	char *host;
+	char *uri;
 } apm_event_info;
 
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)

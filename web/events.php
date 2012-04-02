@@ -32,6 +32,9 @@ switch ($_GET['sidx']) {
     case 'ip':
         $order = APM_ORDER_IP;
         break;
+    case 'url':
+        $order = APM_ORDER_URL;
+        break;
     case 'line':
     case 'msg':
     case 'trace':

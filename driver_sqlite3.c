@@ -219,7 +219,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-							  file, ip, line, message FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+							  file, ip, line, message, 'http://' || CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END || uri FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
 	sqlite3_exec(db, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
@@ -309,7 +309,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 		RETURN_FALSE;
 	}
 
-	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies FROM event WHERE id = %d", id);
+	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies, host, uri FROM event WHERE id = %d", id);
 	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
 
 	sqlite3_free(sql);
@@ -329,6 +329,8 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 	add_assoc_string(return_value, "stacktrace", info.stacktrace, 1);
 	add_assoc_long(return_value, "ip", info.ip);
 	add_assoc_string(return_value, "cookies", info.cookies, 1);
+	add_assoc_string(return_value, "host", info.host, 1);
+	add_assoc_string(return_value, "uri", info.uri, 1);
 }
 /* }}} */
 
@@ -343,6 +345,8 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	(*(apm_event_info *) info).stacktrace = estrdup(fields[6]);
 	(*(apm_event_info *) info).ip = atoi(fields[7]);
 	(*(apm_event_info *) info).cookies = estrdup(fields[8]);
+	(*(apm_event_info *) info).host = estrdup(fields[9]);
+	(*(apm_event_info *) info).uri = estrdup(fields[10]);
 
 	return 0;
 }
@@ -352,7 +356,8 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 {
 	smart_str file = {0};
 	smart_str msg = {0};
-	zval zfile, zmsg;
+	smart_str url = {0};
+	zval zfile, zmsg, zurl;
 	struct in_addr myaddr;
 	unsigned long n;
 	char datetime[20] = {0};
@@ -371,11 +376,17 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	Z_STRVAL(zmsg) = fields[6];
 	Z_STRLEN(zmsg) = strlen(fields[6]);
 
+	Z_TYPE(zurl) = IS_STRING;
+	Z_STRVAL(zurl) = fields[7];
+	Z_STRLEN(zurl) = strlen(fields[7]);
+
 	php_json_encode(&file, &zfile TSRMLS_CC);
 	php_json_encode(&msg, &zmsg TSRMLS_CC);
+	php_json_encode(&url, &zurl TSRMLS_CC);
 
 	smart_str_0(&file);
 	smart_str_0(&msg);
+	smart_str_0(&url);
 
 	n = strtoul(fields[4], NULL, 0);
 
@@ -390,11 +401,12 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	ts = atoi(fields[1]);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
 
-	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, \"%s\", \"%s\", %s]},\n",
-               fields[0], fields[0], datetime, fields[2], file.c, fields[5], ip_str, msg.c);
+	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
+               fields[0], fields[0], datetime, fields[2], url.c, file.c, fields[5], ip_str, msg.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);
+	smart_str_free(&url);
 
 	return 0;
 }

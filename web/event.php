@@ -45,6 +45,9 @@ if ($event !== false) {
 		<dt>Error Type:</dt>
 		<dd><?php echo APMgetErrorCodeFromID($event['type']); ?></dd>
 		
+		<dt>URL:</dt>
+		<dd>http://<?php echo htmlentities((empty($event['host']) ? '[unknown]' : $event['host'] ) . $event['uri'], ENT_COMPAT, 'UTF-8'); ?></dd>
+
 		<dt>File:</dt>
 		<dd><?php echo htmlentities($event['file'], ENT_COMPAT, 'UTF-8'); ?></dd>
 		
