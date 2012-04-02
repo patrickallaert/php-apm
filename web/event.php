@@ -53,6 +53,9 @@ if ($event !== false) {
 		
 		<dt>Message:</dt>
 		<dd><?php echo htmlentities($event['message'], ENT_COMPAT, 'UTF-8'); ?></dd>
+
+		<dt>IP:</dt>
+		<dd><?php echo long2ip($event['ip']); ?></dd>
 		
 		<dt>Cookies:</dt>
 		<dd><pre><?php echo htmlentities($event['cookies'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
@@ -92,13 +95,6 @@ if ($event !== false) {
 	}
 	?>
 	</table>
-</div>
-
-<!-- Ip -->
-<div id="stacktrace">
-	<label class="strong">IP</label>
-	<br />
-	<p><?php echo long2ip($event['ip']); ?></p>
 </div>
 
 <!-- Source -->		
