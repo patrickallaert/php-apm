@@ -76,12 +76,12 @@ MYSQL * mysql_get_instance() {
 }
 
 /* Insert an event in the backend */
-void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies TSRMLS_DC)
+void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars TSRMLS_DC)
 {
 	MYSQL_INSTANCE_INIT
 
-	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *sql = NULL;
-	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0;
+	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *sql = NULL;
+	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0;
 	struct in_addr ip_addr;
 
 	if (error_filename) {
@@ -124,11 +124,17 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 		cookies_len = mysql_real_escape_string(connection, cookies_esc, cookies, cookies_len);
 	}
 
-	sql = emalloc(130 + filename_len + msg_len + trace_len + uri_len + host_len + cookies_len);
+	if (post_vars) {
+		post_vars_len = strlen(post_vars);
+		post_vars_esc = emalloc(post_vars_len * 2 + 1);
+		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, post_vars, post_vars_len);
+	}
+
+	sql = emalloc(165 + filename_len + msg_len + trace_len + uri_len + host_len + cookies_len + post_vars_len);
 	sprintf(
 		sql,
-		"INSERT INTO event (type, file, line, message, backtrace, uri, host, ip, cookies) VALUES (%d, '%s', %u, '%s', '%s', '%s', '%s', %u, '%s')",
-		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "", host ? host_esc : "", ip_int, cookies ? cookies_esc : "");
+		"INSERT INTO event (type, file, line, message, backtrace, uri, host, ip, cookies, post_vars) VALUES (%d, '%s', %u, '%s', '%s', '%s', '%s', %u, '%s', '%s')",
+		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "", host ? host_esc : "", ip_int, cookies ? cookies_esc : "", post_vars ? post_vars_esc : "");
 
 	mysql_query(connection, sql);
 
@@ -139,6 +145,7 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 	efree(uri_esc);
 	efree(host_esc);
 	efree(cookies_esc);
+	efree(post_vars_esc);
 }
 int apm_driver_mysql_minit(int module_number)
 {
@@ -372,7 +379,7 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	MYSQL_RES *result;
 	MYSQL_ROW row;
 	long id = 0;
-	char sql[90];
+	char sql[135];
 	apm_event_info info;
 	info.file = NULL;
 
@@ -382,7 +389,7 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 
 	MYSQL_INSTANCE_INIT
 
-	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies, host, uri FROM event WHERE id = %ld", id);
+	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies, host, uri, post_vars FROM event WHERE id = %ld", id);
 	mysql_query(connection, sql);
 
 	result = mysql_use_result(connection);
@@ -405,6 +412,7 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	add_assoc_string(return_value, "cookies", estrdup(row[8]), 1);
 	add_assoc_string(return_value, "host", estrdup(row[9]), 1);
 	add_assoc_string(return_value, "uri", estrdup(row[10]), 1);
+	add_assoc_string(return_value, "post_vars", estrdup(row[11]), 1);
 
 	mysql_free_result(result);
 }

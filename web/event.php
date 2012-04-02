@@ -64,6 +64,11 @@ if ($event !== false) {
 		<dt>Cookies:</dt>
 		<dd><pre><?php echo htmlentities($event['cookies'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
 		<?php endif; ?>
+		
+		<?php if (!empty($event['post_vars'])): ?>
+		<dt>POST data:</dt>
+		<dd><pre><?php echo htmlentities($event['post_vars'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
+		<?php endif; ?>
 </dl>
 
 <!-- Stacktrace -->

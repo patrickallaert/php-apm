@@ -105,7 +105,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies TSRMLS_DC)
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars TSRMLS_DC)
 {
 	char *sql;
 	int ip_int = 0;
@@ -116,8 +116,8 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, host, ip, cookies) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %Q, %d, %Q);",
-		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "");
+	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, host, ip, cookies, post_vars) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %Q, %d, %Q, %Q);",
+		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "", post_vars ? post_vars : "");
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
 
@@ -309,7 +309,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 		RETURN_FALSE;
 	}
 
-	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies, host, uri FROM event WHERE id = %d", id);
+	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies, host, uri, post_vars FROM event WHERE id = %d", id);
 	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
 
 	sqlite3_free(sql);
@@ -331,6 +331,7 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 	add_assoc_string(return_value, "cookies", info.cookies, 1);
 	add_assoc_string(return_value, "host", info.host, 1);
 	add_assoc_string(return_value, "uri", info.uri, 1);
+	add_assoc_string(return_value, "post_vars", info.post_vars, 1);
 }
 /* }}} */
 
@@ -347,6 +348,7 @@ static int event_callback_event_info(void *info, int num_fields, char **fields, 
 	(*(apm_event_info *) info).cookies = estrdup(fields[8]);
 	(*(apm_event_info *) info).host = estrdup(fields[9]);
 	(*(apm_event_info *) info).uri = estrdup(fields[10]);
+	(*(apm_event_info *) info).post_vars = estrdup(fields[11]);
 
 	return 0;
 }

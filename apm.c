@@ -50,8 +50,8 @@ static PHP_GINIT_FUNCTION(apm);
 		while ((driver_entry = driver_entry->next) != NULL) {
 
 #define EXTRACT_DATA() zval **uri = NULL, **host = NULL, **ip = NULL, *tmp; \
-zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0; \
-smart_str cookies = {0}; \
+zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0, post_vars_found = 0; \
+smart_str cookies = {0}, post_vars = {0}; \
  \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
 if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
@@ -74,6 +74,14 @@ if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
 		APM_G(buffer) = &cookies; \
 		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
 		cookies_found = 1; \
+	} \
+} \
+zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
+if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
+	if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+		APM_G(buffer) = &post_vars; \
+		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+		post_vars_found = 1; \
 	} \
 }
 
@@ -163,7 +171,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -444,12 +452,14 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
 					ip_found ? Z_STRVAL_PP(ip) : "",
-					cookies_found ? cookies.c : "" TSRMLS_CC
+					cookies_found ? cookies.c : "" TSRMLS_CC,
+					post_vars_found ? post_vars.c : "" TSRMLS_CC
 				);
 			}
 		}
 
 		smart_str_free(&cookies);
+		smart_str_free(&post_vars);
 	}
 
 	smart_str_free(&trace_str);
@@ -476,7 +486,8 @@ static void deffered_insert_events(TSRMLS_D)
 						uri_found ? Z_STRVAL_PP(uri) : "",
 						host_found ? Z_STRVAL_PP(host) : "",
 						ip_found ? Z_STRVAL_PP(ip) : "",
-						cookies_found ? cookies.c : "" TSRMLS_CC
+						cookies_found ? cookies.c : "" TSRMLS_CC,
+						post_vars_found ? post_vars.c : "" TSRMLS_CC
 					);
 				}
 			}
@@ -484,4 +495,5 @@ static void deffered_insert_events(TSRMLS_D)
 	}
 
 	smart_str_free(&cookies);
+	smart_str_free(&post_vars);
 }
