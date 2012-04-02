@@ -137,8 +137,14 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool event_enabled;
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	zend_bool slow_request_enabled;
-	/* Boolean controlling whether the the stacktrace should be generated or not */
-	zend_bool stacktrace_enabled;
+	/* Boolean controlling whether the stacktrace should be generated or not */
+	zend_bool store_stacktrace;
+	/* Boolean controlling whether the ip should be generated or not */
+	zend_bool store_ip;
+	/* Boolean controlling whether the cookies should be generated or not */
+	zend_bool store_cookies;
+	/* Boolean controlling whether the POST variables should be generated or not */
+	zend_bool store_post;
 	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
 	zend_bool deffered_processing;
 	/* Time (in ms) before a request is considered 'slow' */

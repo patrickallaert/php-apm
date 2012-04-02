@@ -63,25 +63,29 @@ if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
 		(Z_TYPE_PP(host) == IS_STRING)) { \
 		host_found = 1; \
 	} \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) && \
+	if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) && \
 		(Z_TYPE_PP(ip) == IS_STRING)) { \
 		ip_found = 1; \
 	} \
 } \
-zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
-if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
-	if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-		APM_G(buffer) = &cookies; \
-		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-		cookies_found = 1; \
+if (APM_G(store_cookies)) { \
+	zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
+	if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &cookies; \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			cookies_found = 1; \
+		} \
 	} \
 } \
-zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
-if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
-	if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-		APM_G(buffer) = &post_vars; \
-		zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-		post_vars_found = 1; \
+if (APM_G(store_post)) { \
+	zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
+	if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &post_vars; \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			post_vars_found = 1; \
+		} \
 	} \
 }
 
@@ -158,8 +162,14 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.event_enabled",        "1",   PHP_INI_ALL, OnUpdateBool, event_enabled,         zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled", "1",   PHP_INI_ALL, OnUpdateBool, slow_request_enabled,  zend_apm_globals, apm_globals)
-	/* Boolean controlling whether the the stacktrace should be generated or not */
-	STD_PHP_INI_BOOLEAN("apm.stacktrace_enabled",   "1",   PHP_INI_ALL, OnUpdateBool, stacktrace_enabled,    zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the stacktrace should be stored or not */
+	STD_PHP_INI_BOOLEAN("apm.store_stacktrace",     "1",   PHP_INI_ALL, OnUpdateBool, store_stacktrace,      zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the ip should be stored or not */
+	STD_PHP_INI_BOOLEAN("apm.store_ip",             "1",   PHP_INI_ALL, OnUpdateBool, store_ip,              zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the cookies should be stored or not */
+	STD_PHP_INI_BOOLEAN("apm.store_cookies",        "1",   PHP_INI_ALL, OnUpdateBool, store_cookies,         zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the POST variables should be stored or not */
+	STD_PHP_INI_BOOLEAN("apm.store_post",           "1",   PHP_INI_ALL, OnUpdateBool, store_post,            zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
 	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered 'slow' */
@@ -405,7 +415,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
 
-	if (APM_G(stacktrace_enabled)) {
+	if (APM_G(store_stacktrace)) {
 		append_backtrace(&trace_str TSRMLS_CC);
 		smart_str_0(&trace_str);
 	}
@@ -429,7 +439,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 			(*APM_G(last_event))->next->event.msg = NULL;
 		}
 
-		if (APM_G(stacktrace_enabled) && trace_str.c && (((*APM_G(last_event))->next->event.trace = malloc(strlen(trace_str.c) + 1)) != NULL)) {
+		if (APM_G(store_stacktrace) && trace_str.c && (((*APM_G(last_event))->next->event.trace = malloc(strlen(trace_str.c) + 1)) != NULL)) {
 			strcpy((*APM_G(last_event))->next->event.trace, trace_str.c);
 		} else {
 			(*APM_G(last_event))->next->event.trace = NULL;
@@ -448,7 +458,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 					error_filename,
 					error_lineno,
 					msg,
-					(APM_G(stacktrace_enabled) && trace_str.c) ? trace_str.c : "",
+					(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : "",
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
 					ip_found ? Z_STRVAL_PP(ip) : "",
