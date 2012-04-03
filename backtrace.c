@@ -17,12 +17,13 @@
  +----------------------------------------------------------------------+
 */
 
+#include "php_apm.h"
 #include "php.h"
 #include "zend_types.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_string.h"
 
-#define APM_DUMP_MAX_DEPTH 4
+ZEND_DECLARE_MODULE_GLOBALS(apm);
 
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit);
@@ -251,7 +252,7 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit)
 {
-	if (limit > APM_DUMP_MAX_DEPTH) {
+	if (limit > APM_G(dump_max_depth)) {
 		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
 		return;
 	}

@@ -149,6 +149,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool deffered_processing;
 	/* Time (in ms) before a request is considered 'slow' */
 	long      slow_request_duration;
+	/* Maximum recursion depth used when dumping a variable */
+	long      dump_max_depth;
 	apm_driver_entry *drivers;
 	apm_event_entry *events;
 	apm_event_entry **last_event;

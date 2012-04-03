@@ -174,6 +174,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered 'slow' */
 	STD_PHP_INI_ENTRY("apm.slow_request_duration",  "100", PHP_INI_ALL, OnUpdateLong, slow_request_duration, zend_apm_globals, apm_globals)
+	/* Maximum recursion depth used when dumping a variable */
+	STD_PHP_INI_ENTRY("apm.dump_max_depth",         "4",   PHP_INI_ALL, OnUpdateLong, dump_max_depth,        zend_apm_globals, apm_globals)
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(apm)
