@@ -1,10 +1,24 @@
-APM 1.1.0beta1   XX XXX XXXX
+APM 1.1.0beta1   02 Apr 2012
 ----------------------------
 Added:
-- New stored information: IP
+- New information stored: IP, host, POST data, cookies
+- Configuration to limit the depth when dumping variables (apm.dump_max_depth)
 
 Removed:
 - JSON flag for apm_get_*_events and apm_get_*_slow_requests
+
+Changed:
+- Some UI refactoring
+- Minor optimizations
+
+Fixed:
+- Installation failing because of config file being named "config.php"
+  pecl/pear installer issue?
+- Some compilation warnings
+- Deffered mode taking only the *mysql* error_reporting into account
+- APM not correctly linking to libmysqlclient
+- Possible buffer overflows
+- Compilation issues related to timelib with PHP >= 5.3.9
 
 APM 1.0.1        12 Nov 2011
 ----------------------------
