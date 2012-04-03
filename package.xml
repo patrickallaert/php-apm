@@ -20,10 +20,10 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2011-06-14</date>
+ <date>2012-04-02</date>
  <version>
-  <release>1.0.1</release>
-  <api>1.0.0</api>
+  <release>1.1.0beta1</release>
+  <api>1.1.0beta1</api>
  </version>
  <stability>
   <release>stable</release>
@@ -31,11 +31,25 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
+Added:
+- New information stored: IP, host, POST data, cookies
+- Configuration to limit the depth when dumping variables (apm.dump_max_depth)
+
+Removed:
+- JSON flag for apm_get_*_events and apm_get_*_slow_requests
+
 Changed:
-- Base install dir for web files, now in php/PECL/APM
+- Some UI refactoring
+- Minor optimizations
 
 Fixed:
-- Bug #60276 pecl install fail installing APM
+- Installation failing because of config file being named "config.php"
+  pecl/pear installer issue?
+- Some compilation warnings
+- Deffered mode taking only the *mysql* error_reporting into account
+- APM not correctly linking to libmysqlclient
+- Possible buffer overflows
+- Compilation issues related to timelib with PHP >= 5.3.9
  </notes>
  <contents>
   <dir name="/">
@@ -44,7 +58,6 @@ Fixed:
    <file name="NEWS" role="doc" />
    <file name="apm.c" role="src" />
    <file name="apm.ini" role="data" />
-   <file name="apm.sql" role="data" />
    <file name="backtrace.c" role="src" />
    <file name="backtrace.h" role="src" />
    <file name="config.m4" role="src" />
@@ -54,6 +67,16 @@ Fixed:
    <file name="driver_sqlite3.c" role="src" />
    <file name="driver_sqlite3.h" role="src" />
    <file name="php_apm.h" role="src" />
+   <dir baseinstalldir="PECL/APM" name="sql">
+     <dir name="mysql">
+       <file name="create.sql" role="data" />
+       <file name="upgrade-1.0-1.1.sql" role="data" />
+     </dir>
+     <dir name="sqlite">
+       <file name="create.sql" role="data" />
+       <file name="upgrade-1.0-1.1.sql" role="data" />
+     </dir>
+   </dir>
    <dir baseinstalldir="PECL/APM" name="web">
     <file name="apm.php" role="php" />
     <file name="setup.php" role="php" />
@@ -151,6 +174,39 @@ Fixed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>1.1.0beta1</release>
+    <api>1.1.0beta1</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2012-04-02</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Added:
+- New information stored: IP, host, POST data, cookies
+- Configuration to limit the depth when dumping variables (apm.dump_max_depth)
+
+Removed:
+- JSON flag for apm_get_*_events and apm_get_*_slow_requests
+
+Changed:
+- Some UI refactoring
+- Minor optimizations
+
+Fixed:
+- Installation failing because of config file being named "config.php"
+  pecl/pear installer issue?
+- Some compilation warnings
+- Deffered mode taking only the *mysql* error_reporting into account
+- APM not correctly linking to libmysqlclient
+- Possible buffer overflows
+- Compilation issues related to timelib with PHP >= 5.3.9
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.0.1</release>
