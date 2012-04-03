@@ -344,7 +344,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 				break;
 		}
 		smart_str_appendl(trace_str, " => ", 4);
-		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, limit + 1);
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, limit);
 		zend_hash_move_forward_ex(ht, &iterator);
 	}
 }
