@@ -67,6 +67,8 @@ MYSQL * mysql_get_instance() {
 		APM_MY_G(event_db) = malloc(sizeof(MYSQL));
 		mysql_init(APM_MY_G(event_db));
 		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
+			free(APM_MY_G(event_db));
+			APM_MY_G(event_db) = NULL;
 			return NULL;
 		}
 		mysql_set_character_set(APM_MY_G(event_db), "utf8");
@@ -167,6 +169,7 @@ int apm_driver_mysql_rshutdown()
 {
 	if (APM_MY_G(event_db) != NULL) {
 		mysql_close(APM_MY_G(event_db));
+		free(APM_MY_G(event_db));
 		APM_MY_G(event_db) = NULL;
 	}
 	return SUCCESS;
@@ -247,7 +250,8 @@ PHP_FUNCTION(apm_get_mysql_events)
  END, \
 file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END, uri) FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 
-	mysql_query(connection, sql);
+	if (mysql_query(connection, sql) != 0)
+		RETURN_FALSE;
 
 	result = mysql_use_result(connection);
 
@@ -316,7 +320,8 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 	MYSQL_INSTANCE_INIT
 
 	sprintf(sql, "SELECT id, ts, duration, file FROM slow_request ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
-	mysql_query(connection, sql);
+	if (mysql_query(connection, sql) != 0)
+		RETURN_FALSE;
 
 	result = mysql_use_result(connection);
 
@@ -390,7 +395,8 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	MYSQL_INSTANCE_INIT
 
 	sprintf(sql, "SELECT id, UNIX_TIMESTAMP(ts), type, file, line, message, backtrace, ip, cookies, host, uri, post_vars FROM event WHERE id = %ld", id);
-	mysql_query(connection, sql);
+	if (mysql_query(connection, sql) != 0)
+		RETURN_FALSE;
 
 	result = mysql_use_result(connection);
 
@@ -430,7 +436,8 @@ static long get_table_count(char * table)
 
 	sprintf(sql, "SELECT COUNT(*) FROM %s", table);
 
-	mysql_query(connection, sql);
+	if (mysql_query(connection, sql) != 0)
+		return -1;
 
 	result = mysql_use_result(connection);
 
