@@ -37,11 +37,11 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	/* backtrace variables */
 	zend_execute_data *ptr, *skip;
 	int lineno;
-	char *function_name;
-	char *filename;
-	char *class_name = NULL;
+	const char *function_name;
+	const char *filename;
+	const char *class_name = NULL;
 	char *call_type;
-	char *include_filename = NULL;
+	const char *include_filename = NULL;
 	zval *arg_array = NULL;
 #if PHP_API_VERSION < 20090626
 	void **cur_arg_pos = EG(argument_stack).top_element;
@@ -73,7 +73,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	ptr = EG(current_execute_data);
 
 	while (ptr) {
-		char *free_class_name = NULL;
+		const char *free_class_name = NULL;
 
 		class_name = call_type = NULL;
 		arg_array = NULL;
@@ -228,7 +228,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 		ptr = skip->prev_execute_data;
 		++indent;
 		if (free_class_name) {
-			efree(free_class_name);
+			efree((char *) free_class_name);
 		}
 	}
 }
@@ -275,7 +275,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			zend_uint clen;
 
 			if (Z_OBJ_HANDLER_P(expr, get_class_name)) {
-				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, &class_name, &clen, 0 TSRMLS_CC);
+				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, (const char **) &class_name, &clen, 0 TSRMLS_CC);
 			}
 			if (class_name) {
 				smart_str_appends(trace_str, class_name);
