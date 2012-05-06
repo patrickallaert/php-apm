@@ -365,15 +365,17 @@ PHP_MINFO_FUNCTION(apm)
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	TSRMLS_FETCH();
+
+	char *msg;
+	va_list args_copy;
+	zend_module_entry tmp_mod_entry;
+
+	/* A copy of args is needed to be used for the old_error_cb */
+	va_copy(args_copy, args);
+	vspprintf(&msg, 0, format, args_copy);
+	va_end(args_copy);
 	
 	if (APM_G(event_enabled)) {
-		char *msg;
-		va_list args_copy;
-
-		/* A copy of args is needed to be used for the old_error_cb */
-		va_copy(args_copy, args);
-		vspprintf(&msg, 0, format, args_copy);
-		va_end(args_copy);
 
 		/* We need to see if we have an uncaught exception fatal error now */
 		if (type == E_ERROR && strncmp(msg, "Uncaught exception", 18) == 0) {
