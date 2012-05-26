@@ -388,7 +388,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 	/* Calling saved callback function for error handling, unless xdebug is loaded */
 	if (zend_hash_find(&module_registry, "xdebug", 7, (void**) &tmp_mod_entry) != SUCCESS) {
-		old_error_cb(type, error_filename, error_lineno, format, args_copy);
+		old_error_cb(type, error_filename, error_lineno, format, args);
 	}
 }
 /* }}} */
