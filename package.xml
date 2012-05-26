@@ -20,10 +20,10 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2012-05-06</date>
+ <date>2012-05-27</date>
  <version>
-  <release>1.1.0beta2</release>
-  <api>1.1.0beta2</api>
+  <release>1.1.0beta3</release>
+  <api>1.1.0beta3</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,12 +32,8 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Fixed:
-- Version 1.1.0beta* should be marked as "beta" and not as "stable"
-- APM-1.1.0beta1.tgz file contains only package.xml (#61937)
-- Some GCC warnings when built with PHP 5.4
-- Error callback arguments must be copied in every cases
-- Prevent calling the original error handler if Xdebug is loaded
-- Possible segfault if MySQL server connection link is gone
+- Possible memory not being freed
+- Segmentation fault preventing the collection of data (#62012)
  </notes>
  <contents>
   <dir name="/">
@@ -162,6 +158,23 @@ Fixed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>1.1.0beta3</release>
+    <api>1.1.0beta3</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2012-05-27</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Fixed:
+- Possible memory not being freed
+- Segmentation fault preventing the collection of data (#62012)
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.1.0beta2</release>
