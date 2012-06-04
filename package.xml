@@ -20,10 +20,10 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2012-05-27</date>
+ <date>2012-06-??</date>
  <version>
-  <release>1.1.0beta3</release>
-  <api>1.1.0beta3</api>
+  <release>1.1.0beta4</release>
+  <api>1.1.0beta4</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,8 +32,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Fixed:
-- Possible memory not being freed
-- Segmentation fault preventing the collection of data (#62012)
+- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
  </notes>
  <contents>
   <dir name="/">
@@ -158,6 +157,22 @@ Fixed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>1.1.0beta4</release>
+    <api>1.1.0beta4</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2012-06-??</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Fixed:
+- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.1.0beta3</release>
