@@ -468,8 +468,9 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
 					ip_found ? Z_STRVAL_PP(ip) : "",
-					cookies_found ? cookies.c : "" TSRMLS_CC,
-					post_vars_found ? post_vars.c : "" TSRMLS_CC
+					cookies_found ? cookies.c : "",
+					post_vars_found ? post_vars.c : ""
+					TSRMLS_CC
 				);
 			}
 		}
@@ -502,8 +503,9 @@ static void deffered_insert_events(TSRMLS_D)
 						uri_found ? Z_STRVAL_PP(uri) : "",
 						host_found ? Z_STRVAL_PP(host) : "",
 						ip_found ? Z_STRVAL_PP(ip) : "",
-						cookies_found ? cookies.c : "" TSRMLS_CC,
-						post_vars_found ? post_vars.c : "" TSRMLS_CC
+						cookies_found ? cookies.c : "",
+						post_vars_found ? post_vars.c : ""
+						TSRMLS_CC
 					);
 				}
 			}
