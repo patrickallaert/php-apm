@@ -33,6 +33,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  <notes>
 Fixed:
 - Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
+- Missing post_vars column definition in SQL creation scripts.
  </notes>
  <contents>
   <dir name="/">
@@ -171,6 +172,7 @@ Fixed:
    <notes>
 Fixed:
 - Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
+- Missing post_vars column definition in SQL creation scripts.
    </notes>
   </release>
   <release>

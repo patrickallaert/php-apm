@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS event (
     uri TEXT NOT NULL,
     host TEXT NOT NULL,
     ip INTEGER UNSIGNED NOT NULL,
-    cookies TEXT NOT NULL
+    cookies TEXT NOT NULL,
+    post_vars TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS slow_request (
