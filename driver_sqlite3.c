@@ -166,8 +166,8 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 	char *sql;
 
 	/* Building SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (datetime(), %f, %Q);",
-						  USEC_TO_SEC(duration), script_filename);
+	sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (%d, %f, %Q);",
+						  (long)time(NULL), USEC_TO_SEC(duration), script_filename);
 
 	/* Executing SQL insert query */
 	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
@@ -414,6 +414,8 @@ static int slow_request_callback(void *data, int num_fields, char **fields, char
 {
 	smart_str file = {0};
 	zval zfile;
+	char datetime[20] = {0};
+	time_t ts;
 
 	Z_TYPE(zfile) = IS_STRING;
 	Z_STRVAL(zfile) = fields[3];
@@ -423,8 +425,11 @@ static int slow_request_callback(void *data, int num_fields, char **fields, char
 
 	smart_str_0(&file);
 
+	ts = atoi(fields[1]);
+	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
+
 	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
-               fields[0], fields[0], fields[1], fields[2], file.c);
+               fields[0], fields[0], datetime, fields[2], file.c);
 
 	smart_str_free(&file);
 
