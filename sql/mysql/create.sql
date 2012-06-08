@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS event (
 
 CREATE TABLE IF NOT EXISTS slow_request (
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,
-    ts TEXT NOT NULL,
+    ts TIMESTAMP NOT NULL,
     duration FLOAT NOT NULL,
     file TEXT NOT NULL
 );
