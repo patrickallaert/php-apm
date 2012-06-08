@@ -31,6 +31,9 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
+Added:
+- Referer
+
 Changed:
 - Storing all ts in SQLite as integers
 
@@ -173,6 +176,9 @@ Fixed:
    <date>2012-06-??</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
+Added:
+- Referer
+
 Changed:
 - Storing all ts in SQLite as integers
 

@@ -49,8 +49,8 @@ static PHP_GINIT_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
-#define EXTRACT_DATA() zval **uri = NULL, **host = NULL, **ip = NULL, *tmp; \
-zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0, post_vars_found = 0; \
+#define EXTRACT_DATA() zval **uri = NULL, **host = NULL, **ip = NULL, **referer, *tmp; \
+zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0, post_vars_found = 0, referer_found = 0; \
 smart_str cookies = {0}, post_vars = {0}; \
  \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
@@ -66,6 +66,10 @@ if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
 	if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) && \
 		(Z_TYPE_PP(ip) == IS_STRING)) { \
 		ip_found = 1; \
+	} \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&referer) == SUCCESS) && \
+		(Z_TYPE_PP(referer) == IS_STRING)) { \
+		referer_found = 1; \
 	} \
 } \
 if (APM_G(store_cookies)) { \
@@ -183,7 +187,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -469,7 +473,8 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 					host_found ? Z_STRVAL_PP(host) : "",
 					ip_found ? Z_STRVAL_PP(ip) : "",
 					cookies_found ? cookies.c : "",
-					post_vars_found ? post_vars.c : ""
+					post_vars_found ? post_vars.c : "",
+					referer_found ? Z_STRVAL_PP(referer) : ""
 					TSRMLS_CC
 				);
 			}
@@ -504,7 +509,8 @@ static void deffered_insert_events(TSRMLS_D)
 						host_found ? Z_STRVAL_PP(host) : "",
 						ip_found ? Z_STRVAL_PP(ip) : "",
 						cookies_found ? cookies.c : "",
-						post_vars_found ? post_vars.c : ""
+						post_vars_found ? post_vars.c : "",
+						referer_found ? Z_STRVAL_PP(referer) : ""
 						TSRMLS_CC
 					);
 				}

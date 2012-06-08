@@ -69,6 +69,11 @@ if ($event !== false) {
 		<dt>POST data:</dt>
 		<dd><pre><?php echo htmlentities($event['post_vars'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
 		<?php endif; ?>
+
+		<?php if (!empty($event['referer'])): ?>
+		<dt>Referer:</dt>
+		<dd><pre><?php echo htmlentities($event['referer'], ENT_COMPAT, 'UTF-8'); ?></pre></dd>
+		<?php endif; ?>
 </dl>
 
 <!-- Stacktrace -->
