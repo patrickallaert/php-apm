@@ -20,7 +20,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2012-06-??</date>
+ <date>2012-06-07</date>
  <version>
   <release>1.1.0beta4</release>
   <api>1.1.0beta4</api>
@@ -173,7 +173,7 @@ Fixed:
     <release>beta</release>
     <api>beta</api>
    </stability>
-   <date>2012-06-??</date>
+   <date>2012-06-07</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
 Added:
