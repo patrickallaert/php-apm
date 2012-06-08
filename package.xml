@@ -39,6 +39,7 @@ Changed:
 
 Fixed:
 - Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
+- Bug #62012: No data collected
 - Missing post_vars column definition in SQL creation scripts.
  </notes>
  <contents>
@@ -184,6 +185,7 @@ Changed:
 
 Fixed:
 - Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
+- Bug #62012: No data collected
 - Missing post_vars column definition in SQL creation scripts.
    </notes>
   </release>
