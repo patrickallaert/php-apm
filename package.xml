@@ -38,7 +38,7 @@ Changed:
 - Storing all ts in SQLite as integers
 
 Fixed:
-- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
+- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
 - Missing post_vars column definition in SQL creation scripts.
  </notes>
  <contents>
@@ -183,7 +183,7 @@ Changed:
 - Storing all ts in SQLite as integers
 
 Fixed:
-- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl).
+- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
 - Missing post_vars column definition in SQL creation scripts.
    </notes>
   </release>
