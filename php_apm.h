@@ -20,6 +20,7 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
+#include "config.h"
 #include "php.h"
 #include "zend_errors.h"
 #include "ext/standard/php_smart_str.h"
@@ -129,6 +130,16 @@ PHP_FUNCTION(apm_get_mysql_slow_requests_count);
 PHP_FUNCTION(apm_get_mysql_event_info);
 #endif
 
+#ifdef APM_DEBUGFILE
+#define APM_INIT_DEBUG APM_G(debugfile) = fopen(APM_DEBUGFILE, "a+");
+#define APM_DEBUG(...) fprintf(APM_G(debugfile), __VA_ARGS__); fflush(APM_G(debugfile));
+#define APM_SHUTDOWN_DEBUG fclose(APM_G(debugfile));
+#else
+#define APM_INIT_DEBUG
+#define APM_DEBUG(...)
+#define APM_SHUTDOWN_DEBUG
+#endif
+
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm)
 	/* Boolean controlling whether the extension is globally active or not */
@@ -155,6 +166,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	apm_event_entry *events;
 	apm_event_entry **last_event;
 	smart_str *buffer;
+#ifdef APM_DEBUGFILE
+	FILE * debugfile;
+#endif
 ZEND_END_MODULE_GLOBALS(apm)
 
 #ifdef ZTS

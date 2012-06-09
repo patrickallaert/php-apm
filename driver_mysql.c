@@ -66,11 +66,15 @@ MYSQL * mysql_get_instance() {
 	if (APM_MY_G(event_db) == NULL) {
 		APM_MY_G(event_db) = malloc(sizeof(MYSQL));
 		mysql_init(APM_MY_G(event_db));
+		APM_DEBUG("[MySQL driver] Connecting to server...");
 		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
+			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_MY_G(event_db)));
+
 			free(APM_MY_G(event_db));
 			APM_MY_G(event_db) = NULL;
 			return NULL;
 		}
+		APM_DEBUG("OK\n");
 		mysql_set_character_set(APM_MY_G(event_db), "utf8");
 	}
 
@@ -144,7 +148,9 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 		"INSERT INTO event (type, file, line, message, backtrace, uri, host, ip, cookies, post_vars, referer) VALUES (%d, '%s', %u, '%s', '%s', '%s', '%s', %u, '%s', '%s', '%s')",
 		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "", uri ? uri_esc : "", host ? host_esc : "", ip_int, cookies ? cookies_esc : "", post_vars ? post_vars_esc : "", referer ? referer_esc : "");
 
-	mysql_query(connection, sql);
+	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
+	if (mysql_query(connection, sql) != 0)
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_MY_G(event_db)));
 
 	efree(sql);
 	efree(filename_esc);
@@ -175,6 +181,7 @@ int apm_driver_mysql_mshutdown()
 int apm_driver_mysql_rshutdown()
 {
 	if (APM_MY_G(event_db) != NULL) {
+		APM_DEBUG("[MySQL driver] Closing connection\n");
 		mysql_close(APM_MY_G(event_db));
 		free(APM_MY_G(event_db));
 		APM_MY_G(event_db) = NULL;
@@ -201,7 +208,9 @@ void apm_driver_mysql_insert_slow_request(float duration, char * script_filename
 		"INSERT INTO slow_request (duration, file) VALUES (%f, '%s')",
 		USEC_TO_SEC(duration), script_filename ? filename_esc : "");
 
-	mysql_query(connection, sql);
+	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
+	if (mysql_query(connection, sql) != 0)
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_MY_G(event_db)));
 
 	efree(sql);
 	efree(filename_esc);

@@ -267,6 +267,7 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 
 PHP_RINIT_FUNCTION(apm)
 {
+	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
 		apm_driver_entry * driver_entry;
 
@@ -275,6 +276,7 @@ PHP_RINIT_FUNCTION(apm)
 			gettimeofday(&begin_tp, NULL);
 		}
 
+		APM_DEBUG("Registering drivers\n");
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled()) {
@@ -284,6 +286,7 @@ PHP_RINIT_FUNCTION(apm)
 			}
 		}
 
+		APM_DEBUG("Replacing handlers\n");
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
 		zend_throw_exception_hook = apm_throw_exception_hook;
@@ -304,6 +307,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			/* Request longer than accepted thresold ? */
 			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
 			if (duration > 1000.0 * APM_G(slow_request_duration)) {
+				APM_DEBUG("Slow request catched\n");
 				zval **array;
 				zval **token;
 				char *script_filename = NULL;
@@ -316,15 +320,18 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				}
 
 				driver_entry = APM_G(drivers);
+				APM_DEBUG("Slow request loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.is_enabled()) {
 						driver_entry->driver.insert_slow_request(duration, script_filename);
 					}
 				}
+				APM_DEBUG("Slow request loop end\n");
 			}
 		}
 
 		if (APM_G(deffered_processing) && APM_G(events) != *APM_G(last_event)) {
+			APM_DEBUG("Events to insert in deffered processing\n");
 			deffered_insert_events(TSRMLS_C);
 
 			apm_event_entry * event_entry_cursor = APM_G(events);
@@ -349,8 +356,12 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	}
 
 	/* Restoring saved error callback function */
+	APM_DEBUG("Restoring handlers\n");
 	zend_error_cb = old_error_cb;
 	zend_throw_exception_hook = NULL;
+
+	APM_SHUTDOWN_DEBUG;
+
 	return SUCCESS;
 }
 
@@ -431,6 +442,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	}
 
 	if (APM_G(deffered_processing)) {
+		APM_DEBUG("Registering event for deffered processing\n");
 		(*APM_G(last_event))->next = (apm_event_entry *) malloc(sizeof(apm_event_entry));
 		(*APM_G(last_event))->next->event.type = type;
 
@@ -461,6 +473,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		EXTRACT_DATA();
 
 		driver_entry = APM_G(drivers);
+		APM_DEBUG("Direct processing loop begin\n");
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
 				driver_entry->driver.insert_event(
@@ -479,6 +492,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 				);
 			}
 		}
+		APM_DEBUG("Direct processing loop end\n");
 
 		smart_str_free(&cookies);
 		smart_str_free(&post_vars);
@@ -494,6 +508,7 @@ static void deffered_insert_events(TSRMLS_D)
 
 	EXTRACT_DATA();
 
+	APM_DEBUG("Deffered processing loop begin\n");
 	while ((driver_entry = driver_entry->next) != NULL) {
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
@@ -517,6 +532,7 @@ static void deffered_insert_events(TSRMLS_D)
 			}
 		}
 	}
+	APM_DEBUG("Deffered processing loop end\n");
 
 	smart_str_free(&cookies);
 	smart_str_free(&post_vars);

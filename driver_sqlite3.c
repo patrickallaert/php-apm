@@ -119,7 +119,9 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	sql = sqlite3_mprintf("INSERT INTO event (ts, type, file, line, message, backtrace, uri, host, ip, cookies, post_vars, referer) VALUES (%d, %d, %Q, %d, %Q, %Q, %Q, %Q, %d, %Q, %Q, %Q);",
 		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "", post_vars ? post_vars : "", referer ? referer : "");
 	/* Executing SQL insert query */
-	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
+	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
+	if (sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL) != SQLITE_OK)
+		APM_DEBUG("[SQLite driver] Error occured with previous query\n");
 
 	sqlite3_free(sql);
 }
@@ -133,7 +135,9 @@ int apm_driver_sqlite3_minit(int module_number)
 int apm_driver_sqlite3_rinit()
 {
 	/* Opening the sqlite database file */
+	APM_DEBUG("[SQLite driver] Connecting to db...");
 	if (sqlite3_open(APM_S3_G(db_file), &APM_S3_G(event_db))) {
+		APM_DEBUG("FAILED!\n");
 		/*
 		 Closing DB file and stop loading the extension
 		 in case of error while opening the database file
@@ -141,6 +145,7 @@ int apm_driver_sqlite3_rinit()
 		sqlite3_close(APM_S3_G(event_db));
 		return FAILURE;
 	}
+	APM_DEBUG("OK\n");
 
 	sqlite3_busy_timeout(APM_S3_G(event_db), APM_S3_G(timeout));
 
@@ -157,6 +162,7 @@ int apm_driver_sqlite3_mshutdown()
 
 int apm_driver_sqlite3_rshutdown()
 {
+	APM_DEBUG("[SQLite driver] Closing connection\n");
 	sqlite3_close(APM_S3_G(event_db));
 	return SUCCESS;
 }
@@ -170,7 +176,9 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 						  (long)time(NULL), USEC_TO_SEC(duration), script_filename);
 
 	/* Executing SQL insert query */
-	sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL);
+	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
+	if (sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL) != SQLITE_OK)
+		APM_DEBUG("[SQLite driver] Error occured with previous query\n");
 
 	sqlite3_free(sql);
 }

@@ -32,6 +32,8 @@ PHP_ARG_WITH(sqlite3, enable support for sqlite3,
 [  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
 PHP_ARG_WITH(mysql, enable support for MySQL,
 [  --with-mysql=DIR        Location of MySQL base directory], no, no)
+PHP_ARG_WITH(debugfile, enable support for MySQL,
+[  --with-debugfile=[FILE] Location of debugging file (/tmp/apm.debug by default)], no, no)
 
 if test -z "$PHP_ZLIB_DIR"; then
   PHP_ARG_WITH(zlib-dir, for the location of libz, 
@@ -41,6 +43,15 @@ fi
 if test "$PHP_APM" != "no"; then
 
   AC_CONFIG_HEADERS()
+
+  if test "$PHP_DEBUGFILE" != "no"; then
+    if test "$PHP_DEBUGFILE" = "yes"; then
+      debugfile="/tmp/apm.debug"
+    else
+      debugfile="$PHP_DEBUGFILE"
+    fi
+    AC_DEFINE_UNQUOTED(APM_DEBUGFILE, "$debugfile", [file used for debugging APM])
+  fi
 
   if test "$PHP_SQLITE3" != "no"; then
     sqlite3_driver="driver_sqlite3.c"

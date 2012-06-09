@@ -20,10 +20,10 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2012-06-07</date>
+ <date>2012-06-??</date>
  <version>
-  <release>1.1.0beta4</release>
-  <api>1.1.0beta4</api>
+  <release>1.1.0beta5</release>
+  <api>1.1.0beta5</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,15 +32,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Added:
-- Referer
-
-Changed:
-- Storing all ts in SQLite as integers
-
-Fixed:
-- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
-- Bug #62012: No data collected
-- Missing post_vars column definition in SQL creation scripts.
+- --with-debugfile[=FILE] option to permit debugging of APM
  </notes>
  <contents>
   <dir name="/">
@@ -165,6 +157,22 @@ Fixed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>1.1.0beta5</release>
+    <api>1.1.0beta5</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2012-06-??</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Added:
+- --with-debugfile[=FILE] option to permit debugging of APM
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.1.0beta4</release>
