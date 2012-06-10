@@ -36,6 +36,9 @@ Added:
 
 Changed:
 - Lazy loading the connection to the SQLite database
+
+Fixed:
+- Ordering by URL not working
  </notes>
  <contents>
   <dir name="/">
@@ -177,6 +180,9 @@ Added:
 
 Changed:
 - Lazy loading the connection to the SQLite database
+
+Fixed:
+- Ordering by URL not working
    </notes>
   </release>
   <release>

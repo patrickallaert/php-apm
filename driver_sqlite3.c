@@ -214,7 +214,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
 
 	SQLITE_INSTANCE_INIT
 
-	if (order < 1 || order > 5) {
+	if (order < 1 || order > 6) {
 		order = 1;
 	}
 
@@ -235,7 +235,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 8192 THEN 'E_DEPRECATED' \
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
-							  file, ip, line, message, 'http://' || CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END || uri FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
+							  file, ip, 'http://' || CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END || uri, line, message FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
 	sqlite3_exec(connection, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
@@ -378,14 +378,14 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	smart_str_0(&file);
 
 	Z_TYPE(zmsg) = IS_STRING;
-	Z_STRVAL(zmsg) = fields[6];
-	Z_STRLEN(zmsg) = strlen(fields[6]);
+	Z_STRVAL(zmsg) = fields[7];
+	Z_STRLEN(zmsg) = strlen(fields[7]);
 	php_json_encode(&msg, &zmsg TSRMLS_CC);
 	smart_str_0(&msg);
 
 	Z_TYPE(zurl) = IS_STRING;
-	Z_STRVAL(zurl) = fields[7];
-	Z_STRLEN(zurl) = strlen(fields[7]);
+	Z_STRVAL(zurl) = fields[5];
+	Z_STRLEN(zurl) = strlen(fields[5]);
 	php_json_encode(&url, &zurl TSRMLS_CC);
 	smart_str_0(&url);
 
@@ -403,7 +403,7 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
 
 	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
-               fields[0], fields[0], datetime, fields[2], url.c, file.c, fields[5], ip_str, msg.c);
+               fields[0], fields[0], datetime, fields[2], url.c, file.c, fields[6], ip_str, msg.c);
 
 	smart_str_free(&file);
 	smart_str_free(&msg);

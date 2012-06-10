@@ -241,7 +241,7 @@ PHP_FUNCTION(apm_get_mysql_events)
 
 	MYSQL_INSTANCE_INIT
 
-	if (order < 1 || order > 5) {
+	if (order < 1 || order > 6) {
 		order = 1;
 	}
 
@@ -264,7 +264,7 @@ PHP_FUNCTION(apm_get_mysql_events)
  WHEN 8192 THEN 'E_DEPRECATED' \
  WHEN 16384 THEN 'E_USER_DEPRECATED' \
  END, \
-file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END, uri) FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
+file, ip, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END, uri), line, message FROM event ORDER BY %ld %s LIMIT %ld OFFSET %ld", order, asc ? "ASC" : "DESC", limit, offset);
 
 	if (mysql_query(connection, sql) != 0)
 		RETURN_FALSE;
@@ -282,14 +282,14 @@ file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]<
 		smart_str_0(&file);
 
 		Z_TYPE(zmsg) = IS_STRING;
-		Z_STRVAL(zmsg) = row[6];
-		Z_STRLEN(zmsg) = strlen(row[6]);
+		Z_STRVAL(zmsg) = row[7];
+		Z_STRLEN(zmsg) = strlen(row[7]);
 		php_json_encode(&msg, &zmsg TSRMLS_CC);
 		smart_str_0(&msg);
 
 		Z_TYPE(zurl) = IS_STRING;
-		Z_STRVAL(zurl) = row[7];
-		Z_STRLEN(zurl) = strlen(row[7]);
+		Z_STRVAL(zurl) = row[5];
+		Z_STRLEN(zurl) = strlen(row[5]);
 		php_json_encode(&url, &zurl TSRMLS_CC);
 		smart_str_0(&url);
 
@@ -304,7 +304,7 @@ file, ip, line, message, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]<
 #endif
 
 		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
-					   row[0], row[0], row[1], row[2], url.c, file.c, row[5], ip_str, msg.c);
+					   row[0], row[0], row[1], row[2], url.c, file.c, row[6], ip_str, msg.c);
 
 		smart_str_free(&file);
 		smart_str_free(&msg);
