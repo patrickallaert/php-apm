@@ -353,12 +353,12 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				}
 			}
 		}
-	}
 
-	/* Restoring saved error callback function */
-	APM_DEBUG("Restoring handlers\n");
-	zend_error_cb = old_error_cb;
-	zend_throw_exception_hook = NULL;
+		/* Restoring saved error callback function */
+		APM_DEBUG("Restoring handlers\n");
+		zend_error_cb = old_error_cb;
+		zend_throw_exception_hook = NULL;
+	}
 
 	APM_SHUTDOWN_DEBUG;
 
