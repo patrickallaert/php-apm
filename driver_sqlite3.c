@@ -104,12 +104,39 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.sqlite_db_path",                  "/var/php/apm/db", PHP_INI_ALL,    OnUpdateDBFile, db_path,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
 PHP_INI_END()
 
+/* Returns the SQLite instance (singleton) */
+sqlite3 * sqlite_get_instance() {
+	if (APM_S3_G(event_db) == NULL) {
+		/* Opening the sqlite database file */
+		APM_DEBUG("[SQLite driver] Connecting to db...");
+		if (sqlite3_open(APM_S3_G(db_file), &APM_S3_G(event_db))) {
+			APM_DEBUG("FAILED!\n");
+			/*
+			 Closing DB file and stop loading the extension
+			 in case of error while opening the database file
+			 */
+			sqlite3_close(APM_S3_G(event_db));
+			return NULL;
+		}
+		APM_DEBUG("OK\n");
+
+		sqlite3_busy_timeout(APM_S3_G(event_db), APM_S3_G(timeout));
+
+		/* Making the connection asynchronous, not waiting for data being really written to the disk */
+		sqlite3_exec(APM_S3_G(event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+	}
+
+	return APM_S3_G(event_db);
+}
+
 /* Insert an event in the backend */
 void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC)
 {
 	char *sql;
 	int ip_int = 0;
 	struct in_addr ip_addr;
+
+	SQLITE_INSTANCE_INIT
 
 	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
@@ -120,7 +147,7 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 		                  (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "", post_vars ? post_vars : "", referer ? referer : "");
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
-	if (sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(connection, sql, NULL, NULL, NULL) != SQLITE_OK)
 		APM_DEBUG("[SQLite driver] Error occured with previous query\n");
 
 	sqlite3_free(sql);
@@ -134,24 +161,6 @@ int apm_driver_sqlite3_minit(int module_number)
 
 int apm_driver_sqlite3_rinit()
 {
-	/* Opening the sqlite database file */
-	APM_DEBUG("[SQLite driver] Connecting to db...");
-	if (sqlite3_open(APM_S3_G(db_file), &APM_S3_G(event_db))) {
-		APM_DEBUG("FAILED!\n");
-		/*
-		 Closing DB file and stop loading the extension
-		 in case of error while opening the database file
-		 */
-		sqlite3_close(APM_S3_G(event_db));
-		return FAILURE;
-	}
-	APM_DEBUG("OK\n");
-
-	sqlite3_busy_timeout(APM_S3_G(event_db), APM_S3_G(timeout));
-
-	/* Making the connection asynchronous, not waiting for data being really written to the disk */
-	sqlite3_exec(APM_S3_G(event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
-
 	return SUCCESS;
 }
 
@@ -162,8 +171,11 @@ int apm_driver_sqlite3_mshutdown()
 
 int apm_driver_sqlite3_rshutdown()
 {
-	APM_DEBUG("[SQLite driver] Closing connection\n");
-	sqlite3_close(APM_S3_G(event_db));
+	if (APM_S3_G(event_db) != NULL) {
+		APM_DEBUG("[SQLite driver] Closing connection\n");
+		sqlite3_close(APM_S3_G(event_db));
+		APM_S3_G(event_db) = NULL;
+	}
 	return SUCCESS;
 }
 
@@ -171,13 +183,15 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
 {
 	char *sql;
 
+	SQLITE_INSTANCE_INIT
+
 	/* Building SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO slow_request (ts, duration, file) VALUES (%d, %f, %Q);",
 						  (long)time(NULL), USEC_TO_SEC(duration), script_filename);
 
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
-	if (sqlite3_exec(APM_S3_G(event_db), sql, NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(connection, sql, NULL, NULL, NULL) != SQLITE_OK)
 		APM_DEBUG("[SQLite driver] Error occured with previous query\n");
 
 	sqlite3_free(sql);
@@ -187,7 +201,6 @@ void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filena
    Returns JSON with all events */
 PHP_FUNCTION(apm_get_sqlite_events)
 {
-	sqlite3 *db;
 	long order = APM_ORDER_ID;
 	long limit = 25;
 	long offset = 0;
@@ -199,12 +212,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
 		return;
 	}
 
-	/* Opening the sqlite database file */
-	if (sqlite3_open(APM_S3_G(db_file), &db)) {
-		/* Closing DB file and returning false */
-		sqlite3_close(db);
-		RETURN_FALSE;
-	}
+	SQLITE_INSTANCE_INIT
 
 	if (order < 1 || order > 5) {
 		order = 1;
@@ -228,10 +236,9 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
 							  file, ip, line, message, 'http://' || CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END || uri FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(db, sql, event_callback, &odd_event_list, NULL);
+	sqlite3_exec(connection, sql, event_callback, &odd_event_list, NULL);
 
 	sqlite3_free(sql);
-	sqlite3_close(db);
 	RETURN_TRUE;
 }
 /* }}} */
@@ -240,7 +247,6 @@ PHP_FUNCTION(apm_get_sqlite_events)
    Returns JSON with all slow requests */
 PHP_FUNCTION(apm_get_sqlite_slow_requests)
 {
-	sqlite3 *db;
 	long order = APM_ORDER_ID;
 	long limit = 25;
 	long offset = 0;
@@ -252,18 +258,12 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 		return;
 	}
 
-	/* Opening the sqlite database file */
-	if (sqlite3_open(APM_S3_G(db_file), &db)) {
-		/* Closing DB file and returning false */
-		sqlite3_close(db);
-		RETURN_FALSE;
-	}
+	SQLITE_INSTANCE_INIT
 
 	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(db, sql, slow_request_callback, &odd_slow_request, NULL);
+	sqlite3_exec(connection, sql, slow_request_callback, &odd_slow_request, NULL);
 
 	sqlite3_free(sql);
-	sqlite3_close(db);
 	RETURN_TRUE;
 }
 /* }}} */
@@ -300,7 +300,6 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests_count)
    Returns all information available on a request */
 PHP_FUNCTION(apm_get_sqlite_event_info)
 {
-	sqlite3 *db;
 	long id = 0;
 	char *sql;
 	apm_event_info info;
@@ -310,18 +309,12 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 		return;
 	}
 
-	/* Opening the sqlite database file */
-	if (sqlite3_open(APM_S3_G(db_file), &db)) {
-		/* Closing DB file and returning false */
-		sqlite3_close(db);
-		RETURN_FALSE;
-	}
+	SQLITE_INSTANCE_INIT
 
 	sql = sqlite3_mprintf("SELECT id, ts, type, file, line, message, backtrace, ip, cookies, host, uri, post_vars, referer FROM event WHERE id = %d", id);
-	sqlite3_exec(db, sql, event_callback_event_info, &info, NULL);
+	sqlite3_exec(connection, sql, event_callback_event_info, &info, NULL);
 
 	sqlite3_free(sql);
-	sqlite3_close(db);
 
 	if (info.file == NULL) {
 		RETURN_FALSE;
@@ -457,22 +450,15 @@ static int event_callback_count(void *count, int num_fields, char **fields, char
 /* Returns the number of rows of a table */
 static long get_table_count(char * table)
 {
-	sqlite3 *db;
 	char *sql;
 	long count;
 
-	/* Opening the sqlite database file */
-	if (sqlite3_open(APM_S3_G(db_file), &db)) {
-		/* Closing DB file and returning false */
-		sqlite3_close(db);
-		return -1;
-	}
+	SQLITE_INSTANCE_INIT_EX(-1)
 
 	sql = sqlite3_mprintf("SELECT COUNT(*) FROM %s", table);
-	sqlite3_exec(db, sql, event_callback_count, &count, NULL);
+	sqlite3_exec(connection, sql, event_callback_count, &count, NULL);
 
 	sqlite3_free(sql);
-	sqlite3_close(db);
 
 	return count;
 }

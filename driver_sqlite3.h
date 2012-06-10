@@ -25,6 +25,12 @@
 
 #define APM_E_sqlite3 APM_E_ALL
 
+#define SQLITE_INSTANCE_INIT_EX(ret) sqlite3 *connection = sqlite_get_instance(); \
+	if (connection == NULL) { \
+		return ret; \
+	}
+#define SQLITE_INSTANCE_INIT SQLITE_INSTANCE_INIT_EX()
+
 #define DB_FILE "events"
 
 apm_driver_entry * apm_driver_sqlite3_create();
