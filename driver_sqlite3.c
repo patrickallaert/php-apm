@@ -81,12 +81,10 @@ static PHP_INI_MH(OnUpdateDBFile)
 		snprintf(APM_S3_G(db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
 
 		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
-			APM_G(enabled) = 0;
-			APM_G(event_enabled) = 0;
+			APM_S3_G(enabled) = 0;
 		}
 	} else {
-		APM_G(enabled) = 0;
-		APM_G(event_enabled) = 0;
+		APM_S3_G(enabled) = 0;
 	}
 	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }

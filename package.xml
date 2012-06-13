@@ -39,6 +39,7 @@ Changed:
 
 Fixed:
 - Ordering by URL not working
+- Decouple mysql backend from sqlite3 (#62288)
  </notes>
  <contents>
   <dir name="/">
@@ -183,6 +184,7 @@ Changed:
 
 Fixed:
 - Ordering by URL not working
+- Decouple mysql backend from sqlite3 (#62288)
    </notes>
   </release>
   <release>
