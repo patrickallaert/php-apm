@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS event (
     file TEXT NOT NULL,
     line MEDIUMINT UNSIGNED NOT NULL,
     message TEXT NOT NULL,
-    backtrace TEXT NOT NULL,
+    backtrace BLOB NOT NULL,
     uri TEXT NOT NULL,
     host TEXT NOT NULL,
     ip INTEGER UNSIGNED NOT NULL,
