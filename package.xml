@@ -40,6 +40,7 @@ Changed:
 Fixed:
 - Ordering by URL not working
 - Decouple mysql backend from sqlite3 (#62288)
+- Invalid UTF-8 may cause backtrace to be truncated in MySQL driver (#62244)
  </notes>
  <contents>
   <dir name="/">
@@ -185,6 +186,7 @@ Changed:
 Fixed:
 - Ordering by URL not working
 - Decouple mysql backend from sqlite3 (#62288)
+- Invalid UTF-8 may cause backtrace to be truncated in MySQL driver (#62244)
    </notes>
   </release>
   <release>
