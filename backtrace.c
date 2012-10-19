@@ -35,11 +35,12 @@ static char *apm_addslashes(char *str, int length, int *new_length TSRMLS_DC);
 void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
 	/* backtrace variables */
-	zend_execute_data *ptr, *skip;
+	zend_execute_data *ptr, *skip, *prev;
 	int lineno;
 	const char *function_name;
 	const char *filename;
 	const char *class_name = NULL;
+	const char *free_class_name = NULL;
 	char *call_type;
 	const char *include_filename = NULL;
 	zval *arg_array = NULL;
@@ -50,6 +51,8 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	int frames_on_stack = 0;
 #endif
 	int indent = 0;
+	zend_uint class_name_len;
+	int dup;
 
 #if PHP_API_VERSION < 20090626
 	while (--args > EG(argument_stack).elements) {
@@ -73,8 +76,6 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	ptr = EG(current_execute_data);
 
 	while (ptr) {
-		const char *free_class_name = NULL;
-
 		class_name = call_type = NULL;
 		arg_array = NULL;
 
@@ -104,9 +105,6 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 				if (ptr->function_state.function->common.scope) {
 					class_name = ptr->function_state.function->common.scope->name;
 				} else {
-					zend_uint class_name_len;
-					int dup;
-
 					dup = zend_get_object_classname(ptr->object, &class_name, &class_name_len TSRMLS_CC);
 					if(!dup) {
 						free_class_name = class_name;
@@ -202,7 +200,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 			smart_str_append_long(trace_str, lineno);
 			smart_str_appendl(trace_str, "]\n", 2);
 		} else {
-			zend_execute_data *prev = skip->prev_execute_data;
+			prev = skip->prev_execute_data;
 
 			while (prev) {
 				if (prev->function_state.function &&
@@ -252,6 +250,10 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit)
 {
+	HashTable *properties = NULL;
+	char *class_name = NULL;
+	zend_uint clen;
+
 	if (limit > APM_G(dump_max_depth)) {
 		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
 		return;
@@ -270,10 +272,6 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			break;
 		case IS_OBJECT:
 		{
-			HashTable *properties = NULL;
-			char *class_name = NULL;
-			zend_uint clen;
-
 			if (Z_OBJ_HANDLER_P(expr, get_class_name)) {
 				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, (const char **) &class_name, &clen, 0 TSRMLS_CC);
 			}
@@ -355,6 +353,7 @@ static int append_variable(zval *expr, smart_str *trace_str)
 	zval expr_copy;
 	int use_copy;
 	char is_string = 0;
+	char * temp;
 	int new_len;
 
 	if (Z_TYPE_P(expr) == IS_STRING) {
@@ -377,7 +376,6 @@ static int append_variable(zval *expr, smart_str *trace_str)
 	}
 
 	if (is_string) {
-		char * temp;
 		temp = apm_addslashes(Z_STRVAL_P(expr), Z_STRLEN_P(expr), &new_len);
 		smart_str_appendl(trace_str, temp, new_len);
 		smart_str_appendc(trace_str, '"');

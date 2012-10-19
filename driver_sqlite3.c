@@ -133,6 +133,7 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	char *sql;
 	int ip_int = 0;
 	struct in_addr ip_addr;
+	sqlite3 *connection;
 
 	SQLITE_INSTANCE_INIT
 
@@ -180,6 +181,7 @@ int apm_driver_sqlite3_rshutdown()
 void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filename)
 {
 	char *sql;
+	sqlite3 *connection;
 
 	SQLITE_INSTANCE_INIT
 
@@ -205,6 +207,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
 	char *sql;
 	zend_bool asc = 0;
 	int odd_event_list = 1;
+	sqlite3 *connection;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
@@ -251,6 +254,7 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 	char *sql;
 	zend_bool asc = 0;
 	int odd_slow_request = 1;
+	sqlite3 *connection;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
@@ -301,6 +305,8 @@ PHP_FUNCTION(apm_get_sqlite_event_info)
 	long id = 0;
 	char *sql;
 	apm_event_info info;
+	sqlite3 *connection;
+
 	info.file = NULL;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &id) == FAILURE) {
@@ -450,6 +456,7 @@ static long get_table_count(char * table)
 {
 	char *sql;
 	long count;
+	sqlite3 *connection;
 
 	SQLITE_INSTANCE_INIT_EX(-1)
 

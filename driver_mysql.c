@@ -84,11 +84,12 @@ MYSQL * mysql_get_instance() {
 /* Insert an event in the backend */
 void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC)
 {
-	MYSQL_INSTANCE_INIT
-
 	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
 	int filename_len = 0, msg_len = 0, trace_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
 	struct in_addr ip_addr;
+	MYSQL *connection;
+
+	MYSQL_INSTANCE_INIT
 
 	if (error_filename) {
 		filename_len = strlen(error_filename);
@@ -191,10 +192,11 @@ int apm_driver_mysql_rshutdown()
 
 void apm_driver_mysql_insert_slow_request(float duration, char * script_filename)
 {
-	MYSQL_INSTANCE_INIT
-
 	char *filename_esc = NULL, *sql = NULL;
 	int filename_len = 0;
+	MYSQL *connection;
+
+	MYSQL_INSTANCE_INIT
 
 	if (script_filename) {
 		filename_len = strlen(script_filename);
@@ -229,6 +231,9 @@ PHP_FUNCTION(apm_get_mysql_events)
 	zend_bool asc = 0;
 	struct in_addr myaddr;
 	unsigned long n;
+	zval zfile, zmsg, zurl;
+	smart_str file = {0}, msg = {0}, url = {0};
+	MYSQL *connection;
 #ifdef HAVE_INET_PTON
     char ip_str[40];
 #else
@@ -270,9 +275,6 @@ file, ip, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host 
 		RETURN_FALSE;
 
 	result = mysql_use_result(connection);
-
-	smart_str file = {0}, msg = {0}, url = {0};
-	zval zfile, zmsg, zurl;
 
 	while ((row = mysql_fetch_row(result))) {
 		Z_TYPE(zfile) = IS_STRING;
@@ -328,6 +330,9 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 	long offset = 0;
 	char sql[128];
 	zend_bool asc = 0;
+	smart_str file = {0};
+	zval zfile;
+	MYSQL *connection;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
 		return;
@@ -340,9 +345,6 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 		RETURN_FALSE;
 
 	result = mysql_use_result(connection);
-
-	smart_str file = {0};
-	zval zfile;
 
 	while ((row = mysql_fetch_row(result))) {
 		Z_TYPE(zfile) = IS_STRING;
@@ -402,6 +404,8 @@ PHP_FUNCTION(apm_get_mysql_event_info)
 	long id = 0;
 	char sql[135];
 	apm_event_info info;
+	MYSQL *connection;
+
 	info.file = NULL;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &id) == FAILURE) {
@@ -448,6 +452,7 @@ static long get_table_count(char * table)
 	MYSQL_ROW row;
 	char sql[64];
 	long count;
+	MYSQL *connection;
 
 	MYSQL_INSTANCE_INIT_EX(-1)
 

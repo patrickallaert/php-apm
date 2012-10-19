@@ -26,7 +26,7 @@
 
 #define APM_E_mysql APM_E_ALL
 
-#define MYSQL_INSTANCE_INIT_EX(ret) MYSQL *connection = mysql_get_instance(); \
+#define MYSQL_INSTANCE_INIT_EX(ret) connection = mysql_get_instance(); \
 	if (connection == NULL) { \
 		return ret; \
 	}

@@ -25,7 +25,7 @@
 
 #define APM_E_sqlite3 APM_E_ALL
 
-#define SQLITE_INSTANCE_INIT_EX(ret) sqlite3 *connection = sqlite_get_instance(); \
+#define SQLITE_INSTANCE_INIT_EX(ret) connection = sqlite_get_instance(); \
 	if (connection == NULL) { \
 		return ret; \
 	}

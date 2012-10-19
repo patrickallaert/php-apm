@@ -49,10 +49,11 @@ static PHP_GINIT_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
-#define EXTRACT_DATA() zval **uri = NULL, **host = NULL, **ip = NULL, **referer, *tmp; \
+#define EXTRACT_DATA_VARS() zval **uri = NULL, **host = NULL, **ip = NULL, **referer, *tmp; \
 zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0, post_vars_found = 0, referer_found = 0; \
-smart_str cookies = {0}, post_vars = {0}; \
- \
+smart_str cookies = {0}, post_vars = {0};
+
+#define EXTRACT_DATA() \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
 if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
 	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) && \
@@ -217,6 +218,8 @@ static PHP_GINIT_FUNCTION(apm)
 
 PHP_MINIT_FUNCTION(apm)
 {
+	apm_driver_entry * driver_entry;
+
 	REGISTER_INI_ENTRIES();
 
 	REGISTER_LONG_CONSTANT("APM_ORDER_ID", APM_ORDER_ID, CONST_CS | CONST_PERSISTENT);
@@ -231,8 +234,6 @@ PHP_MINIT_FUNCTION(apm)
 	old_error_cb = zend_error_cb;
 	
 	if (APM_G(enabled)) {
-		apm_driver_entry * driver_entry;
-
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.minit(module_number) == FAILURE) {
@@ -246,11 +247,11 @@ PHP_MINIT_FUNCTION(apm)
 
 PHP_MSHUTDOWN_FUNCTION(apm)
 {
+	apm_driver_entry * driver_entry;
+
 	UNREGISTER_INI_ENTRIES();
 
 	if (APM_G(enabled)) {
-		apm_driver_entry * driver_entry;
-
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.mshutdown() == FAILURE) {
@@ -267,10 +268,10 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 
 PHP_RINIT_FUNCTION(apm)
 {
+	apm_driver_entry * driver_entry;
+
 	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
-		apm_driver_entry * driver_entry;
-
 		if (APM_G(event_enabled)) {
 			/* storing timestamp of request */
 			gettimeofday(&begin_tp, NULL);
@@ -296,21 +297,23 @@ PHP_RINIT_FUNCTION(apm)
 
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
-	if (APM_G(enabled)) {
-		apm_driver_entry * driver_entry;
-		if (APM_G(slow_request_enabled)) {
-			float duration;
-			struct timeval end_tp;
+	apm_driver_entry * driver_entry;
+	float duration;
+	struct timeval end_tp;
+	zval **array;
+	zval **token;
+	char *script_filename = NULL;
+	apm_event_entry * event_entry_cursor = NULL;
+	apm_event_entry * event_entry_cursor_next = NULL;
 
+	if (APM_G(enabled)) {
+		if (APM_G(slow_request_enabled)) {
 			gettimeofday(&end_tp, NULL);
 
 			/* Request longer than accepted thresold ? */
 			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
 			if (duration > 1000.0 * APM_G(slow_request_duration)) {
 				APM_DEBUG("Slow request catched\n");
-				zval **array;
-				zval **token;
-				char *script_filename = NULL;
 
 				zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
 				if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
@@ -334,8 +337,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			APM_DEBUG("Events to insert in deffered processing\n");
 			deffered_insert_events(TSRMLS_C);
 
-			apm_event_entry * event_entry_cursor = APM_G(events);
-			apm_event_entry * event_entry_cursor_next = event_entry_cursor->next;
+			event_entry_cursor = APM_G(events);
+			event_entry_cursor_next = event_entry_cursor->next;
 			while ((event_entry_cursor = event_entry_cursor_next) != NULL) {
 				free(event_entry_cursor->event.error_filename);
 				free(event_entry_cursor->event.msg);
@@ -379,11 +382,10 @@ PHP_MINFO_FUNCTION(apm)
    This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	TSRMLS_FETCH();
-
 	char *msg;
 	va_list args_copy;
 	zend_module_entry tmp_mod_entry;
+	TSRMLS_FETCH();
 
 	/* A copy of args is needed to be used for the old_error_cb */
 	va_copy(args_copy, args);
@@ -411,10 +413,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
-	if (APM_G(event_enabled)) {
-		zval *message, *file, *line;
-		zend_class_entry *default_ce, *exception_ce;
+	zval *message, *file, *line;
+	zend_class_entry *default_ce, *exception_ce;
 
+	if (APM_G(event_enabled)) {
 		if (!exception) {
 			return;
 		}
@@ -435,6 +437,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
+	EXTRACT_DATA_VARS();
 
 	if (APM_G(store_stacktrace)) {
 		append_backtrace(&trace_str TSRMLS_CC);
@@ -505,6 +508,7 @@ static void deffered_insert_events(TSRMLS_D)
 {
 	apm_driver_entry * driver_entry = APM_G(drivers);
 	apm_event_entry * event_entry_cursor;
+	EXTRACT_DATA_VARS();
 
 	EXTRACT_DATA();
 
