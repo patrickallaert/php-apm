@@ -12,7 +12,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <name>Davide Mendolia</name>
   <user>dmendolia</user>
   <email>dmendolia@php.net</email>
-  <active>yes</active>
+  <active>no</active>
  </lead>
  <lead>
   <name>Patrick Allaert</name>
@@ -20,10 +20,10 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2012-06-??</date>
+ <date>2012-10-19</date>
  <version>
-  <release>1.1.0beta5</release>
-  <api>1.1.0beta5</api>
+  <release>1.1.0RC1</release>
+  <api>1.1.0RC1</api>
  </version>
  <stability>
   <release>beta</release>
@@ -167,14 +167,14 @@ Fixed:
  <changelog>
   <release>
    <version>
-    <release>1.1.0beta5</release>
-    <api>1.1.0beta5</api>
+    <release>1.1.0RC1</release>
+    <api>1.1.0RC1</api>
    </version>
    <stability>
     <release>beta</release>
     <api>beta</api>
    </stability>
-   <date>2012-06-??</date>
+   <date>2012-10-19</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
 Added:
