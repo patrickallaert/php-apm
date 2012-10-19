@@ -1,3 +1,45 @@
+APM 1.1.0RC1     19 Oct 2012
+----------------------------
+Added:
+- --with-debugfile[=FILE] option to permit debugging of APM
+
+Changed:
+- Lazy loading the connection to the SQLite database
+
+Fixed:
+- Ordering by URL not working
+- Decouple mysql backend from sqlite3 (#62288)
+- Invalid UTF-8 may cause backtrace to be truncated in MySQL driver (#62244)
+
+APM 1.1.0beta4   07 Jun 2012
+----------------------------
+Fixed:
+- Bug #62187: The MySQL driver does not store a timestamp for an event (Thanks to mathieu at mollie dot nl, HMWiesinger at gmx dot at).
+- Bug #62012: No data collected
+- Missing post_vars column definition in SQL creation scripts.
+
+Added:
+- Referer
+
+Changed:
+- Storing all ts in SQLite as integers
+
+APM 1.1.0beta3   27 May 2012
+----------------------------
+Fixed:
+- Possible memory not being freed
+- Segmentation fault preventing the collection of data (#62012)
+
+APM 1.1.0beta2   06 May 2012
+----------------------------
+Fixed:
+- Version 1.1.0beta* should be marked as "beta" and not as "stable"
+- APM-1.1.0beta1.tgz file contains only package.xml (#61937)
+- Some GCC warnings when built with PHP 5.4
+- Error callback arguments must be copied in every cases
+- Prevent calling the original error handler if Xdebug is loaded
+- Possible segfault if MySQL server connection link is gone
+
 APM 1.1.0beta1   02 Apr 2012
 ----------------------------
 Added:
