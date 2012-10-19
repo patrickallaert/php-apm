@@ -21,6 +21,7 @@
 #include "php_ini.h"
 #include "driver_mysql.h"
 #include "ext/standard/php_smart_str.h"
+#include "ext/json/php_json.h"
 #ifdef NETWARE
 #include <netinet/in.h>
 #endif
@@ -29,14 +30,6 @@
 #endif
 
 static long get_table_count(char * table);
-
-#ifdef PHP_WIN32
-#define PHP_JSON_API __declspec(dllexport)
-#else
-#define PHP_JSON_API
-#endif
-
-PHP_JSON_API void php_json_encode(smart_str *buf, zval *val TSRMLS_DC);
 
 ZEND_EXTERN_MODULE_GLOBALS(apm)
 
@@ -280,19 +273,19 @@ file, ip, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host 
 		Z_TYPE(zfile) = IS_STRING;
 		Z_STRVAL(zfile) = row[3];
 		Z_STRLEN(zfile) = strlen(row[3]);
-		php_json_encode(&file, &zfile TSRMLS_CC);
+		apm_json_encode(&file, &zfile);
 		smart_str_0(&file);
 
 		Z_TYPE(zmsg) = IS_STRING;
 		Z_STRVAL(zmsg) = row[7];
 		Z_STRLEN(zmsg) = strlen(row[7]);
-		php_json_encode(&msg, &zmsg TSRMLS_CC);
+		apm_json_encode(&msg, &zmsg);
 		smart_str_0(&msg);
 
 		Z_TYPE(zurl) = IS_STRING;
 		Z_STRVAL(zurl) = row[5];
 		Z_STRLEN(zurl) = strlen(row[5]);
-		php_json_encode(&url, &zurl TSRMLS_CC);
+		apm_json_encode(&url, &zurl);
 		smart_str_0(&url);
 
 		n = strtoul(row[4], NULL, 0);
@@ -351,7 +344,7 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 		Z_STRVAL(zfile) = row[3];
 		Z_STRLEN(zfile) = strlen(row[3]);
 
-		php_json_encode(&file, &zfile TSRMLS_CC);
+		apm_json_encode(&file, &zfile);
 
 		smart_str_0(&file);
 

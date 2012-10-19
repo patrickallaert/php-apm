@@ -23,6 +23,7 @@
 #include "php_ini.h"
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
+#include "ext/json/php_json.h"
 #include "driver_sqlite3.h"
 #ifdef NETWARE
 #include <netinet/in.h>
@@ -36,14 +37,6 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 static int slow_request_callback(void *data, int num_fields, char **fields, char **col_name);
 static int event_callback_count(void *count, int num_fields, char **fields, char **col_name);
 static long get_table_count(char * table);
-
-#ifdef PHP_WIN32
-#define PHP_JSON_API __declspec(dllexport)
-#else
-#define PHP_JSON_API
-#endif
-
-PHP_JSON_API void php_json_encode(smart_str *buf, zval *val TSRMLS_DC);
 
 ZEND_EXTERN_MODULE_GLOBALS(apm)
 
@@ -378,19 +371,19 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	Z_TYPE(zfile) = IS_STRING;
 	Z_STRVAL(zfile) = fields[3];
 	Z_STRLEN(zfile) = strlen(fields[3]);
-	php_json_encode(&file, &zfile TSRMLS_CC);
+	apm_json_encode(&file, &zfile);
 	smart_str_0(&file);
 
 	Z_TYPE(zmsg) = IS_STRING;
 	Z_STRVAL(zmsg) = fields[7];
 	Z_STRLEN(zmsg) = strlen(fields[7]);
-	php_json_encode(&msg, &zmsg TSRMLS_CC);
+	apm_json_encode(&msg, &zmsg);
 	smart_str_0(&msg);
 
 	Z_TYPE(zurl) = IS_STRING;
 	Z_STRVAL(zurl) = fields[5];
 	Z_STRLEN(zurl) = strlen(fields[5]);
-	php_json_encode(&url, &zurl TSRMLS_CC);
+	apm_json_encode(&url, &zurl);
 	smart_str_0(&url);
 
 	n = strtoul(fields[4], NULL, 0);
@@ -428,7 +421,7 @@ static int slow_request_callback(void *data, int num_fields, char **fields, char
 	Z_STRVAL(zfile) = fields[3];
 	Z_STRLEN(zfile) = strlen(fields[3]);
 
-	php_json_encode(&file, &zfile TSRMLS_CC);
+	apm_json_encode(&file, &zfile);
 
 	smart_str_0(&file);
 
