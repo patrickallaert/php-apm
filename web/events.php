@@ -44,10 +44,10 @@ switch ($_GET['sidx']) {
 }
 ?>
 {
-  total: "<?php echo ceil($records / $_GET['rows']) ?>",
-  page: "<?php echo $_GET['page'] ?>",
-  records: "<?php echo $records ?>",
-  rows : [
+  "total": "<?php echo ceil($records / $_GET['rows']) ?>",
+  "page": "<?php echo $_GET['page'] ?>",
+  "records": "<?php echo $records ?>",
+  "rows" : [
     <?php
     apm_get_events($_GET['rows'], ($_GET['page'] - 1) * $_GET['rows'], $order, $_GET['sord'] === 'asc');
     ?>

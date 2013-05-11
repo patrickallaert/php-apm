@@ -44,11 +44,9 @@ Fixed:
  </notes>
  <contents>
   <dir name="/">
-   <file name="AUTHORS" role="doc" />
-   <file name="LICENSE" role="doc" />
-   <file name="NEWS" role="doc" />
    <file name="apm.c" role="src" />
    <file name="apm.ini" role="data" />
+   <file name="AUTHORS" role="doc" />
    <file name="backtrace.c" role="src" />
    <file name="backtrace.h" role="src" />
    <file name="config.m4" role="src" />
@@ -57,74 +55,84 @@ Fixed:
    <file name="driver_mysql.h" role="src" />
    <file name="driver_sqlite3.c" role="src" />
    <file name="driver_sqlite3.h" role="src" />
+   <file name="LICENSE" role="doc" />
+   <file name="NEWS" role="doc" />
    <file name="php_apm.h" role="src" />
+   <file name="README.md" role="doc" />
    <dir baseinstalldir="PECL/APM" name="sql">
-     <dir name="mysql">
-       <file name="create.sql" role="data" />
-       <file name="upgrade-1.0-1.1.sql" role="data" />
-     </dir>
-     <dir name="sqlite">
-       <file name="create.sql" role="data" />
-       <file name="upgrade-1.0-1.1.sql" role="data" />
-     </dir>
+    <dir name="mysql">
+     <file name="create.sql" role="data" />
+     <file name="upgrade-1.0-1.1.sql" role="data" />
+    </dir>
+    <dir name="sqlite">
+     <file name="create.sql" role="data" />
+     <file name="upgrade-1.0-1.1.sql" role="data" />
+    </dir>
    </dir>
    <dir baseinstalldir="PECL/APM" name="web">
     <file name="apm.php" role="php" />
-    <file name="setup.php" role="php" />
     <dir name="css">
      <file name="apm.css" role="data" />
+     <file name="bootstrap.min.css" role="data" />
+     <file name="bootstrap-responsive.min.css" role="data" />
      <file name="ellipsis-xbl.xml" role="data" />
-     <file name="greybox.css" role="data" />
-     <dir name="redmond">
-      <dir name="images">
-       <file name="ui-bg_flat_0_aaaaaa_40x100.png" role="data" />
-       <file name="ui-bg_flat_55_fbec88_40x100.png" role="data" />
-       <file name="ui-bg_glass_75_d0e5f5_1x400.png" role="data" />
-       <file name="ui-bg_glass_85_dfeffc_1x400.png" role="data" />
-       <file name="ui-bg_glass_95_fef1ec_1x400.png" role="data" />
-       <file name="ui-bg_gloss-wave_55_5c9ccc_500x100.png" role="data" />
-       <file name="ui-bg_inset-hard_100_f5f8f9_1x100.png" role="data" />
-       <file name="ui-bg_inset-hard_100_fcfdfd_1x100.png" role="data" />
-       <file name="ui-icons_217bc0_256x240.png" role="data" />
-       <file name="ui-icons_2e83ff_256x240.png" role="data" />
-       <file name="ui-icons_469bdd_256x240.png" role="data" />
-       <file name="ui-icons_6da8d5_256x240.png" role="data" />
-       <file name="ui-icons_cd0a0a_256x240.png" role="data" />
-       <file name="ui-icons_d8e7f3_256x240.png" role="data" />
-       <file name="ui-icons_d8e7f3_256x240.png1" role="data" />
-       <file name="ui-icons_f9bd01_256x240.png" role="data" />
+      <dir name="smoothness">
+       <dir name="images">
+        <file name="ui-bg_flat_0_aaaaaa_40x100.png" role="data" />
+        <file name="ui-bg_flat_75_ffffff_40x100.png" role="data" />
+        <file name="ui-bg_glass_55_fbf9ee_1x400.png" role="data" />
+        <file name="ui-bg_glass_65_ffffff_1x400.png" role="data" />
+        <file name="ui-bg_glass_75_dadada_1x400.png" role="data" />
+        <file name="ui-bg_glass_75_e6e6e6_1x400.png" role="data" />
+        <file name="ui-bg_glass_95_fef1ec_1x400.png" role="data" />
+        <file name="ui-bg_highlight-soft_75_cccccc_1x100.png" role="data" />
+        <file name="ui-icons_222222_256x240.png" role="data" />
+        <file name="ui-icons_2e83ff_256x240.png" role="data" />
+        <file name="ui-icons_454545_256x240.png" role="data" />
+        <file name="ui-icons_888888_256x240.png" role="data" />
+        <file name="ui-icons_cd0a0a_256x240.png" role="data" />
+       </dir>
+       <file name="jquery-ui-1.9.1.custom.min.css" role="data" />
       </dir>
-      <file name="jquery-ui-1.7.1.custom.css" role="data" />
-     </dir>
      <file name="ui.jqgrid.css" role="data" />
     </dir>
     <file name="event.php" role="php" />
     <file name="events.php" role="php" />
     <dir name="img">
-     <file name="blank.gif" role="data" />
-     <file name="close.gif" role="data" />
-     <file name="overlay.png" role="data" />
+     <file name="glyphicons-halflings.png" role="data" />
+     <file name="glyphicons-halflings-white.png" role="data" />
     </dir>
     <dir name="js">
      <file name="apm.js" role="data" />
-     <file name="greybox.js" role="data" />
+     <file name="bootstrap.min.js" role="data" />
      <dir name="i18n">
-      <file name="grid.locale-bg.js" role="data" />
+      <file name="grid.locale-ar.js" role="data" />
       <file name="grid.locale-bg1251.js" role="data" />
+      <file name="grid.locale-bg.js" role="data" />
       <file name="grid.locale-cat.js" role="data" />
       <file name="grid.locale-cn.js" role="data" />
       <file name="grid.locale-cs.js" role="data" />
+      <file name="grid.locale-da.js" role="data" />
       <file name="grid.locale-de.js" role="data" />
       <file name="grid.locale-dk.js" role="data" />
       <file name="grid.locale-el.js" role="data" />
       <file name="grid.locale-en.js" role="data" />
+      <file name="grid.locale-es.js" role="data" />
       <file name="grid.locale-fa.js" role="data" />
       <file name="grid.locale-fi.js" role="data" />
       <file name="grid.locale-fr.js" role="data" />
+      <file name="grid.locale-gl.js" role="data" />
       <file name="grid.locale-he.js" role="data" />
+      <file name="grid.locale-hr1250.js" role="data" />
+      <file name="grid.locale-hr.js" role="data" />
+      <file name="grid.locale-hu.js" role="data" />
+      <file name="grid.locale-id.js" role="data" />
       <file name="grid.locale-is.js" role="data" />
       <file name="grid.locale-it.js" role="data" />
-      <file name="grid.locale-jp.js" role="data" />
+      <file name="grid.locale-ja.js" role="data" />
+      <file name="grid.locale-kr.js" role="data" />
+      <file name="grid.locale-lt.js" role="data" />
+      <file name="grid.locale-mne.js" role="data" />
       <file name="grid.locale-nl.js" role="data" />
       <file name="grid.locale-no.js" role="data" />
       <file name="grid.locale-pl.js" role="data" />
@@ -132,19 +140,33 @@ Fixed:
       <file name="grid.locale-pt.js" role="data" />
       <file name="grid.locale-ro.js" role="data" />
       <file name="grid.locale-ru.js" role="data" />
-      <file name="grid.locale-sp.js" role="data" />
+      <file name="grid.locale-sk.js" role="data" />
+      <file name="grid.locale-sr.js" role="data" />
+      <file name="grid.locale-sr-latin.js" role="data" />
       <file name="grid.locale-sv.js" role="data" />
+      <file name="grid.locale-th.js" role="data" />
       <file name="grid.locale-tr.js" role="data" />
+      <file name="grid.locale-tw.js" role="data" />
       <file name="grid.locale-ua.js" role="data" />
+      <file name="grid.locale-vi.js" role="data" />
      </dir>
-     <file name="jquery-1.3.2.min.js" role="data" />
+     <file name="jquery-1.9.0.min.js" role="data" />
      <file name="jquery.jqGrid.min.js" role="data" />
+     <file name="jquery-ui-1.9.1.custom.min.js" role="data" />
     </dir>
     <file name="lib.php" role="php" />
-    <dir name="php-5-3">
-     <file name="index.php" role="php" />
-     <file name="event.php" role="php" />
+    <dir name="plugins">
+     <file name="grid.addons.js" role="data" />
+     <file name="grid.postext.js" role="data" />
+     <file name="grid.setcolumns.js" role="data" />
+     <file name="jquery.contextmenu.js" role="data" />
+     <file name="jquery.searchFilter.js" role="data" />
+     <file name="jquery.tablednd.js" role="data" />
+     <file name="searchFilter.css" role="data" />
+     <file name="ui.multiselect.css" role="data" />
+     <file name="ui.multiselect.js" role="data" />
     </dir>
+    <file name="setup.php" role="php" />
     <file name="slow_requests.php" role="php" />
    </dir>
   </dir>
