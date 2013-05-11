@@ -31,16 +31,8 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-Added:
-- --with-debugfile[=FILE] option to permit debugging of APM
-
 Changed:
-- Lazy loading the connection to the SQLite database
-
-Fixed:
-- Ordering by URL not working
-- Decouple mysql backend from sqlite3 (#62288)
-- Invalid UTF-8 may cause backtrace to be truncated in MySQL driver (#62244)
+- upgraded UI by using tweeter boostrap and upgrading jqGrid
  </notes>
  <contents>
   <dir name="/">
