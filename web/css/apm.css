@@ -1,42 +1,35 @@
-/* Design by Jehan Bihin (http://www.daaboo.net/) */
-* {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-body {
-  font-size: 62.5%;
-  font-family: Arial, Helvetica, sans-serif;
-}
-h1 {
-  background-color: #9999CC;
-  font-size: 2em;
-  padding: 0.2em 0.5em;
-}
-h2 {
-  background-color: #eee;
-  border-color: #999;
-  border-style: solid;
-  border-width: 1px 0;
-  padding: 0.2em 0.6em;
-  font-size: 1.4em;
-}
 #gbox_events, #gbox_slow-requests { font-size: 1.2em; margin: 15px; }
 #events tr.E_ERROR td,
 #events tr.E_CORE_ERROR td,
 #events tr.E_PARSE td,
 #events tr.E_COMPILE_ERROR td,
 #events tr.E_USER_ERROR td,
-#events tr.E_RECOVERABLE_ERROR td { background-color: #fbc; }
+#events tr.E_RECOVERABLE_ERROR td { background-color: #f2dede; }
 #events tr.E_WARNING td,
 #events tr.E_CORE_WARNING td,
 #events tr.E_COMPILE_WARNING td,
-#events tr.E_USER_WARNING td { background-color: #fc8; }
+#events tr.E_USER_WARNING td { background-color: #fcf8e3; }
 #events tr.E_NOTICE td,
 #events tr.E_USER_NOTICE td,
 #events tr.E_STRICT td,
 #events tr.E_DEPRECATED td,
-#events tr.E_USER_DEPRECATED td { background-color: #ff8; }
+#events tr.E_USER_DEPRECATED td { background-color: #d9edf7; }
+
+#events tr.E_ERROR:hover td,
+#events tr.E_CORE_ERROR:hover td,
+#events tr.E_PARSE:hover td,
+#events tr.E_COMPILE_ERROR:hover td,
+#events tr.E_USER_ERROR:hover td,
+#events tr.E_RECOVERABLE_ERROR:hover td { background-color: #ebcccc; }
+#events tr.E_WARNING:hover td,
+#events tr.E_CORE_WARNING:hover td,
+#events tr.E_COMPILE_WARNING:hover td,
+#events tr.E_USER_WARNING:hover td { background-color: #faf2cc; }
+#events tr.E_NOTICE:hover td,
+#events tr.E_USER_NOTICE:hover td,
+#events tr.E_STRICT:hover td,
+#events tr.E_DEPRECATED:hover td,
+#events tr.E_USER_DEPRECATED:hover td { background-color: #c4e3f3; }
 
 #event #source { display: none; padding-top: 5px; padding-left: 5px; background-color: #ccc; }
 #source_toggle { margin: 5px 0px; }

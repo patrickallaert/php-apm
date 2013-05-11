@@ -199,7 +199,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
 	long offset = 0;
 	char *sql;
 	zend_bool asc = 0;
-	int odd_event_list = 1;
+	int first_row = 1;
 	sqlite3 *connection;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
@@ -230,7 +230,7 @@ PHP_FUNCTION(apm_get_sqlite_events)
                           WHEN 16384 THEN 'E_USER_DEPRECATED' \
                           END, \
 							  file, ip, 'http://' || CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host END || uri, line, message FROM event ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(connection, sql, event_callback, &odd_event_list, NULL);
+	sqlite3_exec(connection, sql, event_callback, &first_row, NULL);
 
 	sqlite3_free(sql);
 	RETURN_TRUE;
@@ -246,7 +246,7 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 	long offset = 0;
 	char *sql;
 	zend_bool asc = 0;
-	int odd_slow_request = 1;
+	int first_row = 1;
 	sqlite3 *connection;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lllb", &limit, &offset, &order, &asc) == FAILURE) {
@@ -256,7 +256,7 @@ PHP_FUNCTION(apm_get_sqlite_slow_requests)
 	SQLITE_INSTANCE_INIT
 
 	sql = sqlite3_mprintf("SELECT id, ts, duration, file FROM slow_request ORDER BY %d %s LIMIT %d OFFSET %d", order, asc ? "ASC" : "DESC", limit, offset);
-	sqlite3_exec(connection, sql, slow_request_callback, &odd_slow_request, NULL);
+	sqlite3_exec(connection, sql, slow_request_callback, &first_row, NULL);
 
 	sqlite3_free(sql);
 	RETURN_TRUE;
@@ -399,7 +399,13 @@ static int event_callback(void *data, int num_fields, char **fields, char **col_
 	ts = atoi(fields[1]);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
 
-	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
+	if (*(int*)data) {
+		*(int*)data = 0;
+	} else {
+		php_printf(",\n");
+	}
+
+	php_printf("{\"id\":\"%s\", \"cell\":[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]}",
                fields[0], fields[0], datetime, fields[2], url.c, file.c, fields[6], ip_str, msg.c);
 
 	smart_str_free(&file);
@@ -428,7 +434,13 @@ static int slow_request_callback(void *data, int num_fields, char **fields, char
 	ts = atoi(fields[1]);
 	strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", localtime(&ts));
 
-	php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
+	if (*(int*)data) {
+		*(int*)data = 0;
+	} else {
+		php_printf(",\n");
+	}
+
+	php_printf("{\"id\":\"%s\", \"cell\":[\"%s\", \"%s\", \"%s\", %s]}",
                fields[0], fields[0], datetime, fields[2], file.c);
 
 	smart_str_free(&file);

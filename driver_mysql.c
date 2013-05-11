@@ -222,6 +222,7 @@ PHP_FUNCTION(apm_get_mysql_events)
 	long offset = 0;
 	char sql[600];
 	zend_bool asc = 0;
+	zend_bool first_row = 1;
 	struct in_addr myaddr;
 	unsigned long n;
 	zval zfile, zmsg, zurl;
@@ -298,7 +299,13 @@ file, ip, CONCAT('http://', CASE host WHEN '' THEN '<i>[unknown]</i>' ELSE host 
 		ip_str = inet_ntoa(myaddr);
 #endif
 
-		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]},\n",
+		if (first_row) {
+			first_row = 0;
+		} else {
+			php_printf(",\n");
+		}
+
+		php_printf("{\"id\":\"%s\", \"cell\":[\"%s\", \"%s\", \"%s\", %s, %s, \"%s\", \"%s\", %s]}",
 					   row[0], row[0], row[1], row[2], url.c, file.c, row[6], ip_str, msg.c);
 
 		smart_str_free(&file);
@@ -323,6 +330,7 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 	long offset = 0;
 	char sql[128];
 	zend_bool asc = 0;
+	zend_bool first_row = 1;
 	smart_str file = {0};
 	zval zfile;
 	MYSQL *connection;
@@ -348,7 +356,13 @@ PHP_FUNCTION(apm_get_mysql_slow_requests)
 
 		smart_str_0(&file);
 
-		php_printf("{id:\"%s\", cell:[\"%s\", \"%s\", \"%s\", %s]},\n",
+		if (first_row) {
+			first_row = 0;
+		} else {
+			php_printf(",\n");
+		}
+
+		php_printf("{\"id\":\"%s\", \"cell\":[\"%s\", \"%s\", \"%s\", %s]}",
            row[0], row[0], row[1], row[2], file.c);
 
 		smart_str_free(&file);

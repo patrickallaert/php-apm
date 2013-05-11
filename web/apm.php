@@ -19,38 +19,74 @@
 */
 require 'setup.php';
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
-<head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-<title>APM status</title>
-<link rel="stylesheet" type="text/css" media="screen" href="css/redmond/jquery-ui-1.7.1.custom.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/ui.jqgrid.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/greybox.css" />
-<link rel="stylesheet" type="text/css" media="screen" href="css/apm.css" />
-</head>
-<body>
-<h1>APM status</h1>
-<?php
-if (APM_LOADED) {
-?>
-<h2>Faulty events</h2>
-<table id="events"></table>
-<div id="events-pager"></div>
-<h2>Slow requests</h2>
-<table id="slow-requests"></table>
-<div id="slow-requests-pager"></div>
-<?php
-} else {
-?>
-<strong>APM extention does not seem to be active or properly configured.</strong>
-<?php
-}
-?>
-<script src="js/jquery-1.3.2.min.js" type="text/javascript"></script>
-<script src="js/i18n/grid.locale-en.js" type="text/javascript"></script>
-<script src="js/jquery.jqGrid.min.js" type="text/javascript"></script>
-<script src="js/greybox.js" type="text/javascript"></script>
-<script src="js/apm.js" type="text/javascript"></script>
-</body>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>APM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/smoothness/jquery-ui-1.9.1.custom.min.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="css/ui.jqgrid.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="css/apm.css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="brand" href="#">APM status</a>
+        </div>
+      </div>
+    </div>
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span12">
+          <?php
+          if (APM_LOADED) {
+          ?>
+          <ul id="myTab" class="nav nav-tabs">
+            <li class="active"><a href="#faultyevents" data-toggle="tab">Faulty events</a></li>
+            <li><a href="#slowrequests" data-toggle="tab">Slow requests</a></li>
+          </ul>
+          <div id="myTabContent" class="tab-content">
+            <div class="tab-pane fade in active" id="faultyevents">
+              <table id="events"><tr><td></td></tr></table>
+              <div id="events-pager"></div>
+            </div>
+            <div class="tab-pane fade" id="slowrequests">
+              <table id="slow-requests"><tr><td></td></tr></table>
+              <div id="slow-requests-pager"></div>
+            </div>
+          </div>
+          <?php
+          } else {
+          ?>
+          <strong>APM extention does not seem to be active or properly configured.</strong>
+          <?php
+          }
+          ?>
+          <script src="js/jquery-1.9.0.min.js" type="text/javascript"></script>
+          <script src="js/i18n/grid.locale-en.js" type="text/javascript"></script>
+          <script src="js/jquery.jqGrid.min.js" type="text/javascript"></script>
+          <script src="js/jquery-ui-1.9.1.custom.min.js" type="text/javascript"></script>
+          <script src="js/bootstrap.min.js"></script>
+          <script src="js/apm.js" type="text/javascript"></script>
+          <script type="text/javascript">
+          if (window.location.hash != "") {
+              $('#myTab > li > a[href="'+window.location.hash+'"]').tab('show');
+          }
+          </script>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>
