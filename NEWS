@@ -1,3 +1,8 @@
+APM 1.1.0RC2     11 May 2013
+----------------------------
+Changed:
+- upgraded UI by using tweeter boostrap and upgrading jqGrid
+
 APM 1.1.0RC1     19 Oct 2012
 ----------------------------
 Added:
