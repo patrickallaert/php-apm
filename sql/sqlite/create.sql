@@ -1,11 +1,7 @@
-CREATE TABLE IF NOT EXISTS event (
+CREATE TABLE IF NOT EXISTS request (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts INTEGER NOT NULL,
-    type INTEGER NOT NULL,
-    file TEXT NOT NULL,
-    line INTEGER NOT NULL,
-    message TEXT NOT NULL,
-    backtrace BLOB NOT NULL,
+    script TEXT NOT NULL,
     uri TEXT NOT NULL,
     host TEXT NOT NULL,
     ip INTEGER UNSIGNED NOT NULL,
@@ -14,9 +10,24 @@ CREATE TABLE IF NOT EXISTS event (
     referer TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER,
+    ts INTEGER NOT NULL,
+    type INTEGER NOT NULL,
+    file TEXT NOT NULL,
+    line INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    backtrace BLOB NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS event_request ON event (request_id);
+
 CREATE TABLE IF NOT EXISTS slow_request (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER,
     ts INTEGER NOT NULL,
-    duration FLOAT NOT NULL,
-    file TEXT NOT NULL
+    duration FLOAT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS slow_request_request ON slow_request (request_id);

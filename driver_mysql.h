@@ -33,12 +33,13 @@
 #define MYSQL_INSTANCE_INIT MYSQL_INSTANCE_INIT_EX()
 
 apm_driver_entry * apm_driver_mysql_create();
-void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
+void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
+void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();
 int apm_driver_mysql_rshutdown();
-void apm_driver_mysql_insert_slow_request(float duration, char * script_filename);
+void apm_driver_mysql_insert_slow_request(float duration TSRMLS_DC);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
@@ -58,6 +59,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
 	char         *db_name;
 	/* DB handle */
 	MYSQL        *event_db;
+
+	/* Boolean to ensure request content is only inserted once */
+	zend_bool is_request_created;
 ZEND_END_MODULE_GLOBALS(apm_mysql)
 
 #ifdef ZTS

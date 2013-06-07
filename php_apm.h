@@ -12,8 +12,7 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- | Authors: Davide Mendolia <dmendolia@php.net>                         |
- |          Patrick Allaert <patrickallaert@php.net>                    |
+ | Authors: Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
 
@@ -60,14 +59,16 @@ typedef struct apm_event_entry {
 } apm_event_entry;
 
 typedef struct apm_driver {
-	void (* insert_event)(int, char *, uint, char *, char *, char *, char *, char *, char *, char *, char * TSRMLS_DC);
+	void (* insert_request)(char *, char *, char *, char *, char *, char * TSRMLS_DC);
+	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
 	int (* rshutdown)();
-	void (* insert_slow_request)(float, char *);
+	void (* insert_slow_request)(float);
 	zend_bool (* is_enabled)();
 	int (* error_reporting)();
+	zend_bool is_request_created;
 } apm_driver;
 
 typedef struct apm_driver_entry {
@@ -97,6 +98,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 { \
 	apm_driver_entry * driver_entry; \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
+	driver_entry->driver.insert_request = apm_driver_##name##_insert_request; \
 	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
@@ -105,6 +107,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry->driver.insert_slow_request = apm_driver_##name##_insert_slow_request; \
 	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
 	driver_entry->driver.error_reporting = apm_driver_##name##_error_reporting; \
+	driver_entry->driver.is_request_created = 0; \
 	driver_entry->next = NULL; \
 	return driver_entry; \
 }
@@ -114,21 +117,6 @@ PHP_MSHUTDOWN_FUNCTION(apm);
 PHP_RINIT_FUNCTION(apm);
 PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
-
-#ifdef APM_DRIVER_SQLITE3
-PHP_FUNCTION(apm_get_sqlite_events);
-PHP_FUNCTION(apm_get_sqlite_slow_requests);
-PHP_FUNCTION(apm_get_sqlite_events_count);
-PHP_FUNCTION(apm_get_sqlite_slow_requests_count);
-PHP_FUNCTION(apm_get_sqlite_event_info);
-#endif
-#ifdef APM_DRIVER_MYSQL
-PHP_FUNCTION(apm_get_mysql_events);
-PHP_FUNCTION(apm_get_mysql_slow_requests);
-PHP_FUNCTION(apm_get_mysql_events_count);
-PHP_FUNCTION(apm_get_mysql_slow_requests_count);
-PHP_FUNCTION(apm_get_mysql_event_info);
-#endif
 
 #ifdef APM_DEBUGFILE
 #define APM_INIT_DEBUG APM_G(debugfile) = fopen(APM_DEBUGFILE, "a+");
@@ -200,6 +188,8 @@ typedef struct {
 #else
 #define apm_json_encode(buf, pzval) php_json_encode(buf, pzval, 0 TSRMLS_CC);
 #endif
+
+void * get_script(char ** script_filename);
 
 #endif
 

@@ -1,3 +1,4 @@
+<?php
 /*
  +----------------------------------------------------------------------+
  |  APM stands for Alternative PHP Monitor                              |
@@ -15,13 +16,13 @@
  | Authors: Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
-
-#ifndef BACKTRACE_H
-#define BACKTRACE_H
-
-#include "ext/standard/php_smart_str.h"
-
-void append_backtrace(smart_str *trace_str TSRMLS_DC);
-
-#endif
-
+?>
+{
+  "total": "<?php echo ceil($records / $rows) ?>",
+  "page": "<?php echo (int) $page ?>",
+  "records": "<?php echo (int) $records ?>",
+  "rows" :
+    <?php
+    echo json_encode($data);
+    ?>
+}

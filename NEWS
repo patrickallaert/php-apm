@@ -1,3 +1,10 @@
+APM 2.0.0alpha1  11 May 2013
+----------------------------
+Changed:
+- Deep refactoring:
+  - New DB schema
+  - No more native functions, retrieval of data is directly made in PHP
+
 APM 1.1.0RC2     11 May 2013
 ----------------------------
 Changed:

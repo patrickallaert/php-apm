@@ -12,8 +12,7 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- | Authors: Davide Mendolia <dmendolia@php.net>                         |
- |          Patrick Allaert <patrickallaert@php.net>                    |
+ | Authors: Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
 
@@ -34,12 +33,13 @@
 #define DB_FILE "events"
 
 apm_driver_entry * apm_driver_sqlite3_create();
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace, char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
+void apm_driver_sqlite3_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
+void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
 int apm_driver_sqlite3_minit(int);
 int apm_driver_sqlite3_rinit();
 int apm_driver_sqlite3_mshutdown();
 int apm_driver_sqlite3_rshutdown();
-void apm_driver_sqlite3_insert_slow_request(float duration, char * script_filename);
+void apm_driver_sqlite3_insert_slow_request(float duration TSRMLS_DC);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
@@ -60,6 +60,12 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
 
 	/* Max timeout to wait for storing the event in the DB */
 	long      timeout;
+
+	/* Request ID */
+	sqlite3_int64 request_id;
+
+	/* Boolean to ensure request content is only inserted once */
+	zend_bool is_request_created;
 ZEND_END_MODULE_GLOBALS(apm_sqlite3)
 
 #ifdef ZTS

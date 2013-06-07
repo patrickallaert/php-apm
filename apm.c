@@ -12,8 +12,7 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- | Authors: Davide Mendolia <dmendolia@php.net>                         |
- |          Patrick Allaert <patrickallaert@php.net>                    |
+ | Authors: Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
 
@@ -117,30 +116,12 @@ static void deffered_insert_events(TSRMLS_D);
 /* recorded timestamp for the request */
 struct timeval begin_tp;
 
-zend_function_entry apm_functions[] = {
-#ifdef APM_DRIVER_SQLITE3
-		PHP_FE(apm_get_sqlite_events, NULL)
-		PHP_FE(apm_get_sqlite_slow_requests, NULL)
-		PHP_FE(apm_get_sqlite_events_count, NULL)
-		PHP_FE(apm_get_sqlite_slow_requests_count, NULL)
-		PHP_FE(apm_get_sqlite_event_info, NULL)
-#endif
-#ifdef APM_DRIVER_MYSQL
-		PHP_FE(apm_get_mysql_events, NULL)
-		PHP_FE(apm_get_mysql_slow_requests, NULL)
-		PHP_FE(apm_get_mysql_events_count, NULL)
-		PHP_FE(apm_get_mysql_slow_requests_count, NULL)
-		PHP_FE(apm_get_mysql_event_info, NULL)
-#endif
-	{NULL, NULL, NULL}
-};
-
 zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
 	"apm",
-	apm_functions,
+	NULL,
 	PHP_MINIT(apm),
 	PHP_MSHUTDOWN(apm),
 	PHP_RINIT(apm),	
@@ -188,12 +169,13 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char *, char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_request = (void (*)(char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
 	apm_globals->drivers->driver.rshutdown = (int (*)()) NULL;
-	apm_globals->drivers->driver.insert_slow_request = (void (*)(float, char *)) NULL;
+	apm_globals->drivers->driver.insert_slow_request = (void (*)(float) TSRMLS_DC) NULL;
 
 	next = &apm_globals->drivers->next;
 	*next = (apm_driver_entry *) NULL;
@@ -300,11 +282,10 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	apm_driver_entry * driver_entry;
 	float duration;
 	struct timeval end_tp;
-	zval **array;
-	zval **token;
 	char *script_filename = NULL;
 	apm_event_entry * event_entry_cursor = NULL;
 	apm_event_entry * event_entry_cursor_next = NULL;
+	EXTRACT_DATA_VARS();
 
 	if (APM_G(enabled)) {
 		if (APM_G(slow_request_enabled)) {
@@ -315,18 +296,22 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			if (duration > 1000.0 * APM_G(slow_request_duration)) {
 				APM_DEBUG("Slow request catched\n");
 
-				zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
-				if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
-					Z_TYPE_PP(array) == IS_ARRAY &&
-					zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-					script_filename = Z_STRVAL_PP(token);
-				}
+				EXTRACT_DATA();
 
 				driver_entry = APM_G(drivers);
 				APM_DEBUG("Slow request loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.is_enabled()) {
-						driver_entry->driver.insert_slow_request(duration, script_filename);
+						driver_entry->driver.insert_request(
+							uri_found ? Z_STRVAL_PP(uri) : "",
+							host_found ? Z_STRVAL_PP(host) : "",
+							ip_found ? Z_STRVAL_PP(ip) : "",
+							cookies_found ? cookies.c : "",
+							post_vars_found ? post_vars.c : "",
+							referer_found ? Z_STRVAL_PP(referer) : ""
+							TSRMLS_CC
+						);
+						driver_entry->driver.insert_slow_request(duration TSRMLS_CC);
 					}
 				}
 				APM_DEBUG("Slow request loop end\n");
@@ -476,15 +461,10 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		EXTRACT_DATA();
 
 		driver_entry = APM_G(drivers);
-		APM_DEBUG("Direct processing loop begin\n");
+		APM_DEBUG("Direct processing insert_event loop begin\n");
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
-				driver_entry->driver.insert_event(
-					type,
-					error_filename,
-					error_lineno,
-					msg,
-					(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : "",
+				driver_entry->driver.insert_request(
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
 					ip_found ? Z_STRVAL_PP(ip) : "",
@@ -493,9 +473,18 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 					referer_found ? Z_STRVAL_PP(referer) : ""
 					TSRMLS_CC
 				);
+
+				driver_entry->driver.insert_event(
+					type,
+					error_filename,
+					error_lineno,
+					msg,
+					(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
+					TSRMLS_CC
+				);
 			}
 		}
-		APM_DEBUG("Direct processing loop end\n");
+		APM_DEBUG("Direct processing insert_event loop end\n");
 
 		smart_str_free(&cookies);
 		smart_str_free(&post_vars);
@@ -518,18 +507,21 @@ static void deffered_insert_events(TSRMLS_D)
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
 				if (event_entry_cursor->event.type & driver_entry->driver.error_reporting()) {
-					driver_entry->driver.insert_event(
-						event_entry_cursor->event.type,
-						event_entry_cursor->event.error_filename,
-						event_entry_cursor->event.error_lineno,
-						event_entry_cursor->event.msg,
-						event_entry_cursor->event.trace,
+					driver_entry->driver.insert_request(
 						uri_found ? Z_STRVAL_PP(uri) : "",
 						host_found ? Z_STRVAL_PP(host) : "",
 						ip_found ? Z_STRVAL_PP(ip) : "",
 						cookies_found ? cookies.c : "",
 						post_vars_found ? post_vars.c : "",
 						referer_found ? Z_STRVAL_PP(referer) : ""
+						TSRMLS_CC
+					);
+					driver_entry->driver.insert_event(
+						event_entry_cursor->event.type,
+						event_entry_cursor->event.error_filename,
+						event_entry_cursor->event.error_lineno,
+						event_entry_cursor->event.msg,
+						event_entry_cursor->event.trace
 						TSRMLS_CC
 					);
 				}
@@ -540,4 +532,15 @@ static void deffered_insert_events(TSRMLS_D)
 
 	smart_str_free(&cookies);
 	smart_str_free(&post_vars);
+}
+
+void * get_script(char ** script_filename) {
+	zval **array, **token;
+
+	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
+	if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
+		Z_TYPE_PP(array) == IS_ARRAY &&
+		zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
+		*script_filename = Z_STRVAL_PP(token);
+	}
 }

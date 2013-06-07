@@ -13,12 +13,12 @@
  | obtain it through the world-wide-web, please send a note to          |
  | license@php.net so we can mail you a copy immediately.               |
  +----------------------------------------------------------------------+
- | Authors: Davide Mendolia <dmendolia@php.net>                         |
- |          Patrick Allaert <patrickallaert@php.net>                    |
+ | Authors: Patrick Allaert <patrickallaert@php.net>                    |
  +----------------------------------------------------------------------+
 */
 
-define("APM_DRIVER", "sqlite");
-define("APM_LOADED", function_exists('apm_get_' . APM_DRIVER . '_events'));
+$repository = require "model/repository.php";
+$id = (int) $_GET["id"];
+$request = $repository->getRequestService()->loadRequest($id);
 
-include_once('lib.php');
+require "views/html/request.php";

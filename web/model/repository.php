@@ -1,3 +1,4 @@
+<?php
 /*
  +----------------------------------------------------------------------+
  |  APM stands for Alternative PHP Monitor                              |
@@ -16,12 +17,6 @@
  +----------------------------------------------------------------------+
 */
 
-#ifndef BACKTRACE_H
-#define BACKTRACE_H
+require "model/apm.php";
 
-#include "ext/standard/php_smart_str.h"
-
-void append_backtrace(smart_str *trace_str TSRMLS_DC);
-
-#endif
-
+return new APM\Repository(require "config/db.php");

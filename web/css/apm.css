@@ -1,35 +1,35 @@
 #gbox_events, #gbox_slow-requests { font-size: 1.2em; margin: 15px; }
-#events tr.E_ERROR td,
-#events tr.E_CORE_ERROR td,
-#events tr.E_PARSE td,
-#events tr.E_COMPILE_ERROR td,
-#events tr.E_USER_ERROR td,
-#events tr.E_RECOVERABLE_ERROR td { background-color: #f2dede; }
-#events tr.E_WARNING td,
-#events tr.E_CORE_WARNING td,
-#events tr.E_COMPILE_WARNING td,
-#events tr.E_USER_WARNING td { background-color: #fcf8e3; }
-#events tr.E_NOTICE td,
-#events tr.E_USER_NOTICE td,
-#events tr.E_STRICT td,
-#events tr.E_DEPRECATED td,
-#events tr.E_USER_DEPRECATED td { background-color: #d9edf7; }
+#request tr.E_ERROR td,
+#request tr.E_CORE_ERROR td,
+#request tr.E_PARSE td,
+#request tr.E_COMPILE_ERROR td,
+#request tr.E_USER_ERROR td,
+#request tr.E_RECOVERABLE_ERROR td { background-color: #f2dede; }
+#request tr.E_WARNING td,
+#request tr.E_CORE_WARNING td,
+#request tr.E_COMPILE_WARNING td,
+#request tr.E_USER_WARNING td { background-color: #fcf8e3; }
+#request tr.E_NOTICE td,
+#request tr.E_USER_NOTICE td,
+#request tr.E_STRICT td,
+#request tr.E_DEPRECATED td,
+#request tr.E_USER_DEPRECATED td { background-color: #d9edf7; }
 
-#events tr.E_ERROR:hover td,
-#events tr.E_CORE_ERROR:hover td,
-#events tr.E_PARSE:hover td,
-#events tr.E_COMPILE_ERROR:hover td,
-#events tr.E_USER_ERROR:hover td,
-#events tr.E_RECOVERABLE_ERROR:hover td { background-color: #ebcccc; }
-#events tr.E_WARNING:hover td,
-#events tr.E_CORE_WARNING:hover td,
-#events tr.E_COMPILE_WARNING:hover td,
-#events tr.E_USER_WARNING:hover td { background-color: #faf2cc; }
-#events tr.E_NOTICE:hover td,
-#events tr.E_USER_NOTICE:hover td,
-#events tr.E_STRICT:hover td,
-#events tr.E_DEPRECATED:hover td,
-#events tr.E_USER_DEPRECATED:hover td { background-color: #c4e3f3; }
+#request tr.E_ERROR:hover td,
+#request tr.E_CORE_ERROR:hover td,
+#request tr.E_PARSE:hover td,
+#request tr.E_COMPILE_ERROR:hover td,
+#request tr.E_USER_ERROR:hover td,
+#request tr.E_RECOVERABLE_ERROR:hover td { background-color: #ebcccc; }
+#request tr.E_WARNING:hover td,
+#request tr.E_CORE_WARNING:hover td,
+#request tr.E_COMPILE_WARNING:hover td,
+#request tr.E_USER_WARNING:hover td { background-color: #faf2cc; }
+#request tr.E_NOTICE:hover td,
+#request tr.E_USER_NOTICE:hover td,
+#request tr.E_STRICT:hover td,
+#request tr.E_DEPRECATED:hover td,
+#request tr.E_USER_DEPRECATED:hover td { background-color: #c4e3f3; }
 
 #event #source { display: none; padding-top: 5px; padding-left: 5px; background-color: #ccc; }
 #source_toggle { margin: 5px 0px; }

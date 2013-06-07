@@ -70,8 +70,8 @@
     apm.mysql_db=<dbname>
     ```
 9. Copy the *web/* directory so that it can be accessed by your webserver.
-10. Configure *web/setup.php* to use the correct backend:
+10. Configure *web/config/db.php* to use the correct backend:
 
     ```
-    define("APM_DRIVER", "sqlite"); // correct values are "sqlite" or "mysql"
+    return new PDO("sqlite:/var/php/apm/db/events");
     ```

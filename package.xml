@@ -20,19 +20,21 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2013-05-11</date>
+ <date>2013-06-07</date>
  <version>
-  <release>1.1.0RC2</release>
-  <api>1.1.0RC2</api>
+  <release>2.0.0alpha1</release>
+  <api>2.0.0alpha1</api>
  </version>
  <stability>
-  <release>beta</release>
-  <api>beta</api>
+  <release>alpha</release>
+  <api>alpha</api>
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-Changed:
-- upgraded UI by using tweeter boostrap and upgrading jqGrid
+ Changed:
+ - Deep refactoring:
+   - New DB schema
+   - No more native functions, retrieval of data is directly made in PHP
  </notes>
  <contents>
   <dir name="/">
@@ -54,15 +56,16 @@ Changed:
    <dir baseinstalldir="PECL/APM" name="sql">
     <dir name="mysql">
      <file name="create.sql" role="data" />
-     <file name="upgrade-1.0-1.1.sql" role="data" />
     </dir>
     <dir name="sqlite">
      <file name="create.sql" role="data" />
-     <file name="upgrade-1.0-1.1.sql" role="data" />
     </dir>
    </dir>
    <dir baseinstalldir="PECL/APM" name="web">
     <file name="apm.php" role="php" />
+    <dir name="config">
+     <file name="db.php" role="php" />
+    </dir>
     <dir name="css">
      <file name="apm.css" role="data" />
      <file name="bootstrap.min.css" role="data" />
@@ -146,7 +149,10 @@ Changed:
      <file name="jquery.jqGrid.min.js" role="data" />
      <file name="jquery-ui-1.9.1.custom.min.js" role="data" />
     </dir>
-    <file name="lib.php" role="php" />
+    <dir name="model">
+     <file name="apm.php" role="php" />
+     <file name="repository.php" role="php" />
+    </dir>
     <dir name="plugins">
      <file name="grid.addons.js" role="data" />
      <file name="grid.postext.js" role="data" />
@@ -158,8 +164,20 @@ Changed:
      <file name="ui.multiselect.css" role="data" />
      <file name="ui.multiselect.js" role="data" />
     </dir>
-    <file name="setup.php" role="php" />
-    <file name="slow_requests.php" role="php" />
+    <file name="request.php" role="php" />
+    <file name="requests.php" role="php" />
+    <dir name="views">
+     <dir name="html">
+      <file name="event.php" role="php" />
+      <file name="footer.html" role="data" />
+      <file name="header.html" role="data" />
+      <file name="main.html" role="data" />
+      <file name="request.php" role="php" />
+     </dir>
+     <dir name="json">
+      <file name="data.php" role="php" />
+     </dir>
+    </dir>
    </dir>
   </dir>
  </contents>
@@ -179,6 +197,24 @@ Changed:
   <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.0.0alpha1</release>
+    <api>2.0.0alpha1</api>
+   </version>
+   <stability>
+    <release>alpha</release>
+    <api>alpha</api>
+   </stability>
+   <date>2013-06-07</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Changed:
+ - Deep refactoring:
+   - New DB schema
+   - No more native functions, retrieval of data is directly made in PHP
+   </notes>
+  </release>
   <release>
    <version>
     <release>1.1.0RC2</release>

@@ -17,8 +17,7 @@
  +----------------------------------------------------------------------+
 */
 $repository = require "model/repository.php";
-$eventService = $repository->getEventService();
-$records = $eventService->getEventsCount($_GET["id"]);
+$requestService = $repository->getRequestService();
 $rows = (int) $_GET["rows"];
 $page = (int) $_GET["page"];
 
@@ -26,33 +25,57 @@ switch ($_GET["sidx"]) {
     case "time":
         $order = APM\ORDER_TIMESTAMP;
         break;
-    case "type":
-        $order = APM\ORDER_TYPE;
+    case "host":
+        $order = APM\ORDER_HOST;
         break;
-    case "file":
-        $order = APM\ORDER_FILE;
+    case "ip":
+        $order = APM\ORDER_IP;
         break;
-    case "message":
-        $order = APM\ORDER_MESSAGE;
+    case "uri":
+        $order = APM\ORDER_URI;
         break;
-    case "line":
+    case "script":
+        $order = APM\ORDER_SCRIPT;
+        break;
+    case "eventsCount":
+        $order = APM\ORDER_EVENTS_COUNT;
+        break;
+    case "duration":
+        $order = APM\ORDER_DURATION;
+        break;
     case "id":
     default:
         $order = APM\ORDER_ID;
 }
 
-$data = $eventService->loadEvents(
-    $_GET["id"],
-    ($page - 1) * $rows,
-    $rows,
-    $order,
-    ($_GET["sord"] === "desc") ? APM\ORDER_DESC : APM\ORDER_ASC
-);
-
-foreach ($data as &$event) {
-    $event = (array) $event;
-    $event["timestamp"] = $event["timestamp"]->format("Y-m-d H:i:s");
-    $event["type"] = APM\getErrorCodeFromID($event["type"]);
+if (isset($_GET["faulty"])) {
+    $records = $requestService->getFaultyRequestsCount();
+    $data = $requestService->loadFaultyRequests(
+        ($page - 1) * $rows,
+        $rows,
+        $order,
+        ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
+    );
+} elseif (isset($_GET["slow"])) {
+    $records = $requestService->getSlowRequestsCount();
+    $data = $requestService->loadSlowRequests(
+        ($page - 1) * $rows,
+        $rows,
+        $order,
+        ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
+    );
+} else {
+    $records = $requestService->getRequestsCount();
+    $data = $requestService->loadRequests(
+        ($page - 1) * $rows,
+        $rows,
+        $order,
+        ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
+    );
+}
+foreach ($data as &$request) {
+    $request = (array) $request;
+    $request["timestamp"] = $request["timestamp"]->format("Y-m-d H:i:s");
 }
 
 require "views/json/data.php";
