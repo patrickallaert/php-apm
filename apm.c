@@ -148,6 +148,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.event_enabled",        "1",   PHP_INI_ALL, OnUpdateBool, event_enabled,         zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the slow request monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled", "1",   PHP_INI_ALL, OnUpdateBool, slow_request_enabled,  zend_apm_globals, apm_globals)
+	/* Boolean controller whether to enable logging of all exceptions thrown */
+	STD_PHP_INI_BOOLEAN("apm.store_exceptions", "1", PHP_INI_ALL, OnUpdateBool, store_exceptions, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace",     "1",   PHP_INI_ALL, OnUpdateBool, store_stacktrace,      zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the ip should be stored or not */
@@ -259,7 +261,7 @@ PHP_RINIT_FUNCTION(apm)
 			gettimeofday(&begin_tp, NULL);
 		}
 
-		APM_DEBUG("Registering drivers\n");
+		APM_DEBUG("RINIT: Registering drivers\n");
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled()) {
@@ -269,10 +271,16 @@ PHP_RINIT_FUNCTION(apm)
 			}
 		}
 
-		APM_DEBUG("Replacing handlers\n");
+		APM_DEBUG("RINIT: Replacing handlers\n");
 		/* Replacing current error callback function with apm's one */
 		zend_error_cb = apm_error_cb;
-		zend_throw_exception_hook = apm_throw_exception_hook;
+
+		if (APM_G(store_exceptions)) {
+			zend_throw_exception_hook = apm_throw_exception_hook;
+			APM_DEBUG("RINIT: I WILL log exceptions\n");
+		} else {
+			APM_DEBUG("RINIT: I will NOT log exceptions\n");
+		}
 	}
 	return SUCCESS;
 }
@@ -345,7 +353,11 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 		/* Restoring saved error callback function */
 		APM_DEBUG("Restoring handlers\n");
 		zend_error_cb = old_error_cb;
-		zend_throw_exception_hook = NULL;
+
+		if (APM_G(store_exceptions)) {
+			APM_DEBUG("RSHUTDOWN: Restoring zend_throw_exception hook");
+			zend_throw_exception_hook = NULL;
+		}
 	}
 
 	APM_SHUTDOWN_DEBUG;
@@ -413,6 +425,7 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
+		APM_DEBUG("Logging an exception of type: %s\n", exception_ce->name)
 		insert_event(E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
 }
