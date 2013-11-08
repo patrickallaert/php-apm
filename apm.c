@@ -110,7 +110,7 @@ void apm_error_cb(int type, const char *error_filename,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
-static void insert_event(int, char *, uint, char * TSRMLS_DC);
+static void insert_event(int, int, char *, uint, char * TSRMLS_DC);
 static void deffered_insert_events(TSRMLS_D);
 
 /* recorded timestamp for the request */
@@ -378,13 +378,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	va_end(args_copy);
 	
 	if (APM_G(event_enabled)) {
-
-		/* We need to see if we have an uncaught exception fatal error now */
-		if (type == E_ERROR && strncmp(msg, "Uncaught exception", 18) == 0) {
-
-		} else {
-			insert_event(type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
-		}
+		insert_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
 	}
 	efree(msg);
 
@@ -413,12 +407,12 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-		insert_event(E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+		insert_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
 }
 
 /* Insert an event in the backend */
-static void insert_event(int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
+static void insert_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
@@ -432,6 +426,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 	if (APM_G(deffered_processing)) {
 		APM_DEBUG("Registering event for deffered processing\n");
 		(*APM_G(last_event))->next = (apm_event_entry *) malloc(sizeof(apm_event_entry));
+		(*APM_G(last_event))->next->event.event_type = event_type;
 		(*APM_G(last_event))->next->event.type = type;
 
 		if (((*APM_G(last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
@@ -463,7 +458,7 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		driver_entry = APM_G(drivers);
 		APM_DEBUG("Direct processing insert_event loop begin\n");
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
+			if (driver_entry->driver.want_event(event_type, type, msg)) {
 				driver_entry->driver.insert_request(
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
@@ -506,7 +501,7 @@ static void deffered_insert_events(TSRMLS_D)
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
-				if (event_entry_cursor->event.type & driver_entry->driver.error_reporting()) {
+				if (driver_entry->driver.want_event(event_entry_cursor->event.event_type, event_entry_cursor->event.type, event_entry_cursor->event.msg)) {
 					driver_entry->driver.insert_request(
 						uri_found ? Z_STRVAL_PP(uri) : "",
 						host_found ? Z_STRVAL_PP(host) : "",

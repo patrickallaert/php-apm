@@ -40,6 +40,8 @@ APM_DRIVER_CREATE(mysql)
 PHP_INI_BEGIN()
  	/* Boolean controlling whether the driver is active or not */
  	STD_PHP_INI_BOOLEAN("apm.mysql_enabled",       "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.mysql_exception_mode","1",               PHP_INI_PERDIR, OnUpdateLongGEZero,   exception_mode,      zend_apm_mysql_globals, apm_mysql_globals)
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.mysql_error_reporting", NULL,              PHP_INI_ALL,    OnUpdateAPMmysqlErrorReporting,   error_reporting,     zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql host */
