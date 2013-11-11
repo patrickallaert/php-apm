@@ -52,6 +52,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.mysql_pass",            "",                PHP_INI_PERDIR, OnUpdateString, db_pass,             zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql database */
 	STD_PHP_INI_ENTRY("apm.mysql_db",              "apm",             PHP_INI_PERDIR, OnUpdateString, db_name,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* store silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.mysql_store_silenced_events", "1",         PHP_INI_PERDIR, OnUpdateBool,   store_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)  
 PHP_INI_END()
 
 /* Returns the MYSQL instance (singleton) */
@@ -246,3 +248,9 @@ void apm_driver_mysql_insert_slow_request(float duration TSRMLS_DC)
 
 	efree(sql);
 }
+
+zend_bool apm_driver_mysql_wants_silenced_events(TSRMLS_DC)
+{
+	return APM_MY_G(store_silenced_events);
+}
+

@@ -47,6 +47,7 @@ extern zend_module_entry apm_module_entry;
 
 typedef struct apm_event {
 	int type;
+	uint silenced;
 	char * error_filename;
 	uint error_lineno;
 	char * msg;
@@ -61,6 +62,7 @@ typedef struct apm_event_entry {
 typedef struct apm_driver {
 	void (* insert_request)(char *, char *, char *, char *, char *, char * TSRMLS_DC);
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
+	zend_bool (* wants_silenced_events)(TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
@@ -100,6 +102,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
 	driver_entry->driver.insert_request = apm_driver_##name##_insert_request; \
 	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
+	driver_entry->driver.wants_silenced_events = apm_driver_##name##_wants_silenced_events; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
@@ -150,6 +153,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	long      slow_request_duration;
 	/* Maximum recursion depth used when dumping a variable */
 	long      dump_max_depth;
+	/* Determines whether we're currently silenced */
+	zend_bool currently_silenced;
+	
 	apm_driver_entry *drivers;
 	apm_event_entry *events;
 	apm_event_entry **last_event;

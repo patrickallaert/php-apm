@@ -35,6 +35,7 @@
 apm_driver_entry * apm_driver_mysql_create();
 void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
 void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
+zend_bool apm_driver_mysql_wants_silenced_events(TSRMLS_DC);
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();
@@ -59,6 +60,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
 	char         *db_name;
 	/* DB handle */
 	MYSQL        *event_db;
+	/* Option to store silenced events */
+	zend_bool store_silenced_events;
 
 	/* Boolean to ensure request content is only inserted once */
 	zend_bool is_request_created;

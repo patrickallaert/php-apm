@@ -35,6 +35,7 @@
 apm_driver_entry * apm_driver_sqlite3_create();
 void apm_driver_sqlite3_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
 void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
+zend_bool apm_driver_sqlite3_wants_silenced_events(TSRMLS_DC);
 int apm_driver_sqlite3_minit(int);
 int apm_driver_sqlite3_rinit();
 int apm_driver_sqlite3_mshutdown();
@@ -66,6 +67,10 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
 
 	/* Boolean to ensure request content is only inserted once */
 	zend_bool is_request_created;
+
+	/* Option to store silenced events */
+        zend_bool store_silenced_events;
+
 ZEND_END_MODULE_GLOBALS(apm_sqlite3)
 
 #ifdef ZTS
