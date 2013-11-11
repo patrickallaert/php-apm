@@ -93,6 +93,33 @@ if (APM_G(store_post)) { \
 	} \
 }
 
+#if PHP_VERSION_ID < 50300
+typedef opcode_handler_t user_opcode_handler_t;
+#endif 
+
+static user_opcode_handler_t _orig_begin_silence_opcode_handler = NULL;
+static user_opcode_handler_t _orig_end_silence_opcode_handler = NULL;
+
+static int apm_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+{
+        APM_G(currently_silenced) = 1;
+
+        if (_orig_begin_silence_opcode_handler)
+                return _orig_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+        
+        return ZEND_USER_OPCODE_DISPATCH;
+}
+
+static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+{
+        APM_G(currently_silenced) = 0;
+
+        if (_orig_end_silence_opcode_handler)
+                return _orig_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+                
+        return ZEND_USER_OPCODE_DISPATCH;
+}
+
 static int apm_write(const char *str, uint length) {
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
@@ -214,7 +241,15 @@ PHP_MINIT_FUNCTION(apm)
 
 	/* Storing actual error callback function for later restore */
 	old_error_cb = zend_error_cb;
-	
+
+	/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
+        _orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
+        zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
+
+        _orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
+        zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
+
+	/* Initialize the storage drivers */
 	if (APM_G(enabled)) {
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
@@ -431,32 +466,29 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 
 	if (APM_G(deffered_processing)) {
 		APM_DEBUG("Registering event for deffered processing\n");
-		(*APM_G(last_event))->next = (apm_event_entry *) malloc(sizeof(apm_event_entry));
-		(*APM_G(last_event))->next->event.type = type;
 
-		if (((*APM_G(last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
-			strcpy((*APM_G(last_event))->next->event.error_filename, error_filename);
-		} else {
-			(*APM_G(last_event))->next->event.error_filename = NULL;
-		}
-		
-		(*APM_G(last_event))->next->event.error_lineno = error_lineno;
+	         apm_event_entry *new_entry = malloc(sizeof(apm_event_entry));
 
+                new_entry->next                 = NULL;
+                new_entry->event.type           = type;
+                new_entry->event.error_lineno   = error_lineno;
+                new_entry->event.silenced       = APM_G(currently_silenced);
+                new_entry->event.error_filename = NULL; 
 
-		if (((*APM_G(last_event))->next->event.msg = malloc(strlen(msg) + 1)) != NULL) {
-			strcpy((*APM_G(last_event))->next->event.msg, msg);
-		} else {
-			(*APM_G(last_event))->next->event.msg = NULL;
-		}
+                if ((new_entry->event.error_filename = malloc(strlen(error_filename) +1 )) != NULL)
+                        strcpy(new_entry->event.error_filename, error_filename);
+        
+                new_entry->event.msg = NULL;
+                if ((new_entry->event.msg = malloc(strlen(msg)+1)) != NULL)
+                        strcpy(new_entry->event.msg, msg);
 
-		if (APM_G(store_stacktrace) && trace_str.c && (((*APM_G(last_event))->next->event.trace = malloc(strlen(trace_str.c) + 1)) != NULL)) {
-			strcpy((*APM_G(last_event))->next->event.trace, trace_str.c);
-		} else {
-			(*APM_G(last_event))->next->event.trace = NULL;
-		}
+                new_entry->event.trace = NULL;
+                if (APM_G(store_stacktrace) && trace_str.c && (new_entry->event.trace = malloc(strlen(trace_str.c)+1)) != NULL)
+                        strcpy(new_entry->event.trace, trace_str.c);
 
-		(*APM_G(last_event))->next->next = NULL;
-		APM_G(last_event) = &(*APM_G(last_event))->next;
+		/* Push this event onto the linked list of events to store */
+		(*APM_G(last_event))->next = new_entry;
+		APM_G(last_event) = &(*APM_G(last_event))->next;	
 	} else {
 		EXTRACT_DATA();
 
@@ -464,6 +496,12 @@ static void insert_event(int type, char * error_filename, uint error_lineno, cha
 		APM_DEBUG("Direct processing insert_event loop begin\n");
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled() && (type & driver_entry->driver.error_reporting())) {
+				if (!driver_entry->driver.wants_silenced_events() && APM_G(currently_silenced))
+				{
+					APM_DEBUG("Ignoring event because event is silenced and driver doesn't want it\n");
+					continue;
+				}
+ 
 				driver_entry->driver.insert_request(
 					uri_found ? Z_STRVAL_PP(uri) : "",
 					host_found ? Z_STRVAL_PP(host) : "",
@@ -506,25 +544,35 @@ static void deffered_insert_events(TSRMLS_D)
 		if (driver_entry->driver.is_enabled()) {
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
-				if (event_entry_cursor->event.type & driver_entry->driver.error_reporting()) {
-					driver_entry->driver.insert_request(
-						uri_found ? Z_STRVAL_PP(uri) : "",
-						host_found ? Z_STRVAL_PP(host) : "",
-						ip_found ? Z_STRVAL_PP(ip) : "",
-						cookies_found ? cookies.c : "",
-						post_vars_found ? post_vars.c : "",
-						referer_found ? Z_STRVAL_PP(referer) : ""
-						TSRMLS_CC
-					);
-					driver_entry->driver.insert_event(
-						event_entry_cursor->event.type,
-						event_entry_cursor->event.error_filename,
-						event_entry_cursor->event.error_lineno,
-						event_entry_cursor->event.msg,
-						event_entry_cursor->event.trace
-						TSRMLS_CC
-					);
+
+				if (!(event_entry_cursor->event.type & driver_entry->driver.error_reporting())) {
+					APM_DEBUG("Ignoring event because of error reporting mask for this driver\n");
+					continue;
 				}
+
+				if (!driver_entry->driver.wants_silenced_events() && event_entry_cursor->event.silenced)
+				{
+					APM_DEBUG("Ignoring event because event is silenced and driver doesn't want it\n");
+					continue;
+				}	
+
+				driver_entry->driver.insert_request(
+					uri_found ? Z_STRVAL_PP(uri) : "",
+					host_found ? Z_STRVAL_PP(host) : "",
+					ip_found ? Z_STRVAL_PP(ip) : "",
+					cookies_found ? cookies.c : "",
+					post_vars_found ? post_vars.c : "",
+					referer_found ? Z_STRVAL_PP(referer) : ""
+					TSRMLS_CC
+				);
+				driver_entry->driver.insert_event(
+					event_entry_cursor->event.type,
+					event_entry_cursor->event.error_filename,
+					event_entry_cursor->event.error_lineno,
+					event_entry_cursor->event.msg,
+					event_entry_cursor->event.trace
+					TSRMLS_CC
+				);
 			}
 		}
 	}

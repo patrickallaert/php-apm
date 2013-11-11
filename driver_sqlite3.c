@@ -86,6 +86,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.sqlite_max_event_insert_timeout", "100",             PHP_INI_ALL,    OnUpdateLong,   timeout,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* Max timeout to wait for storing the event in the DB */
 	STD_PHP_INI_ENTRY("apm.sqlite_db_path",                  "/var/php/apm/db", PHP_INI_ALL,    OnUpdateDBFile, db_path,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	/* Store silenced events? */
+        STD_PHP_INI_BOOLEAN("apm.sqlite_store_silenced_events",    "1",               PHP_INI_PERDIR, OnUpdateBool,   store_silenced_events, zend_apm_sqlite3_globals, apm_sqlite3_globals)
 PHP_INI_END()
 
 /* Returns the SQLite instance (singleton) */
@@ -214,3 +216,10 @@ void apm_driver_sqlite3_insert_slow_request(float duration TSRMLS_DC)
 
 	sqlite3_free(sql);
 }
+
+zend_bool apm_driver_sqlite3_wants_silenced_events(TSRMLS_DC)
+{
+        return APM_S3_G(store_silenced_events);
+}
+
+
