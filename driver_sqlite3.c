@@ -35,6 +35,14 @@ ZEND_EXTERN_MODULE_GLOBALS(apm)
 
 ZEND_DECLARE_MODULE_GLOBALS(apm_sqlite3)
 
+static void disconnect()
+{
+	if (APM_S3_G(event_db) != NULL) {
+		sqlite3_close(APM_S3_G(event_db));
+		APM_S3_G(event_db) = NULL;
+	}
+}
+
 static int perform_db_access_checks(const char *path TSRMLS_DC)
 {
 	zend_bool is_dir;
@@ -65,6 +73,7 @@ static PHP_INI_MH(OnUpdateDBFile)
 {
 	if (new_value && new_value_length > 0) {
 		snprintf(APM_S3_G(db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
+		disconnect();
 
 		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
 			APM_S3_G(enabled) = 0;
@@ -101,7 +110,7 @@ sqlite3 * sqlite_get_instance() {
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
-			sqlite3_close(APM_S3_G(event_db));
+			disconnect();
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
@@ -190,11 +199,7 @@ int apm_driver_sqlite3_mshutdown()
 
 int apm_driver_sqlite3_rshutdown()
 {
-	if (APM_S3_G(event_db) != NULL) {
-		APM_DEBUG("[SQLite driver] Closing connection\n");
-		sqlite3_close(APM_S3_G(event_db));
-		APM_S3_G(event_db) = NULL;
-	}
+	disconnect();
 	return SUCCESS;
 }
 
