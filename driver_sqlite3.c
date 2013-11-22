@@ -56,8 +56,8 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 	FREE_ZVAL(stat);
 
 	/* Does db_path exists ? */
-	if (!is_dir) {
-		zend_error(E_CORE_WARNING, "APM cannot be enabled, '%s' is not directory", path);
+	if (!is_dir && !php_stream_mkdir((char *)path, 0777, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
+		zend_error(E_CORE_WARNING, "APM cannot be enabled, '%s' is not a directory or it cannot be created", path);
 		return FAILURE;
 	}
 
