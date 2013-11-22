@@ -137,7 +137,7 @@ PHP_MINFO_FUNCTION(apm);
 #ifdef APM_DEBUGFILE
 #define APM_INIT_DEBUG APM_G(debugfile) = fopen(APM_DEBUGFILE, "a+");
 #define APM_DEBUG(...) if (APM_G(debugfile)) { fprintf(APM_G(debugfile), __VA_ARGS__); fflush(APM_G(debugfile)); }
-#define APM_SHUTDOWN_DEBUG if (APM_G(debugfile)) fclose(APM_G(debugfile));
+#define APM_SHUTDOWN_DEBUG if (APM_G(debugfile)) { fclose(APM_G(debugfile)); APM_G(debugfile) = NULL; }
 #else
 #define APM_INIT_DEBUG
 #define APM_DEBUG(...)
