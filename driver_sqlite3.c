@@ -101,6 +101,8 @@ PHP_INI_END()
 
 /* Returns the SQLite instance (singleton) */
 sqlite3 * sqlite_get_instance() {
+	int code;
+
 	if (APM_S3_G(event_db) == NULL) {
 		/* Opening the sqlite database file */
 		APM_DEBUG("[SQLite driver] Connecting to db...");
@@ -119,6 +121,44 @@ sqlite3 * sqlite_get_instance() {
 
 		/* Making the connection asynchronous, not waiting for data being really written to the disk */
 		sqlite3_exec(APM_S3_G(event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+
+		APM_DEBUG("[SQLite driver] Setting up database\n");
+
+		if ((code = sqlite3_exec(
+			APM_S3_G(event_db),
+			"\n\
+CREATE TABLE IF NOT EXISTS request (\n\
+    id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+    ts INTEGER NOT NULL,\n\
+    script TEXT NOT NULL,\n\
+    uri TEXT NOT NULL,\n\
+    host TEXT NOT NULL,\n\
+    ip INTEGER UNSIGNED NOT NULL,\n\
+    cookies TEXT NOT NULL,\n\
+    post_vars TEXT NOT NULL,\n\
+    referer TEXT NOT NULL\n\
+);\n\
+CREATE TABLE IF NOT EXISTS event (\n\
+    id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+    request_id INTEGER,\n\
+    ts INTEGER NOT NULL,\n\
+    type INTEGER NOT NULL,\n\
+    file TEXT NOT NULL,\n\
+    line INTEGER NOT NULL,\n\
+    message TEXT NOT NULL,\n\
+    backtrace BLOB NOT NULL\n\
+);\n\
+CREATE INDEX IF NOT EXISTS event_request ON event (request_id);\n\
+CREATE TABLE IF NOT EXISTS slow_request (\n\
+    id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+    request_id INTEGER,\n\
+    ts INTEGER NOT NULL,\n\
+    duration FLOAT NOT NULL\n\
+);\n\
+CREATE INDEX IF NOT EXISTS slow_request_request ON slow_request (request_id);",
+			NULL, NULL, NULL)) != SQLITE_OK) {
+			zend_error(E_CORE_WARNING, "APM's schema cannot be created, error code: %d", code);
+		}
 	}
 
 	return APM_S3_G(event_db);
