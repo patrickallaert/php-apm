@@ -62,7 +62,7 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 	}
 
 	if (VCWD_ACCESS(path, W_OK | R_OK | X_OK) != SUCCESS) {
-		zend_error(E_CORE_WARNING, "APM cannot be enabled, %s needs to readable, writable and executable", path);
+		zend_error(E_CORE_WARNING, "APM cannot be enabled, %s needs to be readable, writable and executable", path);
 		return FAILURE;
 	}
 
