@@ -31,6 +31,8 @@
 #request tr.E_DEPRECATED:hover td,
 #request tr.E_USER_DEPRECATED:hover td { background-color: #c4e3f3; }
 
+#requests tr:hover td { background-color: #f0f0f0; }
+
 #event #source { display: none; padding-top: 5px; padding-left: 5px; background-color: #ccc; }
 #source_toggle { margin: 5px 0px; }
 #event #stacktrace td { vertical-align: top; }
@@ -39,3 +41,5 @@
 #error_info { padding-top: 10px; padding-left: 10px; font-size: 1.5em; }
 #error_info dt { float: left; width: 100px; font-weight: bold; }
 #error_info dd { line-height: 20px; margin-left: 70px; }
+
+table#requests, table#request-details  { cursor: pointer; }
