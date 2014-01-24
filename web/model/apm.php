@@ -599,7 +599,7 @@ SQL;
 SELECT id, UNIX_TIMESTAMP(ts) AS timestamp, type, file, line, message
 FROM event
 WHERE request_id = %d
-ORDER BY %s %s
+ORDER BY %s
 LIMIT %d, %d
 SQL;
 }
