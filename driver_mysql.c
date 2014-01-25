@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS event (\
 		mysql_query(
 			APM_MY_G(event_db),
 			"\
-CREATE TABLE IF NOT EXISTS slow_request (\
+CREATE TABLE IF NOT EXISTS stats (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
     request_id INTEGER UNSIGNED,\
     ts TIMESTAMP NOT NULL,\
@@ -272,7 +272,7 @@ int apm_driver_mysql_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_mysql_insert_slow_request(float duration TSRMLS_DC)
+void apm_driver_mysql_insert_stats(float duration TSRMLS_DC)
 {
 	char *sql = NULL;
 	MYSQL *connection;
@@ -282,7 +282,7 @@ void apm_driver_mysql_insert_slow_request(float duration TSRMLS_DC)
 	sql = emalloc(90);
 	sprintf(
 		sql,
-		"INSERT INTO slow_request (request_id, duration) VALUES (@request_id, %f)",
+		"INSERT INTO stats (request_id, duration) VALUES (@request_id, %f)",
 		USEC_TO_SEC(duration));
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);

@@ -56,9 +56,9 @@ if (isset($_GET["faulty"])) {
         $order,
         ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
     );
-} elseif (isset($_GET["slow"])) {
-    $records = $requestService->getSlowRequestsCount();
-    $data = $requestService->loadSlowRequests(
+} elseif (isset($_GET["stats"])) {
+    $records = $requestService->getStatsCount();
+    $data = $requestService->loadStats(
         ($page - 1) * $rows,
         $rows,
         $order,

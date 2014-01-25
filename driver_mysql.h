@@ -39,7 +39,7 @@ int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();
 int apm_driver_mysql_rshutdown();
-void apm_driver_mysql_insert_slow_request(float duration TSRMLS_DC);
+void apm_driver_mysql_insert_stats(float duration TSRMLS_DC);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)

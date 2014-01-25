@@ -146,8 +146,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.enabled",              "1",   PHP_INI_ALL, OnUpdateBool, enabled,               zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.event_enabled",        "1",   PHP_INI_ALL, OnUpdateBool, event_enabled,         zend_apm_globals, apm_globals)
-	/* Boolean controlling whether the slow request monitoring is active or not */
-	STD_PHP_INI_BOOLEAN("apm.slow_request_enabled", "1",   PHP_INI_ALL, OnUpdateBool, slow_request_enabled,  zend_apm_globals, apm_globals)
+	/* Boolean controlling whether the stats monitoring is active or not */
+	STD_PHP_INI_BOOLEAN("apm.stats_enabled", "1",   PHP_INI_ALL, OnUpdateBool, stats_enabled,  zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace",     "1",   PHP_INI_ALL, OnUpdateBool, store_stacktrace,      zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the ip should be stored or not */
@@ -158,8 +158,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.store_post",           "1",   PHP_INI_ALL, OnUpdateBool, store_post,            zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
 	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
-	/* Time (in ms) before a request is considered 'slow' */
-	STD_PHP_INI_ENTRY("apm.slow_request_duration",  "100", PHP_INI_ALL, OnUpdateLong, slow_request_duration, zend_apm_globals, apm_globals)
+	/* Time (in ms) before a request is considered for stats */
+	STD_PHP_INI_ENTRY("apm.stats_duration_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_duration_threshold, zend_apm_globals, apm_globals)
 	/* Maximum recursion depth used when dumping a variable */
 	STD_PHP_INI_ENTRY("apm.dump_max_depth",         "4",   PHP_INI_ALL, OnUpdateLong, dump_max_depth,        zend_apm_globals, apm_globals)
 PHP_INI_END()
@@ -175,7 +175,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
 	apm_globals->drivers->driver.rshutdown = (int (*)()) NULL;
-	apm_globals->drivers->driver.insert_slow_request = (void (*)(float) TSRMLS_DC) NULL;
+	apm_globals->drivers->driver.insert_stats = (void (*)(float) TSRMLS_DC) NULL;
 
 	next = &apm_globals->drivers->next;
 	*next = (apm_driver_entry *) NULL;
@@ -288,18 +288,16 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	EXTRACT_DATA_VARS();
 
 	if (APM_G(enabled)) {
-		if (APM_G(slow_request_enabled)) {
+		if (APM_G(stats_enabled)) {
 			gettimeofday(&end_tp, NULL);
 
-			/* Request longer than accepted thresold ? */
+			/* Request longer than accepted threshold ? */
 			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
-			if (duration > 1000.0 * APM_G(slow_request_duration)) {
-				APM_DEBUG("Slow request catched\n");
-
+			if (duration > 1000.0 * APM_G(stats_duration_threshold)) {
 				EXTRACT_DATA();
 
 				driver_entry = APM_G(drivers);
-				APM_DEBUG("Slow request loop begin\n");
+				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.is_enabled()) {
 						driver_entry->driver.insert_request(
@@ -311,10 +309,10 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 							referer_found ? Z_STRVAL_PP(referer) : ""
 							TSRMLS_CC
 						);
-						driver_entry->driver.insert_slow_request(duration TSRMLS_CC);
+						driver_entry->driver.insert_stats(duration TSRMLS_CC);
 					}
 				}
-				APM_DEBUG("Slow request loop end\n");
+				APM_DEBUG("Stats loop end\n");
 			}
 		}
 

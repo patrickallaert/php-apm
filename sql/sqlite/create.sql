@@ -23,11 +23,11 @@ CREATE TABLE IF NOT EXISTS event (
 
 CREATE INDEX IF NOT EXISTS event_request ON event (request_id);
 
-CREATE TABLE IF NOT EXISTS slow_request (
+CREATE TABLE IF NOT EXISTS stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     request_id INTEGER,
     ts INTEGER NOT NULL,
     duration FLOAT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS slow_request_request ON slow_request (request_id);
+CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);

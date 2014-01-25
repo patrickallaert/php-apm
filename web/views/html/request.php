@@ -21,7 +21,7 @@ require "header.html";
 ?>
             <li><a href="apm.php#overview">General overview</a></li>
             <li><a href="apm.php#faultyevents">Requests with faulty events</a></li>
-            <li><a href="apm.php#slowrequests">Slow requests</a></li>
+            <li><a href="apm.php#stats">Stats</a></li>
             <li class="active"><a href="#request">Details for request #<?php echo (int) $id ?></a></li>
           </ul>
           <?php
@@ -81,9 +81,9 @@ require "header.html";
               <table id="events"><tr><td></td></tr></table>
               <div id="events-pager"></div>
             </div>
-            <div class="tab-pane fade" id="slowrequests">
-              <table id="slow-requests"><tr><td></td></tr></table>
-              <div id="slow-requests-pager"></div>
+            <div class="tab-pane fade" id="stats">
+              <table id="stats"><tr><td></td></tr></table>
+              <div id="stats-pager"></div>
             </div>
             <div class="tab-pane fade in active" id="request">
               <table id="request-details"><tr><td></td></tr></table>

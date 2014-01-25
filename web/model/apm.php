@@ -312,8 +312,8 @@ class Request {
      *
      * @return APM\Request[]
      */
-    public function loadSlowRequests($offset = 0, $limit = 30, $order = APM\ORDER_ID, $direction = APM\ORDER_DESC) {
-        return $this->handler->loadSlowRequests($offset, $limit, $order, $direction);
+    public function loadStats($offset = 0, $limit = 30, $order = APM\ORDER_ID, $direction = APM\ORDER_DESC) {
+        return $this->handler->loadStats($offset, $limit, $order, $direction);
     }
 
     /**
@@ -333,8 +333,8 @@ class Request {
     /**
      * @return int
      */
-    public function getSlowRequestsCount() {
-        return $this->handler->getSlowRequestsCount();
+    public function getStatsCount() {
+        return $this->handler->getStatsCount();
     }
 }
 
@@ -435,14 +435,14 @@ class Request extends Handler {
     protected $loadRequestQuery = <<<SQL
 SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration
 FROM request r
-LEFT JOIN slow_request s ON s.request_id = r.id
+LEFT JOIN stats s ON s.request_id = r.id
 WHERE r.id = %d
 SQL;
     protected $loadRequestsQuery = <<<SQL
 SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, COUNT(e.request_id) AS eventsCount
 FROM request r
 LEFT JOIN event e ON e.request_id = r.id
-LEFT JOIN slow_request s ON s.request_id = r.id
+LEFT JOIN stats s ON s.request_id = r.id
 GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration
 ORDER BY %s
 LIMIT %d, %d
@@ -455,10 +455,10 @@ GROUP BY r.id, r.ts, script, uri, host
 ORDER BY %s
 LIMIT %d, %d
 SQL;
-    protected $loadSlowRequestsQuery = <<<SQL
+    protected $loadStatsQuery = <<<SQL
 SELECT r.id, r.ts AS timestamp, script, uri, host, duration
 FROM request r
-JOIN slow_request s ON s.request_id = r.id
+JOIN stats s ON s.request_id = r.id
 GROUP BY r.id, r.ts, script, uri, host, duration
 ORDER BY %s
 LIMIT %d, %d
@@ -472,10 +472,10 @@ SELECT COUNT(DISTINCT r.id) AS cnt
 FROM request r
 JOIN event e ON e.request_id = r.id
 SQL;
-    protected $getSlowRequestsCountQuery = <<<SQL
+    protected $getStatsCountQuery = <<<SQL
 SELECT COUNT(DISTINCT r.id) AS cnt
 FROM request r
-JOIN slow_request s ON s.request_id = r.id
+JOIN stats s ON s.request_id = r.id
 SQL;
     protected $loadRequestsOrderMap = array(
         APM\ORDER_ID => 'r.id %s',
@@ -553,8 +553,8 @@ SQL;
      *
      * @return APM\Request[]
      */
-    public function loadSlowRequests($offset, $limit, $order, $direction) {
-        return $this->loadRequestsHelper($this->loadSlowRequestsQuery, $offset, $limit, $order, $direction);
+    public function loadStats($offset, $limit, $order, $direction) {
+        return $this->loadRequestsHelper($this->loadStatsQuery, $offset, $limit, $order, $direction);
     }
 
     /**
@@ -576,8 +576,8 @@ SQL;
     /**
      * @return int
      */
-    public function getSlowRequestsCount() {
-        $row = $this->db->query($this->getSlowRequestsCountQuery)->fetch(PDO::FETCH_ASSOC);
+    public function getStatsCount() {
+        $row = $this->db->query($this->getStatsCountQuery)->fetch(PDO::FETCH_ASSOC);
         return $row["cnt"];
     }
 }
@@ -608,14 +608,14 @@ class Request extends Handler\PDO\Request {
     protected $loadRequestQuery = <<<SQL
 SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration
 FROM request r
-LEFT JOIN slow_request s ON s.request_id = r.id
+LEFT JOIN stats s ON s.request_id = r.id
 WHERE r.id = %d
 SQL;
     protected $loadRequestsQuery = <<<SQL
 SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, COUNT(e.request_id) AS eventsCount
 FROM request r
 LEFT JOIN event e ON e.request_id = r.id
-LEFT JOIN slow_request s ON s.request_id = r.id
+LEFT JOIN stats s ON s.request_id = r.id
 GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration
 ORDER BY %s
 LIMIT %d, %d
@@ -628,10 +628,10 @@ GROUP BY r.id, r.ts, script, uri, host
 ORDER BY %s
 LIMIT %d, %d
 SQL;
-    protected $loadSlowRequestsQuery = <<<SQL
+    protected $loadStatsQuery = <<<SQL
 SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, duration
 FROM request r
-JOIN slow_request s ON s.request_id = r.id
+JOIN stats s ON s.request_id = r.id
 GROUP BY r.id, r.ts, script, uri, host, duration
 ORDER BY %s
 LIMIT %d, %d

@@ -69,7 +69,7 @@ typedef struct apm_driver {
 	int (* rinit)();
 	int (* mshutdown)();
 	int (* rshutdown)();
-	void (* insert_slow_request)(float);
+	void (* insert_stats)(float);
 	zend_bool (* is_enabled)();
 	zend_bool (* want_event)(int, int, char *);
 	int (* error_reporting)();
@@ -119,7 +119,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
 	driver_entry->driver.rshutdown = apm_driver_##name##_rshutdown; \
-	driver_entry->driver.insert_slow_request = apm_driver_##name##_insert_slow_request; \
+	driver_entry->driver.insert_stats = apm_driver_##name##_insert_stats; \
 	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
 	driver_entry->driver.error_reporting = apm_driver_##name##_error_reporting; \
 	driver_entry->driver.want_event = apm_driver_##name##_want_event; \
@@ -150,8 +150,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool enabled;
 	/* Boolean controlling whether the event monitoring is active or not */
 	zend_bool event_enabled;
-	/* Boolean controlling whether the slow request monitoring is active or not */
-	zend_bool slow_request_enabled;
+	/* Boolean controlling whether the stats monitoring is active or not */
+	zend_bool stats_enabled;
 	/* Boolean controlling whether the stacktrace should be generated or not */
 	zend_bool store_stacktrace;
 	/* Boolean controlling whether the ip should be generated or not */
@@ -162,8 +162,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool store_post;
 	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
 	zend_bool deffered_processing;
-	/* Time (in ms) before a request is considered 'slow' */
-	long      slow_request_duration;
+	/* Time (in ms) before a request is considered for stats */
+	long      stats_duration_threshold;
 	/* Maximum recursion depth used when dumping a variable */
 	long      dump_max_depth;
 	apm_driver_entry *drivers;

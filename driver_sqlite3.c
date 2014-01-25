@@ -149,13 +149,13 @@ CREATE TABLE IF NOT EXISTS event (\n\
     backtrace BLOB NOT NULL\n\
 );\n\
 CREATE INDEX IF NOT EXISTS event_request ON event (request_id);\n\
-CREATE TABLE IF NOT EXISTS slow_request (\n\
+CREATE TABLE IF NOT EXISTS stats (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
     request_id INTEGER,\n\
     ts INTEGER NOT NULL,\n\
     duration FLOAT NOT NULL\n\
 );\n\
-CREATE INDEX IF NOT EXISTS slow_request_request ON slow_request (request_id);",
+CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 			NULL, NULL, NULL)) != SQLITE_OK) {
 			zend_error(E_CORE_WARNING, "APM's schema cannot be created, error code: %d", code);
 		}
@@ -243,7 +243,7 @@ int apm_driver_sqlite3_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_insert_slow_request(float duration TSRMLS_DC)
+void apm_driver_sqlite3_insert_stats(float duration TSRMLS_DC)
 {
 	char *sql;
 	sqlite3 *connection;
@@ -251,8 +251,10 @@ void apm_driver_sqlite3_insert_slow_request(float duration TSRMLS_DC)
 	SQLITE_INSTANCE_INIT
 
 	/* Building SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO slow_request (request_id, duration) VALUES (%d, %f)",
-						  APM_S3_G(request_id), USEC_TO_SEC(duration));
+	sql = sqlite3_mprintf(
+		"INSERT INTO stats (request_id, duration) VALUES (%d, %f)",
+		APM_S3_G(request_id), USEC_TO_SEC(duration)
+	);
 
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);

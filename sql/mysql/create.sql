@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS event (
     KEY request (request_id)
 );
 
-CREATE TABLE IF NOT EXISTS slow_request (
+CREATE TABLE IF NOT EXISTS stats (
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,
     request_id INTEGER UNSIGNED,
     ts TIMESTAMP NOT NULL,

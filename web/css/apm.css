@@ -1,4 +1,4 @@
-#gbox_events, #gbox_slow-requests { font-size: 1.2em; margin: 15px; }
+#gbox_events, #gbox_stats { font-size: 1.2em; margin: 15px; }
 #request tr.E_ERROR td,
 #request tr.E_CORE_ERROR td,
 #request tr.E_PARSE td,

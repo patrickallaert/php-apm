@@ -21,7 +21,7 @@ require "header.html";
 ?>
             <li><a href="apm.php#overview">General overview</a></li>
             <li><a href="apm.php#faultyevents">Requests with faulty events</a></li>
-            <li><a href="apm.php#slowrequests">Slow requests</a></li>
+            <li><a href="apm.php#stats">Stats</a></li>
             <li><a href="request.php?id=<?php echo (int) $event->request->id ?>">Details for request #<?php echo (int) $event->request->id ?></a></li>
             <li class="active"><a href="#event">Details for event #<?php echo (int) $id ?></a></li>
           </ul>

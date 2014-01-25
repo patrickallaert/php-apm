@@ -72,8 +72,8 @@ jQuery(document).ready(function(){
 
       });
 
-    jQuery("#slow-requests").jqGrid({
-        url: 'requests.php?slow',
+    jQuery("#stats").jqGrid({
+        url: 'requests.php?stats',
         datatype: 'json',
         mtype: 'GET',
         colNames :['#', 'Time', 'Host', 'URL', 'Script', 'Duration'],
@@ -85,7 +85,7 @@ jQuery(document).ready(function(){
             {name:'script', index:'script', width:400},
             {name:'duration', index:'duration', width:50}
         ],
-        pager: '#slow-requests-pager',
+        pager: '#stats-pager',
         rowNum: 30,
         rowList: [10,20,30,50,100],
         sortname: 'id',
@@ -121,7 +121,7 @@ jQuery(document).ready(function(){
             {name:'file', index:'file', width:400},
             {name:'line', index:'line', width:40, sortable:false}
         ],
-        pager: '#slow-requests-pager',
+        pager: '#stats-pager',
         rowNum: 30,
         rowList: [10,20,30,50,100],
         sortname: 'id',
