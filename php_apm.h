@@ -35,14 +35,6 @@ extern zend_module_entry apm_module_entry;
 
 #include "TSRM.h"
 
-#define APM_ORDER_ID 1
-#define APM_ORDER_TIMESTAMP 2
-#define APM_ORDER_TYPE 3
-#define APM_ORDER_DURATION 3
-#define APM_ORDER_FILE 4
-#define APM_ORDER_IP 5
-#define APM_ORDER_URL 6
-
 #define APM_E_ALL (E_ALL | E_STRICT)
 
 #define APM_EVENT_ERROR 1
