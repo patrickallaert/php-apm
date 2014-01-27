@@ -92,41 +92,41 @@ void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * 
 
 	get_script(&script);
 
-	if (script) {
+	if (strlen(script)>0) {
 		script_len = strlen(script);
 		script_esc = emalloc(script_len * 2 + 1);
 		script_len = mysql_real_escape_string(connection, script_esc, script, script_len);
 	}
 
-	if (uri) {
+	if (strlen(uri)>0) {
 		uri_len = strlen(uri);
 		uri_esc = emalloc(uri_len * 2 + 1);
 		uri_len = mysql_real_escape_string(connection, uri_esc, uri, uri_len);
 	}
 
-	if (host) {
+	if (strlen(host)>0) {
 		host_len = strlen(host);
 		host_esc = emalloc(host_len * 2 + 1);
 		host_len = mysql_real_escape_string(connection, host_esc, host, host_len);
 	}
 
-	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
+	if (strlen(ip)>0 && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
 	
-	if (cookies) {
+	if (strlen(cookies)>0) {
 		cookies_len = strlen(cookies);
 		cookies_esc = emalloc(cookies_len * 2 + 1);
 		cookies_len = mysql_real_escape_string(connection, cookies_esc, cookies, cookies_len);
 	}
 
-	if (post_vars) {
+	if (strlen(post_vars) > 0) {
 		post_vars_len = strlen(post_vars);
 		post_vars_esc = emalloc(post_vars_len * 2 + 1);
 		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, post_vars, post_vars_len);
 	}
 
-	if (referer) {
+	if (strlen(referer)>0) {
 		referer_len = strlen(referer);
 		referer_esc = emalloc(referer_len * 2 + 1);
 		referer_len = mysql_real_escape_string(connection, referer_esc, referer, referer_len);
@@ -145,12 +145,24 @@ void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * 
 	mysql_query(connection, "SET @request_id = LAST_INSERT_ID()");
 
 	efree(sql);
-	efree(script_esc);
-	efree(uri_esc);
-	efree(host_esc);
-	efree(cookies_esc);
-	efree(post_vars_esc);
-	efree(referer_esc);
+	
+	if(strlen(script) > 0)
+		efree(script_esc);
+
+	if (strlen(uri) > 0)
+		efree(uri_esc);
+
+	if (strlen(host) > 0)
+		efree(host_esc);
+
+	if(strlen(cookies)>0)
+		efree(cookies_esc);
+
+	if (strlen(post_vars)>0)
+		efree(post_vars_esc);
+
+	if (strlen(referer_esc))	
+		efree(referer_esc);
 
 	APM_MY_G(is_request_created) = 1;
 	APM_DEBUG("[MySQL driver] End insert request\n", sql);
