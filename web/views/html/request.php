@@ -19,9 +19,8 @@
 
 require "header.html";
 ?>
-            <li><a href="apm.php#overview">General overview</a></li>
             <li><a href="apm.php#faultyevents">Requests with faulty events</a></li>
-            <li><a href="apm.php#stats">Stats</a></li>
+            <li><a href="apm.php#statistics">Statistics</a></li>
             <li class="active"><a href="#request">Details for request #<?php echo (int) $id ?></a></li>
           </ul>
           <?php
@@ -62,26 +61,28 @@ require "header.html";
                   <td><pre><?php echo htmlentities($request->referer, ENT_COMPAT, "UTF-8") ?></pre></td>
                 </tr>
               <?php endif; ?>
-              <?php if (!empty($request->referer)): ?>
                 <tr>
                   <td>Duration:</td>
                   <td><pre><?php echo htmlentities($request->duration, ENT_COMPAT, "UTF-8") ?></pre></td>
                 </tr>
-                <?php endif; ?>
+                <tr>
+                  <td>User CPU:</td>
+                  <td><pre><?php echo htmlentities($request->user_cpu, ENT_COMPAT, "UTF-8") ?></pre></td>
+                </tr>
+                <tr>
+                  <td>System CPU:</td>
+                  <td><pre><?php echo htmlentities($request->sys_cpu, ENT_COMPAT, "UTF-8") ?></pre></td>
+                </tr>
             </table>
           <?php
           }
           ?>
           <div id="myTabContent" class="tab-content">
-            <div class="tab-pane fade" id="overview">
-              <table id="requests"><tr><td></td></tr></table>
-              <div id="requests-pager"></div>
-            </div>
             <div class="tab-pane fade" id="faultyevents">
               <table id="events"><tr><td></td></tr></table>
               <div id="events-pager"></div>
             </div>
-            <div class="tab-pane fade" id="stats">
+            <div class="tab-pane fade" id="statistics">
               <table id="stats"><tr><td></td></tr></table>
               <div id="stats-pager"></div>
             </div>

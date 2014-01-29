@@ -29,6 +29,8 @@
 # include "main/php_config.h"
 #endif
 
+#include <sys/resource.h>
+#include <sys/time.h>
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
@@ -48,52 +50,7 @@ static PHP_GINIT_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
-#define EXTRACT_DATA_VARS() zval **uri = NULL, **host = NULL, **ip = NULL, **referer, *tmp; \
-zend_bool uri_found = 0, host_found = 0, ip_found = 0, cookies_found = 0, post_vars_found = 0, referer_found = 0; \
-smart_str cookies = {0}, post_vars = {0};
-
-#define EXTRACT_DATA() \
-zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
-if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&uri) == SUCCESS) && \
-		(Z_TYPE_PP(uri) == IS_STRING)) { \
-		uri_found = 1; \
-	} \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&host) == SUCCESS) && \
-		(Z_TYPE_PP(host) == IS_STRING)) { \
-		host_found = 1; \
-	} \
-	if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&ip) == SUCCESS) && \
-		(Z_TYPE_PP(ip) == IS_STRING)) { \
-		ip_found = 1; \
-	} \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&referer) == SUCCESS) && \
-		(Z_TYPE_PP(referer) == IS_STRING)) { \
-		referer_found = 1; \
-	} \
-} \
-if (APM_G(store_cookies)) { \
-	zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
-	if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &cookies; \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			cookies_found = 1; \
-		} \
-	} \
-} \
-if (APM_G(store_post)) { \
-	zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
-	if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &post_vars; \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			post_vars_found = 1; \
-		} \
-	} \
-}
-
-static int apm_write(const char *str, uint length) {
+int apm_write(const char *str, uint length) {
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
 	smart_str_0(APM_G(buffer));
@@ -115,6 +72,9 @@ static void deffered_insert_events(TSRMLS_D);
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
+#ifdef HAVE_GETRUSAGE
+struct rusage begin_usg;
+#endif
 
 zend_module_entry apm_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
@@ -160,6 +120,10 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered for stats */
 	STD_PHP_INI_ENTRY("apm.stats_duration_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_duration_threshold, zend_apm_globals, apm_globals)
+	/* User CPU time usage (in ms) before a request is considered for stats */
+	STD_PHP_INI_ENTRY("apm.stats_user_cpu_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_user_cpu_threshold, zend_apm_globals, apm_globals)
+	/* System CPU time usage (in ms) before a request is considered for stats */
+	STD_PHP_INI_ENTRY("apm.stats_sys_cpu_threshold",  "10", PHP_INI_ALL, OnUpdateLong, stats_sys_cpu_threshold, zend_apm_globals, apm_globals)
 	/* Maximum recursion depth used when dumping a variable */
 	STD_PHP_INI_ENTRY("apm.dump_max_depth",         "4",   PHP_INI_ALL, OnUpdateLong, dump_max_depth,        zend_apm_globals, apm_globals)
 PHP_INI_END()
@@ -169,13 +133,13 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_request = (void (*)(char *, char *, char *, char *, char *, char * TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.insert_request = (void (*)(TSRMLS_D)) NULL;
 	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
 	apm_globals->drivers->driver.rshutdown = (int (*)()) NULL;
-	apm_globals->drivers->driver.insert_stats = (void (*)(float) TSRMLS_DC) NULL;
+	apm_globals->drivers->driver.insert_stats = (void (*)(float, float, float) TSRMLS_DC) NULL;
 
 	next = &apm_globals->drivers->next;
 	*next = (apm_driver_entry *) NULL;
@@ -246,9 +210,14 @@ PHP_RINIT_FUNCTION(apm)
 
 	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
+		memset(&APM_G(request_data), 0, sizeof(struct apm_request_data));
 		if (APM_G(event_enabled)) {
 			/* storing timestamp of request */
 			gettimeofday(&begin_tp, NULL);
+#ifdef HAVE_GETRUSAGE
+			memset(&begin_usg, 0, sizeof(struct rusage));
+			getrusage(RUSAGE_SELF, &begin_usg);
+#endif
 		}
 
 		APM_DEBUG("Registering drivers\n");
@@ -273,11 +242,15 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	apm_driver_entry * driver_entry;
 	float duration;
+	float user_cpu = 0;
+	float sys_cpu = 0;
+#ifdef HAVE_GETRUSAGE
+	struct rusage usg;
+#endif
 	struct timeval end_tp;
 	char *script_filename = NULL;
 	apm_event_entry * event_entry_cursor = NULL;
 	apm_event_entry * event_entry_cursor_next = NULL;
-	EXTRACT_DATA_VARS();
 
 	if (APM_G(enabled)) {
 		if (APM_G(stats_enabled)) {
@@ -285,23 +258,28 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 			/* Request longer than accepted threshold ? */
 			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
-			if (duration > 1000.0 * APM_G(stats_duration_threshold)) {
-				EXTRACT_DATA();
+#ifdef HAVE_GETRUSAGE
+			memset(&usg, 0, sizeof(struct rusage));
+
+			if (getrusage(RUSAGE_SELF, &usg) == 0) {
+				user_cpu = (float) (SEC_TO_USEC(usg.ru_utime.tv_sec - begin_usg.ru_utime.tv_sec) + usg.ru_utime.tv_usec - begin_usg.ru_utime.tv_usec);
+				sys_cpu = (float) (SEC_TO_USEC(usg.ru_stime.tv_sec - begin_usg.ru_stime.tv_sec) + usg.ru_stime.tv_usec - begin_usg.ru_stime.tv_usec);
+			}
+#endif
+			if (
+				duration > 1000.0 * APM_G(stats_duration_threshold)
+#ifdef HAVE_GETRUSAGE
+				|| user_cpu > 1000.0 * APM_G(stats_user_cpu_threshold)
+				|| sys_cpu > 1000.0 * APM_G(stats_sys_cpu_threshold)
+#endif
+				) {
 
 				driver_entry = APM_G(drivers);
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.is_enabled()) {
-						driver_entry->driver.insert_request(
-							uri_found ? Z_STRVAL_PP(uri) : "",
-							host_found ? Z_STRVAL_PP(host) : "",
-							ip_found ? Z_STRVAL_PP(ip) : "",
-							cookies_found ? cookies.c : "",
-							post_vars_found ? post_vars.c : "",
-							referer_found ? Z_STRVAL_PP(referer) : ""
-							TSRMLS_CC
-						);
-						driver_entry->driver.insert_stats(duration TSRMLS_CC);
+						driver_entry->driver.insert_request(TSRMLS_C);
+						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu TSRMLS_CC);
 					}
 				}
 				APM_DEBUG("Stats loop end\n");
@@ -336,6 +314,9 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 		APM_DEBUG("Restoring handlers\n");
 		zend_error_cb = old_error_cb;
 		zend_throw_exception_hook = NULL;
+
+		smart_str_free(&APM_RD(cookies));
+		smart_str_free(&APM_RD(post_vars));
 	}
 
 	APM_SHUTDOWN_DEBUG;
@@ -406,7 +387,6 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
-	EXTRACT_DATA_VARS();
 
 	if (APM_G(store_stacktrace)) {
 		append_backtrace(&trace_str TSRMLS_CC);
@@ -443,21 +423,11 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 		(*APM_G(last_event))->next->next = NULL;
 		APM_G(last_event) = &(*APM_G(last_event))->next;
 	} else {
-		EXTRACT_DATA();
-
 		driver_entry = APM_G(drivers);
 		APM_DEBUG("Direct processing insert_event loop begin\n");
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.want_event(event_type, type, msg)) {
-				driver_entry->driver.insert_request(
-					uri_found ? Z_STRVAL_PP(uri) : "",
-					host_found ? Z_STRVAL_PP(host) : "",
-					ip_found ? Z_STRVAL_PP(ip) : "",
-					cookies_found ? cookies.c : "",
-					post_vars_found ? post_vars.c : "",
-					referer_found ? Z_STRVAL_PP(referer) : ""
-					TSRMLS_CC
-				);
+				driver_entry->driver.insert_request(TSRMLS_C);
 
 				driver_entry->driver.insert_event(
 					type,
@@ -470,9 +440,6 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 			}
 		}
 		APM_DEBUG("Direct processing insert_event loop end\n");
-
-		smart_str_free(&cookies);
-		smart_str_free(&post_vars);
 	}
 
 	smart_str_free(&trace_str);
@@ -482,9 +449,6 @@ static void deffered_insert_events(TSRMLS_D)
 {
 	apm_driver_entry * driver_entry = APM_G(drivers);
 	apm_event_entry * event_entry_cursor;
-	EXTRACT_DATA_VARS();
-
-	EXTRACT_DATA();
 
 	APM_DEBUG("Deffered processing loop begin\n");
 	while ((driver_entry = driver_entry->next) != NULL) {
@@ -492,15 +456,7 @@ static void deffered_insert_events(TSRMLS_D)
 			event_entry_cursor = APM_G(events);
 			while ((event_entry_cursor = event_entry_cursor->next) != NULL) {
 				if (driver_entry->driver.want_event(event_entry_cursor->event.event_type, event_entry_cursor->event.type, event_entry_cursor->event.msg)) {
-					driver_entry->driver.insert_request(
-						uri_found ? Z_STRVAL_PP(uri) : "",
-						host_found ? Z_STRVAL_PP(host) : "",
-						ip_found ? Z_STRVAL_PP(ip) : "",
-						cookies_found ? cookies.c : "",
-						post_vars_found ? post_vars.c : "",
-						referer_found ? Z_STRVAL_PP(referer) : ""
-						TSRMLS_CC
-					);
+					driver_entry->driver.insert_request(TSRMLS_C);
 					driver_entry->driver.insert_event(
 						event_entry_cursor->event.type,
 						event_entry_cursor->event.error_filename,
@@ -514,9 +470,6 @@ static void deffered_insert_events(TSRMLS_D)
 		}
 	}
 	APM_DEBUG("Deffered processing loop end\n");
-
-	smart_str_free(&cookies);
-	smart_str_free(&post_vars);
 }
 
 void * get_script(char ** script_filename) {

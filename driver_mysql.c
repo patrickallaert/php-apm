@@ -109,8 +109,9 @@ CREATE TABLE IF NOT EXISTS event (\
 CREATE TABLE IF NOT EXISTS stats (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
     request_id INTEGER UNSIGNED,\
-    ts TIMESTAMP NOT NULL,\
-    duration FLOAT NOT NULL,\
+    duration FLOAT UNSIGNED NOT NULL,\
+    user_cpu FLOAT UNSIGNED NOT NULL,\
+    sys_cpu FLOAT UNSIGNED NOT NULL,\
     KEY request (request_id)\
 )"
 		);
@@ -120,12 +121,15 @@ CREATE TABLE IF NOT EXISTS stats (\
 }
 
 /* Insert a request in the backend */
-void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC)
+void apm_driver_mysql_insert_request(TSRMLS_D)
 {
 	char *script = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
 	int script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
 	struct in_addr ip_addr;
 	MYSQL *connection;
+	zval *tmp;
+
+	EXTRACT_DATA();
 
 	APM_DEBUG("[MySQL driver] Begin insert request\n", sql);
 	if (APM_MY_G(is_request_created)) {
@@ -143,45 +147,45 @@ void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * 
 		script_len = mysql_real_escape_string(connection, script_esc, script, script_len);
 	}
 
-	if (uri) {
-		uri_len = strlen(uri);
+	if (APM_RD(uri_found)) {
+		uri_len = strlen(Z_STRVAL_PP(APM_RD(uri)));
 		uri_esc = emalloc(uri_len * 2 + 1);
-		uri_len = mysql_real_escape_string(connection, uri_esc, uri, uri_len);
+		uri_len = mysql_real_escape_string(connection, uri_esc, Z_STRVAL_PP(APM_RD(uri)), uri_len);
 	}
 
-	if (host) {
-		host_len = strlen(host);
+	if (APM_RD(host_found)) {
+		host_len = strlen(Z_STRVAL_PP(APM_RD(host)));
 		host_esc = emalloc(host_len * 2 + 1);
-		host_len = mysql_real_escape_string(connection, host_esc, host, host_len);
+		host_len = mysql_real_escape_string(connection, host_esc, Z_STRVAL_PP(APM_RD(host)), host_len);
 	}
 
-	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
+	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
 	
-	if (cookies) {
-		cookies_len = strlen(cookies);
+	if (APM_RD(cookies_found)) {
+		cookies_len = strlen(APM_RD(cookies).c);
 		cookies_esc = emalloc(cookies_len * 2 + 1);
-		cookies_len = mysql_real_escape_string(connection, cookies_esc, cookies, cookies_len);
+		cookies_len = mysql_real_escape_string(connection, cookies_esc, APM_RD(cookies).c, cookies_len);
 	}
 
-	if (post_vars) {
-		post_vars_len = strlen(post_vars);
+	if (APM_RD(post_vars_found)) {
+		post_vars_len = strlen(APM_RD(post_vars).c);
 		post_vars_esc = emalloc(post_vars_len * 2 + 1);
-		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, post_vars, post_vars_len);
+		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, APM_RD(post_vars).c, post_vars_len);
 	}
 
-	if (referer) {
-		referer_len = strlen(referer);
+	if (APM_RD(referer_found)) {
+		referer_len = strlen(Z_STRVAL_PP(APM_RD(referer)));
 		referer_esc = emalloc(referer_len * 2 + 1);
-		referer_len = mysql_real_escape_string(connection, referer_esc, referer, referer_len);
+		referer_len = mysql_real_escape_string(connection, referer_esc, Z_STRVAL_PP(APM_RD(referer)), referer_len);
 	}
 
 	sql = emalloc(134 + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len);
 	sprintf(
 		sql,
 		"INSERT INTO request (script, uri, host, ip, cookies, post_vars, referer) VALUES ('%s', '%s', '%s', %u, '%s', '%s', '%s')",
-		script ? script_esc : "", uri ? uri_esc : "", host ? host_esc : "", ip_int, cookies ? cookies_esc : "", post_vars ? post_vars_esc : "", referer ? referer_esc : "");
+		script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
@@ -272,18 +276,21 @@ int apm_driver_mysql_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_mysql_insert_stats(float duration TSRMLS_DC)
+void apm_driver_mysql_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC)
 {
 	char *sql = NULL;
 	MYSQL *connection;
 
 	MYSQL_INSTANCE_INIT
 
-	sql = emalloc(90);
+	sql = emalloc(140);
 	sprintf(
 		sql,
-		"INSERT INTO stats (request_id, duration) VALUES (@request_id, %f)",
-		USEC_TO_SEC(duration));
+		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu) VALUES (@request_id, %f, %f, %f)",
+		USEC_TO_SEC(duration),
+		USEC_TO_SEC(user_cpu),
+		USEC_TO_SEC(sys_cpu)
+	);
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)

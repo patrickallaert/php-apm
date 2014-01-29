@@ -55,13 +55,13 @@ typedef struct apm_event_entry {
 } apm_event_entry;
 
 typedef struct apm_driver {
-	void (* insert_request)(char *, char *, char *, char *, char *, char * TSRMLS_DC);
+	void (* insert_request)(TSRMLS_D);
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
 	int (* rshutdown)();
-	void (* insert_stats)(float);
+	void (* insert_stats)(float, float, float);
 	zend_bool (* is_enabled)();
 	zend_bool (* want_event)(int, int, char *);
 	int (* error_reporting)();
@@ -72,6 +72,13 @@ typedef struct apm_driver_entry {
 	apm_driver driver;
 	struct apm_driver_entry *next;
 } apm_driver_entry;
+
+typedef struct apm_request_data {
+	zval **uri, **host, **ip, **referer;
+	zend_bool uri_found, host_found, ip_found, cookies_found, post_vars_found, referer_found;
+	smart_str cookies, post_vars;
+} apm_request_data;
+
 
 #ifdef ZTS
 #define APM_GLOBAL(driver, v) TSRMG(apm_##driver##_globals_id, zend_apm_##driver##_globals *, v)
@@ -156,12 +163,19 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool deffered_processing;
 	/* Time (in ms) before a request is considered for stats */
 	long      stats_duration_threshold;
+	/* User CPU time usage (in ms) before a request is considered for stats */
+	long      stats_user_cpu_threshold;
+	/* System CPU time usage (in ms) before a request is considered for stats */
+	long      stats_sys_cpu_threshold;
 	/* Maximum recursion depth used when dumping a variable */
 	long      dump_max_depth;
 	apm_driver_entry *drivers;
 	apm_event_entry *events;
 	apm_event_entry **last_event;
 	smart_str *buffer;
+
+	/* Structure used to store request data */
+	apm_request_data request_data;
 #ifdef APM_DEBUGFILE
 	FILE * debugfile;
 #endif
@@ -172,6 +186,8 @@ ZEND_END_MODULE_GLOBALS(apm)
 #else
 #define APM_G(v) (apm_globals.v)
 #endif
+
+#define APM_RD(data) APM_G(request_data).data
 
 typedef struct {
 	char *file;
@@ -198,6 +214,49 @@ typedef struct {
 #endif
 
 void * get_script(char ** script_filename);
+
+#define EXTRACT_DATA() \
+zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
+if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&APM_RD(uri)) == SUCCESS) && \
+		(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
+		APM_RD(uri_found) = 1; \
+	} \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&APM_RD(host)) == SUCCESS) && \
+		(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
+		APM_RD(host_found) = 1; \
+	} \
+	if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&APM_RD(ip)) == SUCCESS) && \
+		(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
+		APM_RD(ip_found) = 1; \
+	} \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&APM_RD(referer)) == SUCCESS) && \
+		(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
+		APM_RD(referer_found) = 1; \
+	} \
+} \
+if (APM_G(store_cookies)) { \
+	zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
+	if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &APM_RD(cookies); \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			APM_RD(cookies_found) = 1; \
+		} \
+	} \
+} \
+if (APM_G(store_post)) { \
+	zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
+	if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &APM_RD(post_vars); \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			APM_RD(post_vars_found) = 1; \
+		} \
+	} \
+}
+
+int apm_write(const char *str, uint length);
 
 #endif
 

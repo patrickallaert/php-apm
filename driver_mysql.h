@@ -33,13 +33,13 @@
 #define MYSQL_INSTANCE_INIT MYSQL_INSTANCE_INIT_EX()
 
 apm_driver_entry * apm_driver_mysql_create();
-void apm_driver_mysql_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC);
+void apm_driver_mysql_insert_request(TSRMLS_D);
 void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();
 int apm_driver_mysql_rshutdown();
-void apm_driver_mysql_insert_stats(float duration TSRMLS_DC);
+void apm_driver_mysql_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)

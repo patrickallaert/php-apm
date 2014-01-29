@@ -43,20 +43,18 @@ switch ($_GET["sidx"]) {
     case "duration":
         $order = APM\ORDER_DURATION;
         break;
+    case "user_cpu":
+        $order = APM\ORDER_USER_CPU;
+        break;
+    case "sys_cpu":
+        $order = APM\ORDER_SYS_CPU;
+        break;
     case "id":
     default:
         $order = APM\ORDER_ID;
 }
 
-if (isset($_GET["faulty"])) {
-    $records = $requestService->getFaultyRequestsCount();
-    $data = $requestService->loadFaultyRequests(
-        ($page - 1) * $rows,
-        $rows,
-        $order,
-        ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
-    );
-} elseif (isset($_GET["stats"])) {
+if (isset($_GET["stats"])) {
     $records = $requestService->getStatsCount();
     $data = $requestService->loadStats(
         ($page - 1) * $rows,
@@ -65,8 +63,8 @@ if (isset($_GET["faulty"])) {
         ($_GET["sord"] === "asc") ? APM\ORDER_ASC : APM\ORDER_DESC
     );
 } else {
-    $records = $requestService->getRequestsCount();
-    $data = $requestService->loadRequests(
+    $records = $requestService->getFaultyRequestsCount();
+    $data = $requestService->loadFaultyRequests(
         ($page - 1) * $rows,
         $rows,
         $order,

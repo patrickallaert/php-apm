@@ -152,8 +152,9 @@ CREATE INDEX IF NOT EXISTS event_request ON event (request_id);\n\
 CREATE TABLE IF NOT EXISTS stats (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
     request_id INTEGER,\n\
-    ts INTEGER NOT NULL,\n\
-    duration FLOAT NOT NULL\n\
+    duration FLOAT UNSIGNED NOT NULL,\n\
+    user_cpu FLOAT UNSIGNED NOT NULL,\n\
+    sys_cpu FLOAT UNSIGNED NOT NULL\n\
 );\n\
 CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 			NULL, NULL, NULL)) != SQLITE_OK) {
@@ -165,12 +166,15 @@ CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 }
 
 /* Insert a request in the backend */
-void apm_driver_sqlite3_insert_request(char * uri, char * host, char * ip, char * cookies, char * post_vars, char * referer TSRMLS_DC)
+void apm_driver_sqlite3_insert_request(TSRMLS_D)
 {
 	char *sql, *script;
 	int ip_int = 0, code;
 	struct in_addr ip_addr;
 	sqlite3 *connection;
+	zval *tmp;
+
+	EXTRACT_DATA();
 
 	APM_DEBUG("[SQLite driver] Begin insert request\n", sql);
 	if (APM_S3_G(is_request_created)) {
@@ -182,13 +186,13 @@ void apm_driver_sqlite3_insert_request(char * uri, char * host, char * ip, char 
 
 	get_script(&script);
 
-	if (ip && (inet_pton(AF_INET, ip, &ip_addr) == 1)) {
+	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf("INSERT INTO request (ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
-		                  (long)time(NULL), script ? script : "", uri ? uri : "", host ? host : "", ip_int, cookies ? cookies : "", post_vars ? post_vars : "", referer ? referer : "");
+		                  (long)time(NULL), script ? script : "", APM_RD(uri_found) ? Z_STRVAL_PP(APM_RD(uri)) : "", APM_RD(host_found) ? Z_STRVAL_PP(APM_RD(host)) : "", ip_int, APM_RD(cookies_found) ? APM_RD(cookies).c : "", APM_RD(post_vars_found) ? APM_RD(post_vars).c : "", APM_RD(referer_found) ? Z_STRVAL_PP(APM_RD(referer)) : "");
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
 	if ((code = sqlite3_exec(connection, sql, NULL, NULL, NULL)) != SQLITE_OK)
@@ -243,7 +247,7 @@ int apm_driver_sqlite3_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_insert_stats(float duration TSRMLS_DC)
+void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC)
 {
 	char *sql;
 	sqlite3 *connection;
@@ -252,8 +256,8 @@ void apm_driver_sqlite3_insert_stats(float duration TSRMLS_DC)
 
 	/* Building SQL insert query */
 	sql = sqlite3_mprintf(
-		"INSERT INTO stats (request_id, duration) VALUES (%d, %f)",
-		APM_S3_G(request_id), USEC_TO_SEC(duration)
+		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu) VALUES (%d, %f, %f, %f)",
+		APM_S3_G(request_id), USEC_TO_SEC(duration), USEC_TO_SEC(user_cpu), USEC_TO_SEC(sys_cpu)
 	);
 
 	/* Executing SQL insert query */
