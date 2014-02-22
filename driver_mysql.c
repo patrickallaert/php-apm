@@ -58,9 +58,11 @@ PHP_INI_END()
 
 /* Returns the MYSQL instance (singleton) */
 MYSQL * mysql_get_instance() {
+	my_bool reconnect = 1;
 	if (APM_MY_G(event_db) == NULL) {
 		APM_MY_G(event_db) = malloc(sizeof(MYSQL));
 		mysql_init(APM_MY_G(event_db));
+		mysql_options(APM_MY_G(event_db), MYSQL_OPT_RECONNECT, &reconnect);
 		APM_DEBUG("[MySQL driver] Connecting to server...");
 		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
 			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_MY_G(event_db)));
@@ -262,17 +264,17 @@ int apm_driver_mysql_rinit()
 
 int apm_driver_mysql_mshutdown()
 {
-	return SUCCESS;
-}
-
-int apm_driver_mysql_rshutdown()
-{
 	if (APM_MY_G(event_db) != NULL) {
 		APM_DEBUG("[MySQL driver] Closing connection\n");
 		mysql_close(APM_MY_G(event_db));
 		free(APM_MY_G(event_db));
 		APM_MY_G(event_db) = NULL;
 	}
+	return SUCCESS;
+}
+
+int apm_driver_mysql_rshutdown()
+{
 	return SUCCESS;
 }
 
