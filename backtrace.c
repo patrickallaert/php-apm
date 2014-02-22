@@ -226,6 +226,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 		++indent;
 		if (free_class_name) {
 			efree((char *) free_class_name);
+			free_class_name = NULL;
 		}
 	}
 }
