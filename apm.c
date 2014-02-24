@@ -139,7 +139,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
 	apm_globals->drivers->driver.rshutdown = (int (*)()) NULL;
-	apm_globals->drivers->driver.insert_stats = (void (*)(float, float, float) TSRMLS_DC) NULL;
+	apm_globals->drivers->driver.insert_stats = (void (*)(float, float, float, long) TSRMLS_DC) NULL;
 
 	next = &apm_globals->drivers->next;
 	*next = (apm_driver_entry *) NULL;
@@ -242,6 +242,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	apm_driver_entry * driver_entry;
 	float duration;
+	long mem_peak_usage;
 	float user_cpu = 0;
 	float sys_cpu = 0;
 #ifdef HAVE_GETRUSAGE
@@ -258,6 +259,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 			/* Request longer than accepted threshold ? */
 			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
+			mem_peak_usage = zend_memory_peak_usage(1);
 #ifdef HAVE_GETRUSAGE
 			memset(&usg, 0, sizeof(struct rusage));
 
@@ -279,7 +281,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.is_enabled()) {
 						driver_entry->driver.insert_request(TSRMLS_C);
-						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu TSRMLS_CC);
+						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
 					}
 				}
 				APM_DEBUG("Stats loop end\n");

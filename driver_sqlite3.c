@@ -154,7 +154,8 @@ CREATE TABLE IF NOT EXISTS stats (\n\
     request_id INTEGER,\n\
     duration FLOAT UNSIGNED NOT NULL,\n\
     user_cpu FLOAT UNSIGNED NOT NULL,\n\
-    sys_cpu FLOAT UNSIGNED NOT NULL\n\
+    sys_cpu FLOAT UNSIGNED NOT NULL,\n\
+    mem_peak_usage INTEGER UNSIGNED NOT NULL\n\
 );\n\
 CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 			NULL, NULL, NULL)) != SQLITE_OK) {
@@ -247,7 +248,7 @@ int apm_driver_sqlite3_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC)
+void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC)
 {
 	char *sql;
 	sqlite3 *connection;
@@ -256,8 +257,8 @@ void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_c
 
 	/* Building SQL insert query */
 	sql = sqlite3_mprintf(
-		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu) VALUES (%d, %f, %f, %f)",
-		APM_S3_G(request_id), USEC_TO_SEC(duration), USEC_TO_SEC(user_cpu), USEC_TO_SEC(sys_cpu)
+		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu, mem_peak_usage) VALUES (%d, %f, %f, %f, %d)",
+		APM_S3_G(request_id), USEC_TO_SEC(duration), USEC_TO_SEC(user_cpu), USEC_TO_SEC(sys_cpu), mem_peak_usage
 	);
 
 	/* Executing SQL insert query */

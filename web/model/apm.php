@@ -18,6 +18,7 @@ const ORDER_EVENTS_COUNT = 10;
 const ORDER_DURATION = 11;
 const ORDER_USER_CPU = 12;
 const ORDER_SYS_CPU = 13;
+const ORDER_MEM_PEAK_USAGE = 14;
 
 const ORDER_ASC = 1;
 const ORDER_DESC = 2;
@@ -76,6 +77,7 @@ class RequestInfo {
         switch ($name) {
             case "id":
             case "eventsCount":
+            case "mem_peak_usage":
                 $this->$name = (int)$value;
                 break;
             case "duration":
@@ -437,17 +439,17 @@ SQL;
 
 class Request extends Handler {
     protected $loadRequestQuery = <<<SQL
-SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu
+SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, mem_peak_usage
 FROM request r
 LEFT JOIN stats s ON s.request_id = r.id
 WHERE r.id = %d
 SQL;
     protected $loadRequestsQuery = <<<SQL
-SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, COUNT(e.request_id) AS eventsCount
+SELECT r.id, r.ts AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, mem_peak_usage, COUNT(e.request_id) AS eventsCount
 FROM request r
 LEFT JOIN event e ON e.request_id = r.id
 LEFT JOIN stats s ON s.request_id = r.id
-GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration, user_cpu, sys_cpu
+GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration, user_cpu, sys_cpu, mem_peak_usage
 ORDER BY %s
 LIMIT %d, %d
 SQL;
@@ -460,10 +462,10 @@ ORDER BY %s
 LIMIT %d, %d
 SQL;
     protected $loadStatsQuery = <<<SQL
-SELECT r.id, r.ts AS timestamp, script, uri, host, duration, user_cpu, sys_cpu
+SELECT r.id, r.ts AS timestamp, script, uri, host, duration, user_cpu, sys_cpu, mem_peak_usage
 FROM request r
 JOIN stats s ON s.request_id = r.id
-GROUP BY r.id, r.ts, script, uri, host, duration, user_cpu, sys_cpu
+GROUP BY r.id, r.ts, script, uri, host, duration, user_cpu, sys_cpu, mem_peak_usage
 ORDER BY %s
 LIMIT %d, %d
 SQL;
@@ -490,6 +492,7 @@ SQL;
         APM\ORDER_DURATION => 'duration %1$s, r.id %1$s',
         APM\ORDER_USER_CPU => 'user_cpu %1$s, r.id %1$s',
         APM\ORDER_SYS_CPU => 'sys_cpu %1$s, r.id %1$s',
+        APM\ORDER_MEM_PEAK_USAGE => 'mem_peak_usage %1$s, r.id %1$s',
         APM\ORDER_EVENTS_COUNT => 'eventsCount %1$s, r.id %1$s'
     );
 
@@ -612,17 +615,17 @@ SQL;
 
 class Request extends Handler\PDO\Request {
     protected $loadRequestQuery = <<<SQL
-SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu
+SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, mem_peak_usage
 FROM request r
 LEFT JOIN stats s ON s.request_id = r.id
 WHERE r.id = %d
 SQL;
     protected $loadRequestsQuery = <<<SQL
-SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, COUNT(e.request_id) AS eventsCount
+SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, ip, cookies, post_vars AS postVariables, referer, duration, user_cpu, sys_cpu, mem_peak_usage, COUNT(e.request_id) AS eventsCount
 FROM request r
 LEFT JOIN event e ON e.request_id = r.id
 LEFT JOIN stats s ON s.request_id = r.id
-GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration, user_cpu, sys_cpu
+GROUP BY r.id, r.ts, script, uri, host, ip, cookies, post_vars, referer, duration, user_cpu, sys_cpu, mem_peak_usage
 ORDER BY %s
 LIMIT %d, %d
 SQL;
@@ -635,10 +638,10 @@ ORDER BY %s
 LIMIT %d, %d
 SQL;
     protected $loadStatsQuery = <<<SQL
-SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, duration, user_cpu, sys_cpu
+SELECT r.id, UNIX_TIMESTAMP(r.ts) AS timestamp, script, uri, host, duration, user_cpu, sys_cpu, mem_peak_usage
 FROM request r
 JOIN stats s ON s.request_id = r.id
-GROUP BY r.id, r.ts, script, uri, host, duration, user_cpu, sys_cpu
+GROUP BY r.id, r.ts, script, uri, host, duration, user_cpu, sys_cpu, mem_peak_usage
 ORDER BY %s
 LIMIT %d, %d
 SQL;

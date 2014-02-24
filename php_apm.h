@@ -61,7 +61,7 @@ typedef struct apm_driver {
 	int (* rinit)();
 	int (* mshutdown)();
 	int (* rshutdown)();
-	void (* insert_stats)(float, float, float);
+	void (* insert_stats)(float, float, float, long);
 	zend_bool (* is_enabled)();
 	zend_bool (* want_event)(int, int, char *);
 	int (* error_reporting)();

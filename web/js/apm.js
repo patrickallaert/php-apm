@@ -39,7 +39,7 @@ jQuery(document).ready(function(){
         url: 'requests.php?stats',
         datatype: 'json',
         mtype: 'GET',
-        colNames :['#', 'Time', 'Host', 'URL', 'Script', 'Duration', 'User CPU', 'Sys CPU'],
+        colNames :['#', 'Time', 'Host', 'URL', 'Script', 'Duration', 'User CPU', 'Sys CPU', 'Mem. Peak Usage'],
         colModel :[
             {name:'id', index:'id', width:40},
             {name:'timestamp', index:'timestamp', width:130},
@@ -47,8 +47,9 @@ jQuery(document).ready(function(){
             {name:'uri', index:'uri', width:400, sortable:true},
             {name:'script', index:'script', width:400},
             {name:'duration', index:'duration', width:50},
-            {name:'user_cpu', index:'user_cpu', width:50},
-            {name:'sys_cpu', index:'sys_cpu', width:50}
+            {name:'user_cpu', index:'user_cpu', width:60},
+            {name:'sys_cpu', index:'sys_cpu', width:50},
+            {name:'mem_peak_usage', index:'mem_peak_usage', width:80}
         ],
         pager: '#stats-pager',
         rowNum: 30,

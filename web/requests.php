@@ -49,6 +49,9 @@ switch ($_GET["sidx"]) {
     case "sys_cpu":
         $order = APM\ORDER_SYS_CPU;
         break;
+    case "mem_peak_usage":
+        $order = APM\ORDER_MEM_PEAK_USAGE;
+        break;
     case "id":
     default:
         $order = APM\ORDER_ID;

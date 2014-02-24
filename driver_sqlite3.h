@@ -39,7 +39,7 @@ int apm_driver_sqlite3_minit(int);
 int apm_driver_sqlite3_rinit();
 int apm_driver_sqlite3_mshutdown();
 int apm_driver_sqlite3_rshutdown();
-void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC);
+void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)

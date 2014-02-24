@@ -73,6 +73,10 @@ require "header.html";
                   <td>System CPU:</td>
                   <td><pre><?php echo (float) $request->sys_cpu ?>s</pre></td>
                 </tr>
+                <tr>
+                  <td>Memory Peak Usage:</td>
+                  <td><pre><?php echo (int) $request->mem_peak_usage ?> bytes</pre></td>
+                </tr>
             </table>
           <?php
           }

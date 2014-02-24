@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS stats (\
     duration FLOAT UNSIGNED NOT NULL,\
     user_cpu FLOAT UNSIGNED NOT NULL,\
     sys_cpu FLOAT UNSIGNED NOT NULL,\
+    mem_peak_usage INTEGER UNSIGNED NOT NULL,\
     KEY request (request_id)\
 )"
 		);
@@ -278,20 +279,21 @@ int apm_driver_mysql_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_mysql_insert_stats(float duration, float user_cpu, float sys_cpu TSRMLS_DC)
+void apm_driver_mysql_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC)
 {
 	char *sql = NULL;
 	MYSQL *connection;
 
 	MYSQL_INSTANCE_INIT
 
-	sql = emalloc(140);
+	sql = emalloc(170);
 	sprintf(
 		sql,
-		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu) VALUES (@request_id, %f, %f, %f)",
+		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu, mem_peak_usage) VALUES (@request_id, %f, %f, %f, %ld)",
 		USEC_TO_SEC(duration),
 		USEC_TO_SEC(user_cpu),
-		USEC_TO_SEC(sys_cpu)
+		USEC_TO_SEC(sys_cpu),
+		mem_peak_usage
 	);
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
