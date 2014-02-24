@@ -63,15 +63,15 @@ require "header.html";
               <?php endif; ?>
                 <tr>
                   <td>Duration:</td>
-                  <td><pre><?php echo htmlentities($request->duration, ENT_COMPAT, "UTF-8") ?></pre></td>
+                  <td><pre><?php echo (float) $request->duration ?>s</pre></td>
                 </tr>
                 <tr>
                   <td>User CPU:</td>
-                  <td><pre><?php echo htmlentities($request->user_cpu, ENT_COMPAT, "UTF-8") ?></pre></td>
+                  <td><pre><?php echo (float) $request->user_cpu ?>s</pre></td>
                 </tr>
                 <tr>
                   <td>System CPU:</td>
-                  <td><pre><?php echo htmlentities($request->sys_cpu, ENT_COMPAT, "UTF-8") ?></pre></td>
+                  <td><pre><?php echo (float) $request->sys_cpu ?>s</pre></td>
                 </tr>
             </table>
           <?php
