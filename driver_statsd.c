@@ -48,9 +48,9 @@ PHP_INI_BEGIN()
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL,  PHP_INI_ALL,    OnUpdateAPMstatsdErrorReporting,   error_reporting, zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD host */
-	STD_PHP_INI_ENTRY("apm.statsd_host",      "localhost", PHP_INI_ALL,    OnUpdateString, host,    zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_host",      "localhost", PHP_INI_PERDIR,    OnUpdateString, host,    zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD port */
-	STD_PHP_INI_ENTRY("apm.statsd_port",      "8125",      PHP_INI_ALL,    OnUpdateLong,   port,    zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_port",      "8125",      PHP_INI_PERDIR,    OnUpdateLong,   port,    zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD port */
 	STD_PHP_INI_ENTRY("apm.statsd_prefix",    "apm",       PHP_INI_ALL,    OnUpdateString, prefix,  zend_apm_statsd_globals, apm_statsd_globals)
 PHP_INI_END()
@@ -65,18 +65,10 @@ void apm_driver_statsd_insert_request(TSRMLS_D)
 void apm_driver_statsd_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
 {
 	int socketDescriptor;
-	struct addrinfo hints, *servinfo;
-	char data[1024], port[8], type_string[20];
-	
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
-	
-	sprintf(port, "%u", APM_SD_G(port));
-	
+	char data[1024], type_string[20];
+
 	if (
-		getaddrinfo(APM_SD_G(host), port, &hints, &servinfo) == 0
-		&& (socketDescriptor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) != -1
+		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
 	) {
 		switch(type) {
 			case E_ERROR:
@@ -129,15 +121,28 @@ void apm_driver_statsd_insert_event(int type, char * error_filename, uint error_
 		}
 
 		sprintf(data, "%s.%s:1|ms", APM_SD_G(prefix), type_string);
-		if (sendto(socketDescriptor, data, strlen(data), 0, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {/* cannot send */ }
-	
+		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
+
 		close(socketDescriptor);
 	}
 }
 
 int apm_driver_statsd_minit(int module_number)
 {
+	struct addrinfo hints;
+	char port[8];
+
 	REGISTER_INI_ENTRIES();
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	sprintf(port, "%u", APM_SD_G(port));
+
+	if (getaddrinfo(APM_SD_G(host), port, &hints, &APM_SD_G(servinfo)) != 0) {
+		APM_SD_G(enabled) = 0;
+	}
 	return SUCCESS;
 }
 
@@ -148,6 +153,8 @@ int apm_driver_statsd_rinit()
 
 int apm_driver_statsd_mshutdown()
 {
+	freeaddrinfo(APM_SD_G(servinfo));
+
 	return SUCCESS;
 }
 
@@ -159,23 +166,15 @@ int apm_driver_statsd_rshutdown()
 void apm_driver_statsd_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC)
 {
 	int socketDescriptor;
-	struct addrinfo hints, *servinfo;
-	char data[1024], port[8];
-	
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
-	
-	sprintf(port, "%u", APM_SD_G(port));
-	
+	char data[1024];
+
 	if (
-		getaddrinfo(APM_SD_G(host), port, &hints, &servinfo) == 0
-		&& (socketDescriptor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) != -1
+		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
 	) {
-	
+
 		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g", APM_SD_G(prefix), duration / 1000, user_cpu / 1000, sys_cpu / 1000, mem_peak_usage);
-		if (sendto(socketDescriptor, data, strlen(data), 0, servinfo->ai_addr, servinfo->ai_addrlen) == -1) {/* cannot send */ }
-	
+		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
+
 		close(socketDescriptor);
 	}
 }

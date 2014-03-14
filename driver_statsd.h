@@ -54,6 +54,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_statsd)
 
 	/* StatsD key prefix */
 	char *prefix;
+	
+	/* addinfo for StatsD server */
+	struct addrinfo *servinfo;
 ZEND_END_MODULE_GLOBALS(apm_statsd)
 
 #ifdef ZTS
