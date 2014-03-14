@@ -31,6 +31,8 @@ PHP_ARG_WITH(sqlite3, enable support for sqlite3,
 [  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
 PHP_ARG_WITH(mysql, enable support for MySQL,
 [  --with-mysql=DIR        Location of MySQL base directory], no, no)
+PHP_ARG_ENABLE(statsd, enable support for statsd,
+[  --enable-statsd         Enable statsd support], yes, no)
 PHP_ARG_WITH(debugfile, enable support for MySQL,
 [  --with-debugfile=[FILE] Location of debugging file (/tmp/apm.debug by default)], no, no)
 
@@ -161,6 +163,11 @@ if test "$PHP_APM" != "no"; then
     AC_DEFINE(HAVE_MYSQL,1,[MySQL found and included])
   fi
 
-  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver, $ext_shared)
+  if test "$PHP_STATSD" != "no"; then
+    statsd_driver="driver_statsd.c"
+    AC_DEFINE(APM_DRIVER_STATSD, 1, [activate statsd driver])
+  fi
+
+  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver $statsd_driver, $ext_shared)
   PHP_SUBST(APM_SHARED_LIBADD)
 fi
