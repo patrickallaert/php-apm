@@ -123,10 +123,12 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.deffered_processing",  "1",   PHP_INI_PERDIR, OnUpdateBool, deffered_processing,zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered for stats */
 	STD_PHP_INI_ENTRY("apm.stats_duration_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_duration_threshold, zend_apm_globals, apm_globals)
+#ifdef HAVE_GETRUSAGE
 	/* User CPU time usage (in ms) before a request is considered for stats */
 	STD_PHP_INI_ENTRY("apm.stats_user_cpu_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_user_cpu_threshold, zend_apm_globals, apm_globals)
 	/* System CPU time usage (in ms) before a request is considered for stats */
 	STD_PHP_INI_ENTRY("apm.stats_sys_cpu_threshold",  "10", PHP_INI_ALL, OnUpdateLong, stats_sys_cpu_threshold, zend_apm_globals, apm_globals)
+#endif
 	/* Maximum recursion depth used when dumping a variable */
 	STD_PHP_INI_ENTRY("apm.dump_max_depth",         "4",   PHP_INI_ALL, OnUpdateLong, dump_max_depth,        zend_apm_globals, apm_globals)
 PHP_INI_END()
