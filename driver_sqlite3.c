@@ -90,7 +90,7 @@ PHP_INI_BEGIN()
 	/* Boolean controlling whether the driver is active or not */
 	STD_PHP_INI_BOOLEAN("apm.sqlite_enabled",                "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled,         zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.sqlite_stats_enabled",          "0",               PHP_INI_PERDIR, OnUpdateBool,   stats_enabled,   zend_apm_sqlite3_globals, apm_sqlite3_globals)
+	STD_PHP_INI_BOOLEAN("apm.sqlite_stats_enabled",          "0",               PHP_INI_ALL, OnUpdateBool,   stats_enabled,   zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
 	STD_PHP_INI_ENTRY("apm.sqlite_exception_mode",         "1",               PHP_INI_PERDIR, OnUpdateLongGEZero,   exception_mode,  zend_apm_sqlite3_globals, apm_sqlite3_globals)
 	/* error_reporting of the driver */
