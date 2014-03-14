@@ -64,6 +64,7 @@ typedef struct apm_driver {
 	void (* insert_stats)(float, float, float, long);
 	zend_bool (* is_enabled)();
 	zend_bool (* want_event)(int, int, char *);
+	zend_bool (* want_stats)();
 	int (* error_reporting)();
 	zend_bool is_request_created;
 } apm_driver;
@@ -108,6 +109,14 @@ zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *
 		) \
 	; \
 } \
+zend_bool apm_driver_##name##_want_stats() { \
+	return \
+		APM_GLOBAL(name, enabled) \
+		&& ( \
+			APM_GLOBAL(name, stats_enabled)\
+		) \
+	; \
+} \
 apm_driver_entry * apm_driver_##name##_create() \
 { \
 	apm_driver_entry * driver_entry; \
@@ -122,6 +131,7 @@ apm_driver_entry * apm_driver_##name##_create() \
 	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
 	driver_entry->driver.error_reporting = apm_driver_##name##_error_reporting; \
 	driver_entry->driver.want_event = apm_driver_##name##_want_event; \
+	driver_entry->driver.want_stats = apm_driver_##name##_want_stats; \
 	driver_entry->driver.is_request_created = 0; \
 	driver_entry->next = NULL; \
 	return driver_entry; \
@@ -149,8 +159,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool enabled;
 	/* Boolean controlling whether the event monitoring is active or not */
 	zend_bool event_enabled;
-	/* Boolean controlling whether the stats monitoring is active or not */
-	zend_bool stats_enabled;
 	/* Boolean controlling whether the stacktrace should be generated or not */
 	zend_bool store_stacktrace;
 	/* Boolean controlling whether the ip should be generated or not */

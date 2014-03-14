@@ -37,6 +37,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_statsd)
 	/* Boolean controlling whether the driver is active or not */
 	zend_bool enabled;
 
+	/* Boolean controlling the collection of stats */
+	zend_bool stats_enabled;
+
 	/* (unused for StatsD) */
 	long exception_mode;
 

@@ -109,8 +109,6 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.enabled",              "1",   PHP_INI_ALL, OnUpdateBool, enabled,               zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.event_enabled",        "1",   PHP_INI_ALL, OnUpdateBool, event_enabled,         zend_apm_globals, apm_globals)
-	/* Boolean controlling whether the stats monitoring is active or not */
-	STD_PHP_INI_BOOLEAN("apm.stats_enabled", "1",   PHP_INI_ALL, OnUpdateBool, stats_enabled,  zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace",     "1",   PHP_INI_ALL, OnUpdateBool, store_stacktrace,      zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the ip should be stored or not */
@@ -261,9 +259,15 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	char *script_filename = NULL;
 	apm_event_entry * event_entry_cursor = NULL;
 	apm_event_entry * event_entry_cursor_next = NULL;
+	zend_bool stats_enabled = 0;
 
 	if (APM_G(enabled)) {
-		if (APM_G(stats_enabled)) {
+		driver_entry = APM_G(drivers);
+		while ((driver_entry = driver_entry->next) != NULL && stats_enabled == 0) {
+			stats_enabled = driver_entry->driver.want_stats();
+		}
+
+		if (stats_enabled) {
 			gettimeofday(&end_tp, NULL);
 
 			/* Request longer than accepted threshold ? */
@@ -288,7 +292,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				driver_entry = APM_G(drivers);
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
-					if (driver_entry->driver.is_enabled()) {
+					if (driver_entry->driver.want_stats()) {
 						driver_entry->driver.insert_request(TSRMLS_C);
 						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
 					}
