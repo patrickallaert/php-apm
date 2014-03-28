@@ -208,7 +208,7 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 }
 
 /* Insert an event in the backend */
-void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
+void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 {
 	char *sql;
 	struct in_addr ip_addr;
@@ -252,7 +252,7 @@ int apm_driver_sqlite3_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC)
+void apm_driver_sqlite3_process_stats(PROCESS_STATS_ARGS)
 {
 	char *sql;
 	sqlite3 *connection;

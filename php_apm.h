@@ -40,13 +40,16 @@ extern zend_module_entry apm_module_entry;
 #define APM_EVENT_ERROR 1
 #define APM_EVENT_EXCEPTION 2
 
+#define PROCESS_EVENT_ARGS int type, char * error_filename, uint error_lineno, char * msg, char * trace  TSRMLS_DC
+#define PROCESS_STATS_ARGS float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC
+
 typedef struct apm_driver {
-	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
+	void (* process_event)(PROCESS_EVENT_ARGS);
+	void (* process_stats)(PROCESS_STATS_ARGS);
 	int (* minit)(int);
 	int (* rinit)();
 	int (* mshutdown)();
 	int (* rshutdown)();
-	void (* insert_stats)(float, float, float, long);
 	zend_bool (* is_enabled)();
 	zend_bool (* want_event)(int, int, char *);
 	zend_bool (* want_stats)();
@@ -106,12 +109,12 @@ apm_driver_entry * apm_driver_##name##_create() \
 { \
 	apm_driver_entry * driver_entry; \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
-	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
+	driver_entry->driver.process_event = apm_driver_##name##_process_event; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \
 	driver_entry->driver.mshutdown = apm_driver_##name##_mshutdown; \
 	driver_entry->driver.rshutdown = apm_driver_##name##_rshutdown; \
-	driver_entry->driver.insert_stats = apm_driver_##name##_insert_stats; \
+	driver_entry->driver.process_stats = apm_driver_##name##_process_stats; \
 	driver_entry->driver.is_enabled = apm_driver_##name##_is_enabled; \
 	driver_entry->driver.error_reporting = apm_driver_##name##_error_reporting; \
 	driver_entry->driver.want_event = apm_driver_##name##_want_event; \

@@ -70,7 +70,7 @@ void apm_error_cb(int type, const char *error_filename,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
-static void insert_event(int, int, char *, uint, char * TSRMLS_DC);
+static void process_event(int, int, char *, uint, char * TSRMLS_DC);
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
@@ -133,8 +133,8 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
-	apm_globals->drivers->driver.insert_stats = (void (*)(float, float, float, long) TSRMLS_DC) NULL;
+	apm_globals->drivers->driver.process_event = (void (*)(PROCESS_EVENT_ARGS)) NULL;
+	apm_globals->drivers->driver.process_stats = (void (*)(PROCESS_STATS_ARGS) TSRMLS_DC) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -278,7 +278,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.want_stats()) {
-						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
+						driver_entry->driver.process_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
 					}
 				}
 				APM_DEBUG("Stats loop end\n");
@@ -333,7 +333,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	va_end(args_copy);
 	
 	if (APM_G(event_enabled)) {
-		insert_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
+		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
 	}
 	efree(msg);
 
@@ -362,12 +362,12 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-		insert_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+		process_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
 }
 
 /* Insert an event in the backend */
-static void insert_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
+static void process_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
@@ -378,10 +378,10 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 	}
 
 	driver_entry = APM_G(drivers);
-	APM_DEBUG("Direct processing insert_event loop begin\n");
+	APM_DEBUG("Direct processing process_event loop begin\n");
 	while ((driver_entry = driver_entry->next) != NULL) {
 		if (driver_entry->driver.want_event(event_type, type, msg)) {
-			driver_entry->driver.insert_event(
+			driver_entry->driver.process_event(
 				type,
 				error_filename,
 				error_lineno,
@@ -391,7 +391,7 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 			);
 		}
 	}
-	APM_DEBUG("Direct processing insert_event loop end\n");
+	APM_DEBUG("Direct processing process_event loop end\n");
 
 	smart_str_free(&trace_str);
 }

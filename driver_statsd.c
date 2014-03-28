@@ -56,7 +56,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Insert an event in the backend */
-void apm_driver_statsd_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
+void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
 {
 	int socketDescriptor;
 	char data[1024], type_string[20];
@@ -157,7 +157,7 @@ int apm_driver_statsd_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_statsd_insert_stats(float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC)
+void apm_driver_statsd_process_stats(PROCESS_STATS_ARGS)
 {
 	int socketDescriptor;
 	char data[1024];
