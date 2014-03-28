@@ -40,20 +40,6 @@ extern zend_module_entry apm_module_entry;
 #define APM_EVENT_ERROR 1
 #define APM_EVENT_EXCEPTION 2
 
-typedef struct apm_event {
-	int event_type;
-	int type;
-	char * error_filename;
-	uint error_lineno;
-	char * msg;
-	char * trace;
-} apm_event;
-
-typedef struct apm_event_entry {
-	apm_event event;
-	struct apm_event_entry *next;
-} apm_event_entry;
-
 typedef struct apm_driver {
 	void (* insert_request)(TSRMLS_D);
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
@@ -167,8 +153,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool store_cookies;
 	/* Boolean controlling whether the POST variables should be generated or not */
 	zend_bool store_post;
-	/* Boolean controlling whether the processing of events by drivers should be deffered at the end of the request */
-	zend_bool deffered_processing;
 	/* Time (in ms) before a request is considered for stats */
 	long      stats_duration_threshold;
 	/* User CPU time usage (in ms) before a request is considered for stats */
@@ -178,8 +162,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	/* Maximum recursion depth used when dumping a variable */
 	long      dump_max_depth;
 	apm_driver_entry *drivers;
-	apm_event_entry *events;
-	apm_event_entry **last_event;
 	smart_str *buffer;
 
 	/* Structure used to store request data */
@@ -196,21 +178,6 @@ ZEND_END_MODULE_GLOBALS(apm)
 #endif
 
 #define APM_RD(data) APM_G(request_data).data
-
-typedef struct {
-	char *file;
-	long line;
-	long type;
-	long ts;
-	char *message;
-	char *stacktrace;
-	long ip;
-	char *cookies;
-	char *host;
-	char *uri;
-	char *post_vars;
-	char *referer;
-} apm_event_info;
 
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
 #define USEC_TO_SEC(usec) ((usec) / 1000000.00)
