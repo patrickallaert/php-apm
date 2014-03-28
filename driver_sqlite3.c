@@ -214,6 +214,8 @@ void apm_driver_sqlite3_insert_event(int type, char * error_filename, uint error
 	struct in_addr ip_addr;
 	sqlite3 *connection;
 
+	apm_driver_sqlite3_insert_request();
+
 	SQLITE_INSTANCE_INIT
 
 	/* Builing SQL insert query */
@@ -254,6 +256,8 @@ void apm_driver_sqlite3_insert_stats(float duration, float user_cpu, float sys_c
 {
 	char *sql;
 	sqlite3 *connection;
+
+	apm_driver_sqlite3_insert_request();
 
 	SQLITE_INSTANCE_INIT
 

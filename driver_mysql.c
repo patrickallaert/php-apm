@@ -217,6 +217,8 @@ void apm_driver_mysql_insert_event(int type, char * error_filename, uint error_l
 	int filename_len = 0, msg_len = 0, trace_len = 0;
 	MYSQL *connection;
 
+	apm_driver_mysql_insert_request();
+
 	MYSQL_INSTANCE_INIT
 
 	if (error_filename) {
@@ -285,6 +287,8 @@ void apm_driver_mysql_insert_stats(float duration, float user_cpu, float sys_cpu
 {
 	char *sql = NULL;
 	MYSQL *connection;
+
+	apm_driver_mysql_insert_request();
 
 	MYSQL_INSTANCE_INIT
 

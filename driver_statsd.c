@@ -55,12 +55,6 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.statsd_prefix",    "apm",       PHP_INI_ALL,    OnUpdateString, prefix,  zend_apm_statsd_globals, apm_statsd_globals)
 PHP_INI_END()
 
-
-/* Insert a request in the backend */
-void apm_driver_statsd_insert_request(TSRMLS_D)
-{
-}
-
 /* Insert an event in the backend */
 void apm_driver_statsd_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC)
 {

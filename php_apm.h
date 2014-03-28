@@ -41,7 +41,6 @@ extern zend_module_entry apm_module_entry;
 #define APM_EVENT_EXCEPTION 2
 
 typedef struct apm_driver {
-	void (* insert_request)(TSRMLS_D);
 	void (* insert_event)(int, char *, uint, char *, char * TSRMLS_DC);
 	int (* minit)(int);
 	int (* rinit)();
@@ -107,7 +106,6 @@ apm_driver_entry * apm_driver_##name##_create() \
 { \
 	apm_driver_entry * driver_entry; \
 	driver_entry = (apm_driver_entry *) malloc(sizeof(apm_driver_entry)); \
-	driver_entry->driver.insert_request = apm_driver_##name##_insert_request; \
 	driver_entry->driver.insert_event = apm_driver_##name##_insert_event; \
 	driver_entry->driver.minit = apm_driver_##name##_minit; \
 	driver_entry->driver.rinit = apm_driver_##name##_rinit; \

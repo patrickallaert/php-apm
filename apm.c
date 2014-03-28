@@ -133,7 +133,6 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_driver_entry **next;
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
-	apm_globals->drivers->driver.insert_request = (void (*)(TSRMLS_D)) NULL;
 	apm_globals->drivers->driver.insert_event = (void (*)(int, char *, uint, char *, char * TSRMLS_DC)) NULL;
 	apm_globals->drivers->driver.insert_stats = (void (*)(float, float, float, long) TSRMLS_DC) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
@@ -279,7 +278,6 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.want_stats()) {
-						driver_entry->driver.insert_request(TSRMLS_C);
 						driver_entry->driver.insert_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
 					}
 				}
@@ -383,8 +381,6 @@ static void insert_event(int event_type, int type, char * error_filename, uint e
 	APM_DEBUG("Direct processing insert_event loop begin\n");
 	while ((driver_entry = driver_entry->next) != NULL) {
 		if (driver_entry->driver.want_event(event_type, type, msg)) {
-			driver_entry->driver.insert_request(TSRMLS_C);
-
 			driver_entry->driver.insert_event(
 				type,
 				error_filename,

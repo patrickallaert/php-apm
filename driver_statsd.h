@@ -24,7 +24,6 @@
 #define APM_E_statsd APM_E_ALL
 
 apm_driver_entry * apm_driver_statsd_create();
-void apm_driver_statsd_insert_request(TSRMLS_D);
 void apm_driver_statsd_insert_event(int type, char * error_filename, uint error_lineno, char * msg, char * trace TSRMLS_DC);
 int apm_driver_statsd_minit(int);
 int apm_driver_statsd_rinit();
