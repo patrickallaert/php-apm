@@ -56,6 +56,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.mysql_pass",            "",                PHP_INI_PERDIR, OnUpdateString, db_pass,             zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql database */
 	STD_PHP_INI_ENTRY("apm.mysql_db",              "apm",             PHP_INI_PERDIR, OnUpdateString, db_name,             zend_apm_mysql_globals, apm_mysql_globals)
+	/* process silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1",       PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
 PHP_INI_END()
 
 /* Returns the MYSQL instance (singleton) */

@@ -47,6 +47,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL,  PHP_INI_ALL,    OnUpdateAPMsocketErrorReporting,   error_reporting, zend_apm_socket_globals, apm_socket_globals)
 	/* Socket path */
 	STD_PHP_INI_ENTRY("apm.socket_path",      "file:/tmp/apm.sock|tcp:127.0.0.1:8264", PHP_INI_PERDIR,    OnUpdateString, path,    zend_apm_socket_globals, apm_socket_globals)
+	/* process silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_socket_globals, apm_socket_globals)
 PHP_INI_END()
 
 /* Insert an event in the backend */

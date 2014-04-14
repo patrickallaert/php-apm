@@ -48,7 +48,10 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_socket)
 
 	/* (unused for StatsD) */
 	int error_reporting;
-	
+
+	/* Option to process silenced events */
+	zend_bool process_silenced_events;
+
 	/* socket path */
 	char *path;
 

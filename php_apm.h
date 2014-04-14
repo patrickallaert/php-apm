@@ -109,6 +109,9 @@ zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *
 			|| \
 			(event_type == APM_EVENT_ERROR && ((APM_GLOBAL(name, exception_mode) == 1) || (strncmp(msg, "Uncaught exception", 18) != 0)) && (error_level & APM_GLOBAL(name, error_reporting))) \
 		) \
+		&& ( \
+			!APM_G(currently_silenced) || APM_GLOBAL(name, process_silenced_events) \
+		) \
 	; \
 } \
 zend_bool apm_driver_##name##_want_stats() { \
@@ -176,6 +179,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	long      stats_sys_cpu_threshold;
 	/* Maximum recursion depth used when dumping a variable */
 	long      dump_max_depth;
+	/* Determines whether we're currently silenced */
+	zend_bool currently_silenced;
+
 	apm_driver_entry *drivers;
 	smart_str *buffer;
 

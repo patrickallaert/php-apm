@@ -72,6 +72,10 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
 
 	/* Boolean to ensure request content is only inserted once */
 	zend_bool is_request_created;
+
+	/* Option to process silenced events */
+	zend_bool process_silenced_events;
+
 ZEND_END_MODULE_GLOBALS(apm_sqlite3)
 
 #ifdef ZTS

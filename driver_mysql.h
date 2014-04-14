@@ -63,6 +63,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
 	char         *db_name;
 	/* DB handle */
 	MYSQL        *event_db;
+	/* Option to process silenced events */
+	zend_bool process_silenced_events;
 
 	/* Boolean to ensure request content is only inserted once */
 	zend_bool is_request_created;

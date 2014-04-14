@@ -56,6 +56,33 @@ static PHP_GINIT_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
+#if PHP_VERSION_ID < 50300
+typedef opcode_handler_t user_opcode_handler_t;
+#endif
+
+static user_opcode_handler_t _orig_begin_silence_opcode_handler = NULL;
+static user_opcode_handler_t _orig_end_silence_opcode_handler = NULL;
+
+static int apm_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+{
+	APM_G(currently_silenced) = 1;
+
+	if (_orig_begin_silence_opcode_handler)
+		return _orig_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+
+	return ZEND_USER_OPCODE_DISPATCH;
+}
+
+static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+{
+	APM_G(currently_silenced) = 0;
+
+	if (_orig_end_silence_opcode_handler)
+		return _orig_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+
+	return ZEND_USER_OPCODE_DISPATCH;
+}
+
 int apm_write(const char *str, uint length) {
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
@@ -89,7 +116,7 @@ zend_module_entry apm_module_entry = {
 	NULL,
 	PHP_MINIT(apm),
 	PHP_MSHUTDOWN(apm),
-	PHP_RINIT(apm),	
+	PHP_RINIT(apm),
 	PHP_RSHUTDOWN(apm),
 	PHP_MINFO(apm),
 #if ZEND_MODULE_API_NO >= 20010901
@@ -171,7 +198,15 @@ PHP_MINIT_FUNCTION(apm)
 
 	/* Storing actual error callback function for later restore */
 	old_error_cb = zend_error_cb;
-	
+
+	/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
+	_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
+	zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
+
+	_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
+	zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
+
+	/* Initialize the storage drivers */
 	if (APM_G(enabled)) {
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
@@ -338,7 +373,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	va_copy(args_copy, args);
 	vspprintf(&msg, 0, format, args_copy);
 	va_end(args_copy);
-	
+
 	if (APM_G(event_enabled)) {
 		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
 	}
