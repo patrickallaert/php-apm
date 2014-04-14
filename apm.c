@@ -46,6 +46,9 @@
 #ifdef APM_DRIVER_STATSD
   #include "driver_statsd.h"
 #endif
+#ifdef APM_DRIVER_SOCKET
+  #include "driver_socket.h"
+#endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 static PHP_GINIT_FUNCTION(apm);
@@ -152,6 +155,10 @@ static PHP_GINIT_FUNCTION(apm)
 #endif
 #ifdef APM_DRIVER_STATSD
 	*next = apm_driver_statsd_create();
+	next = &(*next)->next;
+#endif
+#ifdef APM_DRIVER_SOCKET
+	*next = apm_driver_socket_create();
 	next = &(*next)->next;
 #endif
 }

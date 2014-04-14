@@ -43,6 +43,20 @@ extern zend_module_entry apm_module_entry;
 #define PROCESS_EVENT_ARGS int type, char * error_filename, uint error_lineno, char * msg, char * trace  TSRMLS_DC
 #define PROCESS_STATS_ARGS float duration, float user_cpu, float sys_cpu, long mem_peak_usage TSRMLS_DC
 
+typedef struct apm_event {
+	int event_type;
+	int type;
+	char * error_filename;
+	uint error_lineno;
+	char * msg;
+	char * trace;
+} apm_event;
+
+typedef struct apm_event_entry {
+	apm_event event;
+	struct apm_event_entry *next;
+} apm_event_entry;
+
 typedef struct apm_driver {
 	void (* process_event)(PROCESS_EVENT_ARGS);
 	void (* process_stats)(PROCESS_STATS_ARGS);

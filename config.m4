@@ -33,6 +33,8 @@ PHP_ARG_WITH(mysql, enable support for MySQL,
 [  --with-mysql=DIR        Location of MySQL base directory], no, no)
 PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
+PHP_ARG_ENABLE(socket, enable support for socket,
+[  --enable-socket         Enable socket support], yes, no)
 PHP_ARG_WITH(debugfile, enable support for MySQL,
 [  --with-debugfile=[FILE] Location of debugging file (/tmp/apm.debug by default)], no, no)
 
@@ -168,6 +170,11 @@ if test "$PHP_APM" != "no"; then
     AC_DEFINE(APM_DRIVER_STATSD, 1, [activate statsd driver])
   fi
 
-  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver $statsd_driver, $ext_shared)
+  if test "$PHP_SOCKET" != "no"; then
+    socket_driver="driver_socket.c"
+    AC_DEFINE(APM_DRIVER_SOCKET, 1, [activate socket driver])
+  fi
+
+  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver $statsd_driver $socket_driver, $ext_shared)
   PHP_SUBST(APM_SHARED_LIBADD)
 fi
