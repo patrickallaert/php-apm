@@ -38,16 +38,16 @@
 #include "backtrace.h"
 #include "ext/standard/info.h"
 #ifdef APM_DRIVER_SQLITE3
-  #include "driver_sqlite3.h"
+	#include "driver_sqlite3.h"
 #endif
 #ifdef APM_DRIVER_MYSQL
-  #include "driver_mysql.h"
+	#include "driver_mysql.h"
 #endif
 #ifdef APM_DRIVER_STATSD
-  #include "driver_statsd.h"
+	#include "driver_statsd.h"
 #endif
 #ifdef APM_DRIVER_SOCKET
-  #include "driver_socket.h"
+	#include "driver_socket.h"
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
@@ -90,13 +90,9 @@ int apm_write(const char *str, uint length) {
 	return length;
 }
 
-void (*old_error_cb)(int type, const char *error_filename,
-                     const uint error_lineno, const char *format,
-                     va_list args);
+void (*old_error_cb)(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
 
-void apm_error_cb(int type, const char *error_filename,
-                  const uint error_lineno, const char *format,
-                  va_list args);
+void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
@@ -135,29 +131,29 @@ ZEND_GET_MODULE(apm)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the extension is globally active or not */
-	STD_PHP_INI_BOOLEAN("apm.enabled",              "1",   PHP_INI_ALL, OnUpdateBool, enabled,               zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.enabled", "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_apm_globals, apm_globals)
 	/* Application identifier, helps identifying which application is being monitored */
-	STD_PHP_INI_ENTRY("apm.application_id",         "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.application_id", "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
-	STD_PHP_INI_BOOLEAN("apm.event_enabled",        "1",   PHP_INI_ALL, OnUpdateBool, event_enabled,         zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.event_enabled", "1", PHP_INI_ALL, OnUpdateBool, event_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the stacktrace should be stored or not */
-	STD_PHP_INI_BOOLEAN("apm.store_stacktrace",     "1",   PHP_INI_ALL, OnUpdateBool, store_stacktrace,      zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.store_stacktrace", "1", PHP_INI_ALL, OnUpdateBool, store_stacktrace, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the ip should be stored or not */
-	STD_PHP_INI_BOOLEAN("apm.store_ip",             "1",   PHP_INI_ALL, OnUpdateBool, store_ip,              zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.store_ip", "1", PHP_INI_ALL, OnUpdateBool, store_ip, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the cookies should be stored or not */
-	STD_PHP_INI_BOOLEAN("apm.store_cookies",        "1",   PHP_INI_ALL, OnUpdateBool, store_cookies,         zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.store_cookies", "1", PHP_INI_ALL, OnUpdateBool, store_cookies, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the POST variables should be stored or not */
-	STD_PHP_INI_BOOLEAN("apm.store_post",           "1",   PHP_INI_ALL, OnUpdateBool, store_post,            zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.store_post", "1", PHP_INI_ALL, OnUpdateBool, store_post, zend_apm_globals, apm_globals)
 	/* Time (in ms) before a request is considered for stats */
-	STD_PHP_INI_ENTRY("apm.stats_duration_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_duration_threshold, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.stats_duration_threshold", "100", PHP_INI_ALL, OnUpdateLong, stats_duration_threshold, zend_apm_globals, apm_globals)
 #ifdef HAVE_GETRUSAGE
 	/* User CPU time usage (in ms) before a request is considered for stats */
-	STD_PHP_INI_ENTRY("apm.stats_user_cpu_threshold",  "100", PHP_INI_ALL, OnUpdateLong, stats_user_cpu_threshold, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.stats_user_cpu_threshold", "100", PHP_INI_ALL, OnUpdateLong, stats_user_cpu_threshold, zend_apm_globals, apm_globals)
 	/* System CPU time usage (in ms) before a request is considered for stats */
-	STD_PHP_INI_ENTRY("apm.stats_sys_cpu_threshold",  "10", PHP_INI_ALL, OnUpdateLong, stats_sys_cpu_threshold, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.stats_sys_cpu_threshold", "10", PHP_INI_ALL, OnUpdateLong, stats_sys_cpu_threshold, zend_apm_globals, apm_globals)
 #endif
 	/* Maximum recursion depth used when dumping a variable */
-	STD_PHP_INI_ENTRY("apm.dump_max_depth",         "4",   PHP_INI_ALL, OnUpdateLong, dump_max_depth,        zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.dump_max_depth", "4", PHP_INI_ALL, OnUpdateLong, dump_max_depth, zend_apm_globals, apm_globals)
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(apm)
@@ -363,7 +359,7 @@ PHP_MINFO_FUNCTION(apm)
 }
 
 /* {{{ void apm_error(int type, const char *format, ...)
-   This function provides a hook for error */
+	This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
 	char *msg;
@@ -403,8 +399,8 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		exception_ce = zend_get_class_entry(exception TSRMLS_CC);
 
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
-		file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
-		line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
+		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
+		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
 
 		process_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}

@@ -39,25 +39,25 @@ APM_DRIVER_CREATE(mysql)
 
 PHP_INI_BEGIN()
  	/* Boolean controlling whether the driver is active or not */
- 	STD_PHP_INI_BOOLEAN("apm.mysql_enabled",       "1",               PHP_INI_PERDIR, OnUpdateBool,   enabled,             zend_apm_mysql_globals, apm_mysql_globals)
+ 	STD_PHP_INI_BOOLEAN("apm.mysql_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, enabled, zend_apm_mysql_globals, apm_mysql_globals)
 	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.mysql_stats_enabled", "0",               PHP_INI_ALL, OnUpdateBool,   stats_enabled,       zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_BOOLEAN("apm.mysql_stats_enabled", "0", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_mysql_globals, apm_mysql_globals)
 	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
-	STD_PHP_INI_ENTRY("apm.mysql_exception_mode","1",               PHP_INI_PERDIR, OnUpdateLongGEZero,   exception_mode,      zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, exception_mode, zend_apm_mysql_globals, apm_mysql_globals)
 	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.mysql_error_reporting", NULL,              PHP_INI_ALL,    OnUpdateAPMmysqlErrorReporting,   error_reporting,     zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMmysqlErrorReporting, error_reporting, zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql host */
-	STD_PHP_INI_ENTRY("apm.mysql_host",            "localhost",       PHP_INI_PERDIR, OnUpdateString, db_host,             zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_host", "localhost", PHP_INI_PERDIR, OnUpdateString, db_host, zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql port */
-	STD_PHP_INI_ENTRY("apm.mysql_port",            "0",               PHP_INI_PERDIR, OnUpdateLong,   db_port,             zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_port", "0", PHP_INI_PERDIR, OnUpdateLong, db_port, zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql user */
-	STD_PHP_INI_ENTRY("apm.mysql_user",            "root",            PHP_INI_PERDIR, OnUpdateString, db_user,             zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_user", "root", PHP_INI_PERDIR, OnUpdateString, db_user, zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql password */
-	STD_PHP_INI_ENTRY("apm.mysql_pass",            "",                PHP_INI_PERDIR, OnUpdateString, db_pass,             zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_pass", "", PHP_INI_PERDIR, OnUpdateString, db_pass, zend_apm_mysql_globals, apm_mysql_globals)
 	/* mysql database */
-	STD_PHP_INI_ENTRY("apm.mysql_db",              "apm",             PHP_INI_PERDIR, OnUpdateString, db_name,             zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_ENTRY("apm.mysql_db", "apm", PHP_INI_PERDIR, OnUpdateString, db_name, zend_apm_mysql_globals, apm_mysql_globals)
 	/* process silenced events? */
-	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1",       PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
+	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
 PHP_INI_END()
 
 /* Returns the MYSQL instance (singleton) */

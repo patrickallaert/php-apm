@@ -40,17 +40,17 @@ APM_DRIVER_CREATE(statsd)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.statsd_enabled", "1",         PHP_INI_PERDIR, OnUpdateBool,   enabled, zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_BOOLEAN("apm.statsd_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, enabled, zend_apm_statsd_globals, apm_statsd_globals)
 	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.statsd_stats_enabled", "1",   PHP_INI_ALL, OnUpdateBool,   stats_enabled,       zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_BOOLEAN("apm.statsd_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_statsd_globals, apm_statsd_globals)
 	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL,  PHP_INI_ALL,    OnUpdateAPMstatsdErrorReporting,   error_reporting, zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMstatsdErrorReporting, error_reporting, zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD host */
-	STD_PHP_INI_ENTRY("apm.statsd_host",      "localhost", PHP_INI_PERDIR,    OnUpdateString, host,    zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_host", "localhost", PHP_INI_PERDIR, OnUpdateString, host, zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD port */
-	STD_PHP_INI_ENTRY("apm.statsd_port",      "8125",      PHP_INI_PERDIR,    OnUpdateLong,   port,    zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_port", "8125", PHP_INI_PERDIR, OnUpdateLong, port, zend_apm_statsd_globals, apm_statsd_globals)
 	/* StatsD port */
-	STD_PHP_INI_ENTRY("apm.statsd_prefix",    "apm",       PHP_INI_ALL,    OnUpdateString, prefix,  zend_apm_statsd_globals, apm_statsd_globals)
+	STD_PHP_INI_ENTRY("apm.statsd_prefix", "apm", PHP_INI_ALL, OnUpdateString, prefix, zend_apm_statsd_globals, apm_statsd_globals)
 PHP_INI_END()
 
 /* Insert an event in the backend */

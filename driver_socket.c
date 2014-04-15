@@ -40,13 +40,13 @@ APM_DRIVER_CREATE(socket)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.socket_enabled", "1",         PHP_INI_ALL, OnUpdateBool,   enabled, zend_apm_socket_globals, apm_socket_globals)
+	STD_PHP_INI_BOOLEAN("apm.socket_enabled", "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_apm_socket_globals, apm_socket_globals)
 	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.socket_stats_enabled", "1",   PHP_INI_ALL, OnUpdateBool,   stats_enabled,       zend_apm_socket_globals, apm_socket_globals)
+	STD_PHP_INI_BOOLEAN("apm.socket_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_socket_globals, apm_socket_globals)
 	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL,  PHP_INI_ALL,    OnUpdateAPMsocketErrorReporting,   error_reporting, zend_apm_socket_globals, apm_socket_globals)
+	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMsocketErrorReporting, error_reporting, zend_apm_socket_globals, apm_socket_globals)
 	/* Socket path */
-	STD_PHP_INI_ENTRY("apm.socket_path",      "file:/tmp/apm.sock|tcp:127.0.0.1:8264", PHP_INI_ALL, OnUpdateString, path, zend_apm_socket_globals, apm_socket_globals)
+	STD_PHP_INI_ENTRY("apm.socket_path", "file:/tmp/apm.sock|tcp:127.0.0.1:8264", PHP_INI_ALL, OnUpdateString, path, zend_apm_socket_globals, apm_socket_globals)
 	/* process silenced events? */
 	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_socket_globals, apm_socket_globals)
 PHP_INI_END()

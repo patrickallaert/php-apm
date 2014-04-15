@@ -50,19 +50,19 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)
 	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
 	long exception_mode;
 	/* driver error reporting */
-	int          error_reporting;
+	int error_reporting;
 	/* MySQL host */
-	char         *db_host;
+	char *db_host;
 	/* MySQL port */
-	unsigned int  db_port;
+	unsigned int db_port;
 	/* MySQL user */
-	char         *db_user;
+	char *db_user;
 	/* MySQL password */
-	char         *db_pass;
+	char *db_pass;
 	/* MySQL database */
-	char         *db_name;
+	char *db_name;
 	/* DB handle */
-	MYSQL        *event_db;
+	MYSQL *event_db;
 	/* Option to process silenced events */
 	zend_bool process_silenced_events;
 
