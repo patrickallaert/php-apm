@@ -133,6 +133,7 @@ sqlite3 * sqlite_get_instance() {
 			"\n\
 CREATE TABLE IF NOT EXISTS request (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
+    application TEXT NOT NULL,\n\
     ts INTEGER NOT NULL,\n\
     script TEXT NOT NULL,\n\
     uri TEXT NOT NULL,\n\
@@ -196,8 +197,9 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 	}
 
 	/* Builing SQL insert query */
-	sql = sqlite3_mprintf("INSERT INTO request (ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
-		                  (long)time(NULL), script ? script : "", APM_RD(uri_found) ? Z_STRVAL_PP(APM_RD(uri)) : "", APM_RD(host_found) ? Z_STRVAL_PP(APM_RD(host)) : "", ip_int, APM_RD(cookies_found) ? APM_RD(cookies).c : "", APM_RD(post_vars_found) ? APM_RD(post_vars).c : "", APM_RD(referer_found) ? Z_STRVAL_PP(APM_RD(referer)) : "");
+	sql = sqlite3_mprintf(
+		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
+		APM_G(application_id) ? APM_G(application_id) : "", (long)time(NULL), script ? script : "", APM_RD(uri_found) ? Z_STRVAL_PP(APM_RD(uri)) : "", APM_RD(host_found) ? Z_STRVAL_PP(APM_RD(host)) : "", ip_int, APM_RD(cookies_found) ? APM_RD(cookies).c : "", APM_RD(post_vars_found) ? APM_RD(post_vars).c : "", APM_RD(referer_found) ? Z_STRVAL_PP(APM_RD(referer)) : "");
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
 	if ((code = sqlite3_exec(connection, sql, NULL, NULL, NULL)) != SQLITE_OK)

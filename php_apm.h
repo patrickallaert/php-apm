@@ -161,6 +161,8 @@ PHP_MINFO_FUNCTION(apm);
 ZEND_BEGIN_MODULE_GLOBALS(apm)
 	/* Boolean controlling whether the extension is globally active or not */
 	zend_bool enabled;
+	/* Application identifier, helps identifying which application is being monitored */
+	char      *application_id;
 	/* Boolean controlling whether the event monitoring is active or not */
 	zend_bool event_enabled;
 	/* Boolean controlling whether the stacktrace should be generated or not */

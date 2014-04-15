@@ -202,6 +202,7 @@ int apm_driver_socket_rshutdown()
 
 	ALLOC_INIT_ZVAL(data);
 	array_init(data);
+	add_assoc_string(data, "application_id", APM_G(application_id), 1);
 
 	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
 	if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) {

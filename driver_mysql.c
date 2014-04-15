@@ -83,6 +83,7 @@ MYSQL * mysql_get_instance() {
 			"\
 CREATE TABLE IF NOT EXISTS request (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
+    application VARCHAR(255) NOT NULL,\
     ts TIMESTAMP NOT NULL,\
     script TEXT NOT NULL,\
     uri TEXT NOT NULL,\
@@ -130,8 +131,8 @@ CREATE TABLE IF NOT EXISTS stats (\
 /* Insert a request in the backend */
 void apm_driver_mysql_insert_request(TSRMLS_D)
 {
-	char *script = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
-	int script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
+	char *script = NULL, *application_esc, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
+	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
 	struct in_addr ip_addr;
 	MYSQL *connection;
 	zval *tmp;
@@ -145,6 +146,12 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	}
 
 	MYSQL_INSTANCE_INIT
+
+	if (APM_G(application_id)) {
+		application_len = strlen(APM_G(application_id));
+		application_esc = emalloc(application_len * 2 + 1);
+		application_len = mysql_real_escape_string(connection, application_esc, APM_G(application_id), application_len);
+	}
 
 	get_script(&script);
 
@@ -188,11 +195,11 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 		referer_len = mysql_real_escape_string(connection, referer_esc, Z_STRVAL_PP(APM_RD(referer)), referer_len);
 	}
 
-	sql = emalloc(134 + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len);
+	sql = emalloc(154 + application_len + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len);
 	sprintf(
 		sql,
-		"INSERT INTO request (script, uri, host, ip, cookies, post_vars, referer) VALUES ('%s', '%s', '%s', %u, '%s', '%s', '%s')",
-		script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
+		"INSERT INTO request (application, script, uri, host, ip, cookies, post_vars, referer) VALUES ('%s', '%s', '%s', '%s', %u, '%s', '%s', '%s')",
+		APM_G(application_id) ? application_esc : "", script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
