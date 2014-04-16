@@ -56,6 +56,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_statsd)
 	
 	/* addinfo for StatsD server */
 	struct addrinfo *servinfo;
+
+	/* Option to process silenced events */
+	zend_bool process_silenced_events;
 ZEND_END_MODULE_GLOBALS(apm_statsd)
 
 #ifdef ZTS
