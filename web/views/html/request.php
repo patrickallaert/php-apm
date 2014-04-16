@@ -19,8 +19,8 @@
 
 require "header.html";
 ?>
-            <li><a href="apm.php#faultyevents">Requests with faulty events</a></li>
-            <li><a href="apm.php#statistics">Statistics</a></li>
+            <li><a href="index.php#faultyevents">Requests with faulty events</a></li>
+            <li><a href="index.php#statistics">Statistics</a></li>
             <li class="active"><a href="#request">Details for request #<?php echo (int) $id ?></a></li>
           </ul>
           <?php

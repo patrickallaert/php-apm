@@ -62,7 +62,7 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
     </dir>
    </dir>
    <dir baseinstalldir="PECL/APM" name="web">
-    <file name="apm.php" role="php" />
+    <file name="index.php" role="php" />
     <dir name="config">
      <file name="db.php" role="php" />
     </dir>
