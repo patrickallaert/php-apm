@@ -80,7 +80,7 @@ Note that if performance matters, you should better use the MariaDB/MySQL driver
     apm.sqlite_error_reporting=E_ALL|E_STRICT
     ```
 
-## StatsD driver
+### StatsD driver
 
 The [StatsD](https://github.com/etsy/statsd/) driver is handy to send performance metrics of your web sites/applications directly to StatsD, without interfering with your code. The most common backend for StatsD is [Graphite](http://graphite.wikidot.com/), see [Etsy's blog post on StatsD/Graphite], but [other backends](https://github.com/etsy/statsd/wiki/Backends) exist as well.
 
