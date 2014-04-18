@@ -29,7 +29,7 @@
 
 apm_driver_entry * apm_driver_socket_create();
 void apm_driver_socket_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_socket_process_stats(PROCESS_STATS_ARGS);
+void apm_driver_socket_process_stats();
 int apm_driver_socket_minit(int);
 int apm_driver_socket_rinit();
 int apm_driver_socket_mshutdown();
@@ -57,15 +57,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_socket)
 
 	/* socket buffer */
 	char buffer[BUFFER_LENGTH];
-
-	float duration;
-
-	long mem_peak_usage;
-#ifdef HAVE_GETRUSAGE
-	float user_cpu;
-
-	float sys_cpu;
-#endif
 
 	apm_event_entry *events;
 	apm_event_entry **last_event;

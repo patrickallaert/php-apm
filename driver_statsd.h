@@ -25,7 +25,7 @@
 
 apm_driver_entry * apm_driver_statsd_create();
 void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_statsd_process_stats(PROCESS_STATS_ARGS);
+void apm_driver_statsd_process_stats();
 int apm_driver_statsd_minit(int);
 int apm_driver_statsd_rinit();
 int apm_driver_statsd_mshutdown();

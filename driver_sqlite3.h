@@ -35,7 +35,7 @@
 apm_driver_entry * apm_driver_sqlite3_create();
 void apm_driver_sqlite3_insert_request(TSRMLS_D);
 void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_sqlite3_process_stats(PROCESS_STATS_ARGS);
+void apm_driver_sqlite3_process_stats();
 int apm_driver_sqlite3_minit(int);
 int apm_driver_sqlite3_rinit();
 int apm_driver_sqlite3_mshutdown();

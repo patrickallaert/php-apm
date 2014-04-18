@@ -218,19 +218,29 @@ int apm_driver_socket_rshutdown()
 		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
 			add_assoc_zval(data, "host", *val);
 		}
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
-			add_assoc_zval(data, "ip", *val);
-		}
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
-			add_assoc_zval(data, "referer", *val);
+		// Add ip, referer, ... if an error occured or if thresold is reached.
+		if (
+			APM_SOCK_G(events) != *APM_SOCK_G(last_event)
+			|| APM_G(duration) > 1000.0 * APM_G(stats_duration_threshold)
+#ifdef HAVE_GETRUSAGE
+			|| APM_G(user_cpu) > 1000.0 * APM_G(stats_user_cpu_threshold)
+			|| APM_G(sys_cpu) > 1000.0 * APM_G(stats_sys_cpu_threshold)
+#endif
+		) {
+			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+				add_assoc_zval(data, "ip", *val);
+			}
+			if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+				add_assoc_zval(data, "referer", *val);
+			}
 		}
 	}
 	if (APM_SOCK_G(stats_enabled)) {
-		add_assoc_double(data, "duration", APM_SOCK_G(duration));
-		add_assoc_long(data, "mem_peak_usage", APM_SOCK_G(mem_peak_usage));
+		add_assoc_double(data, "duration", APM_G(duration));
+		add_assoc_long(data, "mem_peak_usage", APM_G(mem_peak_usage));
 #ifdef HAVE_GETRUSAGE
-		add_assoc_double(data, "user_cpu", APM_SOCK_G(user_cpu));
-		add_assoc_double(data, "sys_cpu", APM_SOCK_G(sys_cpu));
+		add_assoc_double(data, "user_cpu", APM_G(user_cpu));
+		add_assoc_double(data, "sys_cpu", APM_G(sys_cpu));
 #endif
 	}
 
@@ -270,7 +280,7 @@ int apm_driver_socket_rshutdown()
 	zval_ptr_dtor(&data);
 
 	for (i = 0; i < sd_it; ++i) {
-		if (send(sds[i], APM_SOCK_G(buffer), strlen(APM_SOCK_G(buffer)) /*sizeof(APM_SOCK_G(buffer))*/, 0) < 0) {
+		if (send(sds[i], APM_SOCK_G(buffer), strlen(APM_SOCK_G(buffer)), 0) < 0) {
 		}
 	}
 
@@ -283,12 +293,6 @@ int apm_driver_socket_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_socket_process_stats(PROCESS_STATS_ARGS)
+void apm_driver_socket_process_stats()
 {
-	APM_SOCK_G(duration) = duration;
-	APM_SOCK_G(mem_peak_usage) = mem_peak_usage;
-#ifdef HAVE_GETRUSAGE
-	APM_SOCK_G(user_cpu) = user_cpu;
-	APM_SOCK_G(sys_cpu) = sys_cpu;
-#endif
 }

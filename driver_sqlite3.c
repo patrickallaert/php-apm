@@ -258,7 +258,7 @@ int apm_driver_sqlite3_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_process_stats(PROCESS_STATS_ARGS)
+void apm_driver_sqlite3_process_stats()
 {
 	char *sql;
 	sqlite3 *connection;
@@ -270,7 +270,7 @@ void apm_driver_sqlite3_process_stats(PROCESS_STATS_ARGS)
 	/* Building SQL insert query */
 	sql = sqlite3_mprintf(
 		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu, mem_peak_usage) VALUES (%d, %f, %f, %f, %d)",
-		APM_S3_G(request_id), USEC_TO_SEC(duration), USEC_TO_SEC(user_cpu), USEC_TO_SEC(sys_cpu), mem_peak_usage
+		APM_S3_G(request_id), USEC_TO_SEC(APM_G(duration)), USEC_TO_SEC(APM_G(user_cpu)), USEC_TO_SEC(APM_G(sys_cpu)), APM_G(mem_peak_usage)
 	);
 
 	/* Executing SQL insert query */

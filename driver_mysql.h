@@ -35,7 +35,7 @@
 apm_driver_entry * apm_driver_mysql_create();
 void apm_driver_mysql_insert_request(TSRMLS_D);
 void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_mysql_process_stats(PROCESS_STATS_ARGS);
+void apm_driver_mysql_process_stats();
 int apm_driver_mysql_minit(int);
 int apm_driver_mysql_rinit();
 int apm_driver_mysql_mshutdown();

@@ -162,7 +162,7 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
 	apm_globals->drivers->driver.process_event = (void (*)(PROCESS_EVENT_ARGS)) NULL;
-	apm_globals->drivers->driver.process_stats = (void (*)(PROCESS_STATS_ARGS) TSRMLS_DC) NULL;
+	apm_globals->drivers->driver.process_stats = (void (*)() TSRMLS_DC) NULL;
 	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
 	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
@@ -275,10 +275,6 @@ PHP_RINIT_FUNCTION(apm)
 PHP_RSHUTDOWN_FUNCTION(apm)
 {
 	apm_driver_entry * driver_entry;
-	float duration;
-	long mem_peak_usage;
-	float user_cpu = 0;
-	float sys_cpu = 0;
 #ifdef HAVE_GETRUSAGE
 	struct rusage usg;
 #endif
@@ -296,21 +292,21 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 			gettimeofday(&end_tp, NULL);
 
 			/* Request longer than accepted threshold ? */
-			duration = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
-			mem_peak_usage = zend_memory_peak_usage(1);
+			APM_G(duration) = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
+			APM_G(mem_peak_usage) = zend_memory_peak_usage(1);
 #ifdef HAVE_GETRUSAGE
 			memset(&usg, 0, sizeof(struct rusage));
 
 			if (getrusage(RUSAGE_SELF, &usg) == 0) {
-				user_cpu = (float) (SEC_TO_USEC(usg.ru_utime.tv_sec - begin_usg.ru_utime.tv_sec) + usg.ru_utime.tv_usec - begin_usg.ru_utime.tv_usec);
-				sys_cpu = (float) (SEC_TO_USEC(usg.ru_stime.tv_sec - begin_usg.ru_stime.tv_sec) + usg.ru_stime.tv_usec - begin_usg.ru_stime.tv_usec);
+				APM_G(user_cpu) = (float) (SEC_TO_USEC(usg.ru_utime.tv_sec - begin_usg.ru_utime.tv_sec) + usg.ru_utime.tv_usec - begin_usg.ru_utime.tv_usec);
+				APM_G(sys_cpu) = (float) (SEC_TO_USEC(usg.ru_stime.tv_sec - begin_usg.ru_stime.tv_sec) + usg.ru_stime.tv_usec - begin_usg.ru_stime.tv_usec);
 			}
 #endif
 			if (
-				duration > 1000.0 * APM_G(stats_duration_threshold)
+				APM_G(duration) > 1000.0 * APM_G(stats_duration_threshold)
 #ifdef HAVE_GETRUSAGE
-				|| user_cpu > 1000.0 * APM_G(stats_user_cpu_threshold)
-				|| sys_cpu > 1000.0 * APM_G(stats_sys_cpu_threshold)
+				|| APM_G(user_cpu) > 1000.0 * APM_G(stats_user_cpu_threshold)
+				|| APM_G(sys_cpu) > 1000.0 * APM_G(stats_sys_cpu_threshold)
 #endif
 				) {
 
@@ -318,7 +314,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
 					if (driver_entry->driver.want_stats()) {
-						driver_entry->driver.process_stats(duration, user_cpu, sys_cpu, mem_peak_usage TSRMLS_CC);
+						driver_entry->driver.process_stats(TSRMLS_C);
 					}
 				}
 				APM_DEBUG("Stats loop end\n");

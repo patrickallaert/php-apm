@@ -292,7 +292,7 @@ int apm_driver_mysql_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_mysql_process_stats(PROCESS_STATS_ARGS)
+void apm_driver_mysql_process_stats()
 {
 	char *sql = NULL;
 	MYSQL *connection;
@@ -305,10 +305,10 @@ void apm_driver_mysql_process_stats(PROCESS_STATS_ARGS)
 	sprintf(
 		sql,
 		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu, mem_peak_usage) VALUES (@request_id, %f, %f, %f, %ld)",
-		USEC_TO_SEC(duration),
-		USEC_TO_SEC(user_cpu),
-		USEC_TO_SEC(sys_cpu),
-		mem_peak_usage
+		USEC_TO_SEC(APM_G(duration)),
+		USEC_TO_SEC(APM_G(user_cpu)),
+		USEC_TO_SEC(APM_G(sys_cpu)),
+		APM_G(mem_peak_usage)
 	);
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);

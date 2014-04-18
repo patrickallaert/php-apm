@@ -155,7 +155,7 @@ int apm_driver_statsd_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_statsd_process_stats(PROCESS_STATS_ARGS)
+void apm_driver_statsd_process_stats()
 {
 	int socketDescriptor;
 	char data[1024];
@@ -164,7 +164,7 @@ void apm_driver_statsd_process_stats(PROCESS_STATS_ARGS)
 		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
 	) {
 
-		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g", APM_SD_G(prefix), duration / 1000, user_cpu / 1000, sys_cpu / 1000, mem_peak_usage);
+		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g", APM_SD_G(prefix), APM_G(duration) / 1000, APM_G(user_cpu) / 1000, APM_G(sys_cpu) / 1000, APM_G(mem_peak_usage));
 		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
 
 		close(socketDescriptor);
