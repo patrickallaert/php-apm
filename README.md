@@ -122,7 +122,6 @@ The socket driver lets you send errors and stats directly by Unix and/or TCP soc
 
 ### Advanced configuration
 
-    ```
     ; Application identifier, helps identifying which application is being monitored
     apm.application_id="My application"
     ; Enable the capture of events such as errors, notices, warnings,...
@@ -154,6 +153,5 @@ The socket driver lets you send errors and stats directly by Unix and/or TCP soc
     apm.<driver_name>_exception_mode=1
     ; Stores silenced events (Errors, warnings, notices,... that are muted with the PHP '@' operator)
     apm.<driver_name>_process_silenced_events=On|Off
-    ```
 
 For a list of all PHP ini directives, take a look at the [apm.ini file](apm.ini).
