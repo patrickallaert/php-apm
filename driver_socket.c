@@ -233,6 +233,18 @@ int apm_driver_socket_rshutdown()
 			if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
 				add_assoc_zval(data, "referer", *val);
 			}
+			if (APM_G(store_cookies)) {
+				zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC);
+				if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
+					add_assoc_zval(data, "cookies", tmp);
+				}
+			}
+			if (APM_G(store_post)) {
+				zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC);
+				if ((tmp = PG(http_globals)[TRACK_VARS_POST]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
+					add_assoc_zval(data, "post_vars", tmp);
+				}
+			}
 		}
 	}
 	if (APM_SOCK_G(stats_enabled)) {
