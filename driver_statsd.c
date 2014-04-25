@@ -25,6 +25,7 @@
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_statsd.h"
+#include "SAPI.h"
 #ifdef NETWARE
 #include <netinet/in.h>
 #endif
@@ -163,8 +164,8 @@ void apm_driver_statsd_process_stats()
 	if (
 		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
 	) {
-
-		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g", APM_SD_G(prefix), APM_G(duration) / 1000, APM_G(user_cpu) / 1000, APM_G(sys_cpu) / 1000, APM_G(mem_peak_usage));
+		APM_DEBUG("Sending data to StatsD");
+		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g\n%1$s.response.code.%6$d:1|c", APM_SD_G(prefix), APM_G(duration) / 1000, APM_G(user_cpu) / 1000, APM_G(sys_cpu) / 1000, APM_G(mem_peak_usage), SG(sapi_headers).http_response_code);
 		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
 
 		close(socketDescriptor);
