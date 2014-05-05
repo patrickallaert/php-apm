@@ -241,12 +241,16 @@ int apm_driver_socket_rshutdown()
 					add_assoc_zval(data, "cookies", tmp);
 				}
 			}
+			/*
+			This needs to be deactivated for now as it produces a segfault with error message: "zend_mm_heap corrupted".
+			I do not know at this stage whether this is because of an issue in APM or in PHP.
 			if (APM_G(store_post)) {
 				zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC);
 				if ((tmp = PG(http_globals)[TRACK_VARS_POST]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
 					add_assoc_zval(data, "post_vars", tmp);
 				}
 			}
+			*/
 		}
 	}
 	if (APM_SOCK_G(stats_enabled)) {
