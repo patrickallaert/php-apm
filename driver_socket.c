@@ -212,12 +212,15 @@ int apm_driver_socket_rshutdown()
 			add_assoc_long(data, "ts", Z_LVAL_PP(val));
 		}
 		if ((zend_hash_find(Z_ARRVAL_P(tmp), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+			zval_add_ref(val);
 			add_assoc_zval(data, "script", *val);
 		}
 		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+			zval_add_ref(val);
 			add_assoc_zval(data, "uri", *val);
 		}
 		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+			zval_add_ref(val);
 			add_assoc_zval(data, "host", *val);
 		}
 		// Add ip, referer, ... if an error occured or if thresold is reached.
@@ -230,23 +233,28 @@ int apm_driver_socket_rshutdown()
 #endif
 		) {
 			if ((zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+				zval_add_ref(val);
 				add_assoc_zval(data, "ip", *val);
 			}
 			if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&val) == SUCCESS) && (Z_TYPE_PP(val) == IS_STRING)) {
+				zval_add_ref(val);
 				add_assoc_zval(data, "referer", *val);
 			}
 			if (APM_G(store_cookies)) {
 				zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC);
 				if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
+					zval_add_ref(&tmp);
 					add_assoc_zval(data, "cookies", tmp);
 				}
 			}
 			/*
 			This needs to be deactivated for now as it produces a segfault with error message: "zend_mm_heap corrupted".
-			I do not know at this stage whether this is because of an issue in APM or in PHP.
+			When using add_assoc_zval(), the refcount is not automatically incremented, the original code was missing a call to zval_add_ref().
+			This remains commented as we don't want to dump _POST data to socket
 			if (APM_G(store_post)) {
 				zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC);
 				if ((tmp = PG(http_globals)[TRACK_VARS_POST]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
+					zval_add_ref(&tmp);
 					add_assoc_zval(data, "post_vars", tmp);
 				}
 			}
