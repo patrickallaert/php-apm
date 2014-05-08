@@ -29,7 +29,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char limit);
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 static int append_variable(zval *expr, smart_str *trace_str);
-static char *apm_addslashes(char *str, int length, int *new_length TSRMLS_DC);
+static char *apm_addslashes(char *str, uint length, int *new_length TSRMLS_DC);
 
 void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
@@ -443,7 +443,7 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 	return arg_array;
 }
 
-static char *apm_addslashes(char *str, int length, int *new_length TSRMLS_DC)
+static char *apm_addslashes(char *str, uint length, int *new_length TSRMLS_DC)
 {
 	/* maximum string length, worst case situation */
 	char *new_str;
