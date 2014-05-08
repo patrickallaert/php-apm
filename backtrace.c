@@ -334,8 +334,16 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 					}
 				}
 				smart_str_appendc(trace_str, '"');
-				temp = apm_addslashes(string_key, str_len - 1, &new_len);
-				smart_str_appendl(trace_str, temp, new_len);
+
+				if (str_len > 0) {
+					temp = apm_addslashes(string_key, str_len - 1, &new_len);
+					smart_str_appendl(trace_str, temp, new_len);
+				}
+				else
+				{
+					smart_str_appendl(trace_str, "*unknown key*", sizeof("*unknown key*") - 1);
+				}
+
 				smart_str_appendc(trace_str, '"');
 				break;
 			case HASH_KEY_IS_LONG:
