@@ -23,8 +23,6 @@
 
 #define APM_E_socket APM_E_ALL
 
-#define BUFFER_LENGTH 4 * 1024 * 1024
-
 #define MAX_SOCKETS 10
 
 apm_driver_entry * apm_driver_socket_create();
@@ -54,9 +52,6 @@ ZEND_BEGIN_MODULE_GLOBALS(apm_socket)
 
 	/* socket path */
 	char *path;
-
-	/* socket buffer */
-	char buffer[BUFFER_LENGTH];
 
 	apm_event_entry *events;
 	apm_event_entry **last_event;

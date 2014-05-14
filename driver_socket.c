@@ -298,17 +298,17 @@ int apm_driver_socket_rshutdown()
 
 	smart_str_0(&buf);
 
-	// Copying buffer + trailing 0
-	strncpy(APM_SOCK_G(buffer), buf.c, buf.len + 1);
-
-	smart_str_free(&buf);
-
 	zval_ptr_dtor(&data);
+	FILE * fd = fopen("/tmp/out", "a+");
+	fwrite(buf.c, buf.len, 1, fd);
+	fclose(fd);
 
 	for (i = 0; i < sd_it; ++i) {
-		if (send(sds[i], APM_SOCK_G(buffer), strlen(APM_SOCK_G(buffer)), 0) < 0) {
+		if (send(sds[i], buf.c, buf.len, 0) < 0) {
 		}
 	}
+
+	smart_str_free(&buf);
 
 	clear_events();
 
