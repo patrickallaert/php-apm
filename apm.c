@@ -197,15 +197,15 @@ PHP_MINIT_FUNCTION(apm)
 	/* Storing actual error callback function for later restore */
 	old_error_cb = zend_error_cb;
 
-	/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
-	_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
-	zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
-
-	_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
-	zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
-
 	/* Initialize the storage drivers */
 	if (APM_G(enabled)) {
+		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
+		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
+		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
+
+		_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
+		zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
+
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.minit(module_number) == FAILURE) {
