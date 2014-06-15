@@ -299,9 +299,6 @@ int apm_driver_socket_rshutdown()
 	smart_str_0(&buf);
 
 	zval_ptr_dtor(&data);
-	FILE * fd = fopen("/tmp/out", "a+");
-	fwrite(buf.c, buf.len, 1, fd);
-	fclose(fd);
 
 	for (i = 0; i < sd_it; ++i) {
 		if (send(sds[i], buf.c, buf.len, 0) < 0) {
