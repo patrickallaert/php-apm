@@ -12,7 +12,7 @@ It doesn't require any modification to your application's code and let's you col
 ### From source:
 
 1. `$ git clone https://github.com/patrickallaert/php-apm.git`
-2. `cd php-apm`
+2. `$ cd php-apm`
 3. `$ phpize`
 4. Configure the extension, by default, only **sqlite3** support is built:
 
