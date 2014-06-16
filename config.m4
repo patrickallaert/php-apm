@@ -120,6 +120,13 @@ if test "$PHP_APM" != "no"; then
         ;;
     esac
 
+    if test -z "$MYSQL_LIB_DIR"; then
+       MYSQL_LIB_CHK(lib/x86_64-linux-gnu)
+    fi
+    if test -z "$MYSQL_LIB_DIR"; then
+      MYSQL_LIB_CHK(lib/i386-linux-gnu)
+    fi
+
     for i in $PHP_LIBDIR $PHP_LIBDIR/mysql; do
       MYSQL_LIB_CHK($i)
     done
