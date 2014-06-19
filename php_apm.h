@@ -220,7 +220,7 @@ ZEND_END_MODULE_GLOBALS(apm)
 #define apm_json_encode(buf, pzval) php_json_encode(buf, pzval, 0 TSRMLS_CC);
 #endif
 
-void * get_script(char ** script_filename);
+void get_script(char ** script_filename);
 
 #define EXTRACT_DATA() \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \

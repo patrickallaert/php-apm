@@ -29,8 +29,6 @@
 #include <arpa/inet.h>
 #endif
 
-static long get_table_count(char * table);
-
 ZEND_EXTERN_MODULE_GLOBALS(apm)
 
 ZEND_DECLARE_MODULE_GLOBALS(apm_mysql)
@@ -139,9 +137,9 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 
 	EXTRACT_DATA();
 
-	APM_DEBUG("[MySQL driver] Begin insert request\n", sql);
+	APM_DEBUG("[MySQL driver] Begin insert request\n");
 	if (APM_MY_G(is_request_created)) {
-		APM_DEBUG("[MySQL driver] SKIPPED, request already created.\n", sql);
+		APM_DEBUG("[MySQL driver] SKIPPED, request already created.\n");
 		return;
 	}
 
@@ -216,7 +214,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	efree(referer_esc);
 
 	APM_MY_G(is_request_created) = 1;
-	APM_DEBUG("[MySQL driver] End insert request\n", sql);
+	APM_DEBUG("[MySQL driver] End insert request\n");
 }
 
 /* Insert an event in the backend */

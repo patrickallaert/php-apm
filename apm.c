@@ -383,7 +383,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 	zval *message, *file, *line;
-	zend_class_entry *default_ce, *exception_ce;
+	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
 		if (!exception) {
@@ -391,7 +391,6 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		}
 
 		default_ce = zend_exception_get_default(TSRMLS_C);
-		exception_ce = zend_get_class_entry(exception TSRMLS_CC);
 
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
@@ -431,7 +430,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str_free(&trace_str);
 }
 
-void * get_script(char ** script_filename) {
+void get_script(char ** script_filename) {
 	zval **array, **token;
 
 	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);

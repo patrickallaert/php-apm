@@ -182,9 +182,9 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 
 	EXTRACT_DATA();
 
-	APM_DEBUG("[SQLite driver] Begin insert request\n", sql);
+	APM_DEBUG("[SQLite driver] Begin insert request\n");
 	if (APM_S3_G(is_request_created)) {
-		APM_DEBUG("[SQLite driver] SKIPPED, request already created.\n", sql);
+		APM_DEBUG("[SQLite driver] SKIPPED, request already created.\n");
 		return;
 	}
 
@@ -208,7 +208,7 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 	sqlite3_free(sql);
 	APM_S3_G(request_id) = sqlite3_last_insert_rowid(connection);
 	APM_S3_G(is_request_created) = 1;
-	APM_DEBUG("[SQLite driver] End insert request\n", sql);
+	APM_DEBUG("[SQLite driver] End insert request\n");
 }
 
 /* Insert an event in the backend */
