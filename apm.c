@@ -279,7 +279,6 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	struct rusage usg;
 #endif
 	struct timeval end_tp;
-	char *script_filename = NULL;
 	zend_bool stats_enabled = 0;
 
 	if (APM_G(enabled)) {

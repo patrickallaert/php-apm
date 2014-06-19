@@ -215,7 +215,6 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 {
 	char *sql;
-	struct in_addr ip_addr;
 	sqlite3 *connection;
 
 	apm_driver_sqlite3_insert_request();
