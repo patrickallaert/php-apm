@@ -22,6 +22,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <time.h>
+#include <locale.h>
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_statsd.h"
@@ -160,6 +161,8 @@ void apm_driver_statsd_process_stats()
 {
 	int socketDescriptor;
 	char data[1024];
+
+	setlocale(LC_ALL, "C");
 
 	if (
 		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
