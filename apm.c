@@ -280,6 +280,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 #endif
 	struct timeval end_tp;
 	zend_bool stats_enabled = 0;
+	int code = SUCCESS;
 
 	if (APM_G(enabled)) {
 		driver_entry = APM_G(drivers);
@@ -324,7 +325,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 		while ((driver_entry = driver_entry->next) != NULL) {
 			if (driver_entry->driver.is_enabled()) {
 				if (driver_entry->driver.rshutdown() == FAILURE) {
-					return FAILURE;
+					code = FAILURE;
 				}
 			}
 		}
@@ -340,7 +341,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 	APM_SHUTDOWN_DEBUG;
 
-	return SUCCESS;
+	return code;
 }
 
 PHP_MINFO_FUNCTION(apm)
