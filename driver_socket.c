@@ -165,7 +165,7 @@ int apm_driver_socket_rshutdown()
 				sds[sd_it++] = sd;
 			}
 		}
-		if (strncmp(socket_path, "tcp:", 4) == 0) {
+		else if (strncmp(socket_path, "tcp:", 4) == 0) {
 			socket_path += 4;
 
 			memset(&hints, 0, sizeof hints);
