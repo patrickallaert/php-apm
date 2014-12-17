@@ -246,8 +246,10 @@ int apm_driver_sqlite3_rinit()
 	return SUCCESS;
 }
 
-int apm_driver_sqlite3_mshutdown()
+int apm_driver_sqlite3_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
+	UNREGISTER_INI_ENTRIES();
+
 	return SUCCESS;
 }
 

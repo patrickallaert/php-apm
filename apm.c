@@ -52,6 +52,7 @@
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 static PHP_GINIT_FUNCTION(apm);
+static PHP_GSHUTDOWN_FUNCTION(apm);
 
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
@@ -120,7 +121,7 @@ zend_module_entry apm_module_entry = {
 #endif
 	PHP_MODULE_GLOBALS(apm),
 	PHP_GINIT(apm),
-	NULL,
+	PHP_GSHUTDOWN(apm),
 	NULL,
 	STANDARD_MODULE_PROPERTIES_EX
 };
@@ -188,6 +189,19 @@ static PHP_GINIT_FUNCTION(apm)
 #endif
 }
 
+static recursive_free_driver(apm_driver_entry **driver)
+{
+	if ((*driver)->next) {
+		recursive_free_driver(&(*driver)->next);
+	}
+	free(*driver);
+}
+
+static PHP_GSHUTDOWN_FUNCTION(apm)
+{
+	recursive_free_driver(&apm_globals->drivers);
+}
+
 PHP_MINIT_FUNCTION(apm)
 {
 	apm_driver_entry * driver_entry;
@@ -226,7 +240,7 @@ PHP_MSHUTDOWN_FUNCTION(apm)
 	if (APM_G(enabled)) {
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.mshutdown() == FAILURE) {
+			if (driver_entry->driver.mshutdown(SHUTDOWN_FUNC_ARGS_PASSTHRU) == FAILURE) {
 				return FAILURE;
 			}
 		}

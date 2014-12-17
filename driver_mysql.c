@@ -58,22 +58,33 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
 PHP_INI_END()
 
+static void mysql_destroy() {
+	APM_DEBUG("[MySQL driver] Closing connection\n");
+	mysql_close(APM_MY_G(event_db));
+	free(APM_MY_G(event_db));
+	APM_MY_G(event_db) = NULL;
+	mysql_library_end();
+}
+
 /* Returns the MYSQL instance (singleton) */
 MYSQL * mysql_get_instance() {
 	my_bool reconnect = 1;
 	if (APM_MY_G(event_db) == NULL) {
+		mysql_library_init(0, NULL, NULL);
 		APM_MY_G(event_db) = malloc(sizeof(MYSQL));
+
 		mysql_init(APM_MY_G(event_db));
+
 		mysql_options(APM_MY_G(event_db), MYSQL_OPT_RECONNECT, &reconnect);
 		APM_DEBUG("[MySQL driver] Connecting to server...");
 		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
 			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_MY_G(event_db)));
 
-			free(APM_MY_G(event_db));
-			APM_MY_G(event_db) = NULL;
+			mysql_destroy();
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
+
 		mysql_set_character_set(APM_MY_G(event_db), "utf8");
 
 		mysql_query(
@@ -206,12 +217,18 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	mysql_query(connection, "SET @request_id = LAST_INSERT_ID()");
 
 	efree(sql);
-	efree(script_esc);
-	efree(uri_esc);
-	efree(host_esc);
-	efree(cookies_esc);
-	efree(post_vars_esc);
-	efree(referer_esc);
+	if (script_esc)
+		efree(script_esc);
+	if (uri_esc)
+		efree(uri_esc);
+	if (host_esc)
+		efree(host_esc);
+	if (cookies_esc)
+		efree(cookies_esc);
+	if (post_vars_esc)
+		efree(post_vars_esc);
+	if (referer_esc)
+		efree(referer_esc);
 
 	APM_MY_G(is_request_created) = 1;
 	APM_DEBUG("[MySQL driver] End insert request\n");
@@ -274,14 +291,14 @@ int apm_driver_mysql_rinit()
 	return SUCCESS;
 }
 
-int apm_driver_mysql_mshutdown()
+int apm_driver_mysql_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
+	UNREGISTER_INI_ENTRIES();
+
 	if (APM_MY_G(event_db) != NULL) {
-		APM_DEBUG("[MySQL driver] Closing connection\n");
-		mysql_close(APM_MY_G(event_db));
-		free(APM_MY_G(event_db));
-		APM_MY_G(event_db) = NULL;
+		mysql_destroy();
 	}
+
 	return SUCCESS;
 }
 

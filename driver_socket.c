@@ -98,28 +98,27 @@ int apm_driver_socket_rinit()
 	return SUCCESS;
 }
 
-int apm_driver_socket_mshutdown()
+int apm_driver_socket_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
+	UNREGISTER_INI_ENTRIES();
+
 	return SUCCESS;
+}
+
+static recursive_free_event(apm_event_entry **event)
+{
+	if ((*event)->next) {
+		recursive_free_event(&(*event)->next);
+	}
+	free((*event)->event.error_filename);
+	free((*event)->event.msg);
+	free((*event)->event.trace);
+	free(*event);
 }
 
 static void clear_events()
 {
-	apm_event_entry * event_entry_cursor = NULL;
-	apm_event_entry * event_entry_cursor_next = NULL;
-
-	if (APM_SOCK_G(events) != *APM_SOCK_G(last_event)) {
-		event_entry_cursor = APM_SOCK_G(events);
-		event_entry_cursor_next = event_entry_cursor->next;
-		while ((event_entry_cursor = event_entry_cursor_next) != NULL) {
-			free(event_entry_cursor->event.error_filename);
-			free(event_entry_cursor->event.msg);
-			free(event_entry_cursor->event.trace);
-			event_entry_cursor_next = event_entry_cursor->next;
-			free(event_entry_cursor);
-		}
-		APM_SOCK_G(last_event) = &APM_SOCK_G(events);
-	}
+	recursive_free_event(&APM_SOCK_G(events));
 }
 
 int apm_driver_socket_rshutdown()
@@ -142,7 +141,7 @@ int apm_driver_socket_rshutdown()
 	sd_it = 0;
 
 	// Path must be copied for strtok to work
-	path_copy = (char*)malloc(strlen(APM_SOCK_G(path)));
+	path_copy = (char*)malloc(strlen(APM_SOCK_G(path)) + 1);
 	strcpy(path_copy, APM_SOCK_G(path));
 
 	socket_path = strtok(path_copy, "|");
@@ -200,6 +199,8 @@ int apm_driver_socket_rshutdown()
 		}
 		socket_path = strtok(NULL, "|");
 	}
+
+	free(path_copy);
 
 	ALLOC_INIT_ZVAL(data);
 	array_init(data);

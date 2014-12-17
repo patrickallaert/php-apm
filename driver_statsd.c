@@ -145,8 +145,10 @@ int apm_driver_statsd_rinit()
 	return SUCCESS;
 }
 
-int apm_driver_statsd_mshutdown()
+int apm_driver_statsd_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
+	UNREGISTER_INI_ENTRIES();
+
 	freeaddrinfo(APM_SD_G(servinfo));
 
 	return SUCCESS;
