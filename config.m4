@@ -30,7 +30,7 @@ PHP_ARG_ENABLE(apm, whether to enable apm support,
 PHP_ARG_WITH(sqlite3, enable support for sqlite3,
 [  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
 PHP_ARG_WITH(mysql, enable support for MySQL,
-[  --with-mysql=DIR        Location of MySQL base directory], no, no)
+[  --with-mysql=DIR        Location of MySQL base directory], yes, no)
 PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
 PHP_ARG_ENABLE(socket, enable support for socket,
