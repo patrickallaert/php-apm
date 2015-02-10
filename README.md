@@ -14,16 +14,19 @@ It doesn't require any modification to your application's code and let's you col
 1. `$ git clone https://github.com/patrickallaert/php-apm.git`
 2. `$ cd php-apm`
 3. `$ phpize`
-4. Configure the extension, by default, only **sqlite3** support is built:
+4. Configure the extension, by default, **sqlite3**, **MariaDB/MySQL**, **[StatsD](https://github.com/etsy/statsd/)** and **Socket** support are enabled:
 
     ```
-    $ ./configure [--with-sqlite3[=DIR]] [--with-mysql[=DIR]] [--with-debugfile[=FILE]]
+    $ ./configure [--with-sqlite3[=DIR]] [--with-mysql[=DIR]] [--enable-statsd] [--enable-socket] [--with-debugfile[=FILE]]
     ```
+    To disable the support of a `--with-*` switch, use: `--without-*`, example: `$ ./configure --without-sqlite3`
+    To disable the support of a `--enable-*` switch, use: `--disable-*`, example: `$ ./configure --disable-socket`
 5. Compile it:
 
     ```
-    $ make
+    $ make [-j]
     ```
+    Tip: use `-j` to activate parallel compilation.
 6. Install it:
 
     ```
@@ -144,9 +147,11 @@ apm.store_post=On|Off
 ; Maximum recursion depth used when dumping a variable
 apm.dump_max_depth=4
 
+; For the configuration below, <driver_name> can be any of: sqlite, mysql, statsd or socket
+
 ; Activate or deactivate a specific driver (note also that it must be compiled in to be activated).
 apm.<driver_name>_enabled=On|Off
-; Whether to collect stats for this driver (ATTENTION: Has an impact on performance when used with DB drivers!)
+; Whether to collect stats for this driver (ATTENTION: Has a small performance overhead when used with a DB drivers!)
 apm.<driver_name>_stats_enabled=On|Off
 ; Error reporting level specific to this driver
 apm.<driver_name>_error_reporting=E_ALL|E_STRICT
