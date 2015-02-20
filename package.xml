@@ -4,37 +4,87 @@
  <channel>pecl.php.net</channel>
  <summary>Alternative PHP Monitor</summary>
  <description>
-Monitoring extension for PHP, collects error events and send them to one of the drivers.
-SQLite and MySQL drivers are storing those in a database.
+Monitoring extension for PHP, collects error events and statistics and send them to one of his drivers.
+SQLite and MariaDB/MySQL drivers are storing those in a database.
+StatsD driver sends them to StatsD using UDP.
+Socket driver sends them via UDP or TCP socket using its dedicated protocol.
 More drivers to come (SNMP, e-mail, Hadoop,...).
  </description>
- <lead>
-  <name>Davide Mendolia</name>
-  <user>dmendolia</user>
-  <email>dmendolia@php.net</email>
-  <active>no</active>
- </lead>
  <lead>
   <name>Patrick Allaert</name>
   <user>patrickallaert</user>
   <email>patrickallaert@php.net</email>
   <active>yes</active>
  </lead>
- <date>2013-06-07</date>
+ <developer>
+  <name>Olivier Garcia</name>
+  <user>oliviergarcia</user>
+  <email>oliviergarcia@php.net</email>
+  <active>yes</active>
+ </developer>
+ <lead>
+  <name>Davide Mendolia</name>
+  <user>dmendolia</user>
+  <email>dmendolia@php.net</email>
+  <active>no</active>
+ </lead>
+ <date>2015-02-20</date>
  <version>
-  <release>2.0.0alpha1</release>
-  <api>2.0.0alpha1</api>
+  <release>2.0.0</release>
+  <api>2.0.0</api>
  </version>
  <stability>
-  <release>alpha</release>
-  <api>alpha</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
+ New drivers:
+ - StatsD
+ - Socket
+
+ Added:
+ - Per-driver option 'apm.&lt;storage driver&gt;_store_silenced_events that lets you toggle whether to store silenced (@-ed) errors (thanks Mathieu Kooiman (@mathieuk))
+ - apm.*_exception_mode configuration to control exception collection
+ - Auto creation of SQLite and MariaDB/MySQL schemas
+ - Stats:
+   - User and System CPU time
+   - Memory Peak Usage
+   - HTTP response code
+ - 'application_id' field to categorize the issues per application/server/environment/...
+ - Support for compilation on Ubuntu (thanks Olivier Garcia (@0livier))
+
  Changed:
  - Deep refactoring:
    - New DB schema
    - No more native functions, retrieval of data is directly made in PHP
+ - SQLite drivder attempts to create the directory structure by himself
+ - Renamed 'slow request' to 'stats'
+ - Connect to MySQL once and reconnect if needed
+ - Small UI improvements
+ - Avoiding int / uint conversion
+ - MariaDB/MySQL driver activated by default
+
+ Fixed:
+ - Parse error test failing on PHP 5.4
+ - Possible segfault with APM_DEBUG used outside RINIT/RSHUTDOWN phases
+ - Missing disconnect from SQLite DB if changed with ini_set()
+ - Too few arguments to sprintf() with MariaDB/MySQL backend
+ - Possible segfault with PHP 5.5
+ - Segmentation fault with "zend_mm_heap corrupted" message.
+ - Missing zval reference incrementing
+ - Out of memory error in backtrace generation
+ - Removed hard-coded limit of 64kB json data
+ - Do not activate silence handler if APM is not enabled
+ - Some compiler warnings
+ - Incorrect status propagation for PHP_RSHUTDOWN_FUNCTION
+ - Several memory leaks
+
+ Removed:
+ - Deffered processing (can't be easily implemented in a generic and driver
+   agnostic way. Depending on the drivers, some deffered processing will
+   happen inside them.)
+ - Reference SQL files, see source code for that ;-)
  </notes>
  <contents>
   <dir name="/">
@@ -47,20 +97,17 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
    <file name="config.w32" role="src" />
    <file name="driver_mysql.c" role="src" />
    <file name="driver_mysql.h" role="src" />
+   <file name="driver_socket.c" role="src" />
+   <file name="driver_socket.h" role="src" />
    <file name="driver_sqlite3.c" role="src" />
    <file name="driver_sqlite3.h" role="src" />
+   <file name="driver_statsd.c" role="src" />
+   <file name="driver_statsd.h" role="src" />
+   <file name="CONTRIBUTORS" role="doc" />
    <file name="LICENSE" role="doc" />
    <file name="NEWS" role="doc" />
    <file name="php_apm.h" role="src" />
    <file name="README.md" role="doc" />
-   <dir baseinstalldir="PECL/APM" name="sql">
-    <dir name="mysql">
-     <file name="create.sql" role="data" />
-    </dir>
-    <dir name="sqlite">
-     <file name="create.sql" role="data" />
-    </dir>
-   </dir>
    <dir baseinstalldir="PECL/APM" name="web">
     <file name="index.php" role="php" />
     <dir name="config">
@@ -194,9 +241,71 @@ More drivers to come (SNMP, e-mail, Hadoop,...).
  <providesextension>apm</providesextension>
  <extsrcrelease>
   <configureoption name="with-sqlite3" default="yes" prompt="Enable Sqlite3 support"/>
-  <configureoption name="with-mysql" default="yes" prompt="Enable MySQL support"/>
+  <configureoption name="with-mysql" default="yes" prompt="Enable MariaDB/MySQL support"/>
+  <configureoption name="enable-socket" default="yes" prompt="Enable Socket support"/>
+  <configureoption name="enable-statsd" default="yes" prompt="Enable Statsd support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.0.0</release>
+    <api>2.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2015-02-20</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+ New drivers:
+ - StatsD
+ - Socket
+
+ Added:
+ - Per-driver option 'apm.&lt;storage driver&gt;_store_silenced_events that lets you toggle whether to store silenced (@-ed) errors (thanks Mathieu Kooiman (@mathieuk))
+ - apm.*_exception_mode configuration to control exception collection
+ - Auto creation of SQLite and MariaDB/MySQL schemas
+ - Stats:
+   - User and System CPU time
+   - Memory Peak Usage
+   - HTTP response code
+ - 'application_id' field to categorize the issues per application/server/environment/...
+ - Support for compilation on Ubuntu (thanks Olivier Garcia (@0livier))
+
+ Changed:
+ - Deep refactoring:
+   - New DB schema
+   - No more native functions, retrieval of data is directly made in PHP
+ - SQLite drivder attempts to create the directory structure by himself
+ - Renamed 'slow request' to 'stats'
+ - Connect to MySQL once and reconnect if needed
+ - Small UI improvements
+ - Avoiding int / uint conversion
+ - MariaDB/MySQL driver activated by default
+
+ Fixed:
+ - Parse error test failing on PHP 5.4
+ - Possible segfault with APM_DEBUG used outside RINIT/RSHUTDOWN phases
+ - Missing disconnect from SQLite DB if changed with ini_set()
+ - Too few arguments to sprintf() with MariaDB/MySQL backend
+ - Possible segfault with PHP 5.5
+ - Segmentation fault with "zend_mm_heap corrupted" message.
+ - Missing zval reference incrementing
+ - Out of memory error in backtrace generation
+ - Removed hard-coded limit of 64kB json data
+ - Do not activate silence handler if APM is not enabled
+ - Some compiler warnings
+ - Incorrect status propagation for PHP_RSHUTDOWN_FUNCTION
+ - Several memory leaks
+
+ Removed:
+ - Deffered processing (can't be easily implemented in a generic and driver
+   agnostic way. Depending on the drivers, some deffered processing will
+   happen inside them.)
+ - Reference SQL files, see source code for that ;-)
+   </notes>
+  </release>
   <release>
    <version>
     <release>2.0.0alpha1</release>
