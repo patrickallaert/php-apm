@@ -19,4 +19,12 @@
 
 require "model/apm.php";
 
-return new APM\Repository(require "config/db.php");
+return new APM\Repository(
+    require (
+        "@cfg_dir@" === "@" . "cfg_dir@" ?
+            // From source
+            __DIR__ . "/../config/db.php" :
+            // PEAR install
+            "@cfg_dir@/APM/web/config/db.php"
+    )
+);
