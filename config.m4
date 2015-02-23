@@ -35,7 +35,7 @@ PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
 PHP_ARG_ENABLE(socket, enable support for socket,
 [  --enable-socket         Enable socket support], yes, no)
-PHP_ARG_WITH(debugfile, enable support for MySQL,
+PHP_ARG_WITH(debugfile, enable the debug file,
 [  --with-debugfile=[FILE] Location of debugging file (/tmp/apm.debug by default)], no, no)
 
 if test -z "$PHP_ZLIB_DIR"; then
