@@ -77,14 +77,14 @@ void apm_driver_socket_process_event(PROCESS_EVENT_ARGS)
 	APM_SOCK_G(last_event) = &(*APM_SOCK_G(last_event))->next;
 }
 
-int apm_driver_socket_minit(int module_number)
+int apm_driver_socket_minit(int module_number TSRMLS_DC)
 {
 	REGISTER_INI_ENTRIES();
 
 	return SUCCESS;
 }
 
-int apm_driver_socket_rinit()
+int apm_driver_socket_rinit(TSRMLS_D)
 {
 	APM_SOCK_G(events) = (apm_event_entry *) malloc(sizeof(apm_event_entry));
 	APM_SOCK_G(events)->event.type = 0;
@@ -105,7 +105,7 @@ int apm_driver_socket_mshutdown(SHUTDOWN_FUNC_ARGS)
 	return SUCCESS;
 }
 
-static recursive_free_event(apm_event_entry **event)
+static void recursive_free_event(apm_event_entry **event)
 {
 	if ((*event)->next) {
 		recursive_free_event(&(*event)->next);
@@ -116,12 +116,12 @@ static recursive_free_event(apm_event_entry **event)
 	free(*event);
 }
 
-static void clear_events()
+static void clear_events(TSRMLS_D)
 {
 	recursive_free_event(&APM_SOCK_G(events));
 }
 
-int apm_driver_socket_rshutdown()
+int apm_driver_socket_rshutdown(TSRMLS_D)
 {
 	struct sockaddr_un serveraddr;
 	zval *data, *tmp, **val, *errors;
@@ -308,7 +308,7 @@ int apm_driver_socket_rshutdown()
 
 	smart_str_free(&buf);
 
-	clear_events();
+	clear_events(TSRMLS_C);
 
 	for (i = 0; i < sd_it; ++i) {
 		close(sds[i]);
@@ -317,6 +317,6 @@ int apm_driver_socket_rshutdown()
 	return SUCCESS;
 }
 
-void apm_driver_socket_process_stats()
+void apm_driver_socket_process_stats(TSRMLS_D)
 {
 }

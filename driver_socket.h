@@ -27,11 +27,11 @@
 
 apm_driver_entry * apm_driver_socket_create();
 void apm_driver_socket_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_socket_process_stats();
-int apm_driver_socket_minit(int);
-int apm_driver_socket_rinit();
+void apm_driver_socket_process_stats(TSRMLS_D);
+int apm_driver_socket_minit(int TSRMLS_DC);
+int apm_driver_socket_rinit(TSRMLS_D);
 int apm_driver_socket_mshutdown();
-int apm_driver_socket_rshutdown();
+int apm_driver_socket_rshutdown(TSRMLS_D);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_socket)

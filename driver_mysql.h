@@ -26,7 +26,7 @@
 
 #define APM_E_mysql APM_E_ALL
 
-#define MYSQL_INSTANCE_INIT_EX(ret) connection = mysql_get_instance(); \
+#define MYSQL_INSTANCE_INIT_EX(ret) connection = mysql_get_instance(TSRMLS_C); \
 	if (connection == NULL) { \
 		return ret; \
 	}
@@ -35,11 +35,11 @@
 apm_driver_entry * apm_driver_mysql_create();
 void apm_driver_mysql_insert_request(TSRMLS_D);
 void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_mysql_process_stats();
-int apm_driver_mysql_minit(int);
-int apm_driver_mysql_rinit();
+void apm_driver_mysql_process_stats(TSRMLS_D);
+int apm_driver_mysql_minit(int TSRMLS_DC);
+int apm_driver_mysql_rinit(TSRMLS_D);
 int apm_driver_mysql_mshutdown();
-int apm_driver_mysql_rshutdown();
+int apm_driver_mysql_rshutdown(TSRMLS_D);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_mysql)

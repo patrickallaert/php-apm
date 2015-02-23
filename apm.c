@@ -161,11 +161,11 @@ static PHP_GINIT_FUNCTION(apm)
 	apm_globals->buffer = NULL;
 	apm_globals->drivers = (apm_driver_entry *) malloc(sizeof(apm_driver_entry));
 	apm_globals->drivers->driver.process_event = (void (*)(PROCESS_EVENT_ARGS)) NULL;
-	apm_globals->drivers->driver.process_stats = (void (*)() TSRMLS_DC) NULL;
-	apm_globals->drivers->driver.minit = (int (*)(int)) NULL;
-	apm_globals->drivers->driver.rinit = (int (*)()) NULL;
+	apm_globals->drivers->driver.process_stats = (void (*)(TSRMLS_D)) NULL;
+	apm_globals->drivers->driver.minit = (int (*)(int TSRMLS_DC)) NULL;
+	apm_globals->drivers->driver.rinit = (int (*)(TSRMLS_D)) NULL;
 	apm_globals->drivers->driver.mshutdown = (int (*)()) NULL;
-	apm_globals->drivers->driver.rshutdown = (int (*)()) NULL;
+	apm_globals->drivers->driver.rshutdown = (int (*)(TSRMLS_D)) NULL;
 
 	next = &apm_globals->drivers->next;
 	*next = (apm_driver_entry *) NULL;
@@ -187,7 +187,7 @@ static PHP_GINIT_FUNCTION(apm)
 #endif
 }
 
-static recursive_free_driver(apm_driver_entry **driver)
+static void recursive_free_driver(apm_driver_entry **driver)
 {
 	if ((*driver)->next) {
 		recursive_free_driver(&(*driver)->next);
@@ -220,7 +220,7 @@ PHP_MINIT_FUNCTION(apm)
 
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.minit(module_number) == FAILURE) {
+			if (driver_entry->driver.minit(module_number TSRMLS_CC) == FAILURE) {
 				return FAILURE;
 			}
 		}
@@ -269,8 +269,8 @@ PHP_RINIT_FUNCTION(apm)
 		APM_DEBUG("Registering drivers\n");
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.is_enabled()) {
-				if (driver_entry->driver.rinit()) {
+			if (driver_entry->driver.is_enabled(TSRMLS_C)) {
+				if (driver_entry->driver.rinit(TSRMLS_C)) {
 					return FAILURE;
 				}
 			}
@@ -297,7 +297,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	if (APM_G(enabled)) {
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL && stats_enabled == 0) {
-			stats_enabled = driver_entry->driver.want_stats();
+			stats_enabled = driver_entry->driver.want_stats(TSRMLS_C);
 		}
 
 		if (stats_enabled) {
@@ -305,7 +305,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 			/* Request longer than accepted threshold ? */
 			APM_G(duration) = (float) (SEC_TO_USEC(end_tp.tv_sec - begin_tp.tv_sec) + end_tp.tv_usec - begin_tp.tv_usec);
-			APM_G(mem_peak_usage) = zend_memory_peak_usage(1);
+			APM_G(mem_peak_usage) = zend_memory_peak_usage(1 TSRMLS_CC);
 #ifdef HAVE_GETRUSAGE
 			memset(&usg, 0, sizeof(struct rusage));
 
@@ -325,7 +325,7 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 				driver_entry = APM_G(drivers);
 				APM_DEBUG("Stats loop begin\n");
 				while ((driver_entry = driver_entry->next) != NULL) {
-					if (driver_entry->driver.want_stats()) {
+					if (driver_entry->driver.want_stats(TSRMLS_C)) {
 						driver_entry->driver.process_stats(TSRMLS_C);
 					}
 				}
@@ -335,8 +335,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
-			if (driver_entry->driver.is_enabled()) {
-				if (driver_entry->driver.rshutdown() == FAILURE) {
+			if (driver_entry->driver.is_enabled(TSRMLS_C)) {
+				if (driver_entry->driver.rshutdown(TSRMLS_C) == FAILURE) {
 					code = FAILURE;
 				}
 			}
@@ -427,7 +427,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	driver_entry = APM_G(drivers);
 	APM_DEBUG("Direct processing process_event loop begin\n");
 	while ((driver_entry = driver_entry->next) != NULL) {
-		if (driver_entry->driver.want_event(event_type, type, msg)) {
+		if (driver_entry->driver.want_event(event_type, type, msg TSRMLS_CC)) {
 			driver_entry->driver.process_event(
 				type,
 				error_filename,
@@ -443,7 +443,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str_free(&trace_str);
 }
 
-void get_script(char ** script_filename) {
+void get_script(char ** script_filename TSRMLS_DC) {
 	zval **array, **token;
 
 	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);

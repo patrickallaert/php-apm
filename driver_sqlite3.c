@@ -35,7 +35,7 @@ ZEND_EXTERN_MODULE_GLOBALS(apm)
 
 ZEND_DECLARE_MODULE_GLOBALS(apm_sqlite3)
 
-static void disconnect()
+static void disconnect(TSRMLS_D)
 {
 	if (APM_S3_G(event_db) != NULL) {
 		sqlite3_close(APM_S3_G(event_db));
@@ -73,7 +73,7 @@ static PHP_INI_MH(OnUpdateDBFile)
 {
 	if (new_value && new_value_length > 0) {
 		snprintf(APM_S3_G(db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
-		disconnect();
+		disconnect(TSRMLS_C);
 
 		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
 			APM_S3_G(enabled) = 0;
@@ -104,7 +104,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 /* Returns the SQLite instance (singleton) */
-sqlite3 * sqlite_get_instance() {
+sqlite3 * sqlite_get_instance(TSRMLS_D) {
 	int code;
 
 	if (APM_S3_G(event_db) == NULL) {
@@ -116,7 +116,7 @@ sqlite3 * sqlite_get_instance() {
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
-			disconnect();
+            disconnect(TSRMLS_C);
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
@@ -190,7 +190,7 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 
 	SQLITE_INSTANCE_INIT
 
-	get_script(&script);
+	get_script(&script TSRMLS_CC);
 
 	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
@@ -217,7 +217,7 @@ void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 	char *sql;
 	sqlite3 *connection;
 
-	apm_driver_sqlite3_insert_request();
+	apm_driver_sqlite3_insert_request(TSRMLS_C);
 
 	SQLITE_INSTANCE_INIT
 
@@ -234,13 +234,13 @@ void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 	sqlite3_free(sql);
 }
 
-int apm_driver_sqlite3_minit(int module_number)
+int apm_driver_sqlite3_minit(int module_number TSRMLS_DC)
 {
 	REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 
-int apm_driver_sqlite3_rinit()
+int apm_driver_sqlite3_rinit(TSRMLS_D)
 {
 	APM_S3_G(is_request_created) = 0;
 	return SUCCESS;
@@ -253,18 +253,18 @@ int apm_driver_sqlite3_mshutdown(SHUTDOWN_FUNC_ARGS)
 	return SUCCESS;
 }
 
-int apm_driver_sqlite3_rshutdown()
+int apm_driver_sqlite3_rshutdown(TSRMLS_D)
 {
-	disconnect();
+    disconnect(TSRMLS_C);
 	return SUCCESS;
 }
 
-void apm_driver_sqlite3_process_stats()
+void apm_driver_sqlite3_process_stats(TSRMLS_D)
 {
 	char *sql;
 	sqlite3 *connection;
 
-	apm_driver_sqlite3_insert_request();
+	apm_driver_sqlite3_insert_request(TSRMLS_C);
 
 	SQLITE_INSTANCE_INIT
 

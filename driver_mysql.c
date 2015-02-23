@@ -58,7 +58,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
 PHP_INI_END()
 
-static void mysql_destroy() {
+static void mysql_destroy(TSRMLS_D) {
 	APM_DEBUG("[MySQL driver] Closing connection\n");
 	mysql_close(APM_MY_G(event_db));
 	free(APM_MY_G(event_db));
@@ -67,7 +67,7 @@ static void mysql_destroy() {
 }
 
 /* Returns the MYSQL instance (singleton) */
-MYSQL * mysql_get_instance() {
+MYSQL * mysql_get_instance(TSRMLS_D) {
 	my_bool reconnect = 1;
 	if (APM_MY_G(event_db) == NULL) {
 		mysql_library_init(0, NULL, NULL);
@@ -80,7 +80,7 @@ MYSQL * mysql_get_instance() {
 		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
 			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_MY_G(event_db)));
 
-			mysql_destroy();
+			mysql_destroy(TSRMLS_C);
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
@@ -162,7 +162,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 		application_len = mysql_real_escape_string(connection, application_esc, APM_G(application_id), application_len);
 	}
 
-	get_script(&script);
+	get_script(&script TSRMLS_CC);
 
 	if (script) {
 		script_len = strlen(script);
@@ -241,7 +241,7 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 	int filename_len = 0, msg_len = 0, trace_len = 0;
 	MYSQL *connection;
 
-	apm_driver_mysql_insert_request();
+	apm_driver_mysql_insert_request(TSRMLS_C);
 
 	MYSQL_INSTANCE_INIT
 
@@ -279,13 +279,13 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 	efree(trace_esc);
 }
 
-int apm_driver_mysql_minit(int module_number)
+int apm_driver_mysql_minit(int module_number TSRMLS_DC)
 {
 	REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 
-int apm_driver_mysql_rinit()
+int apm_driver_mysql_rinit(TSRMLS_D)
 {
 	APM_MY_G(is_request_created) = 0;
 	return SUCCESS;
@@ -296,23 +296,23 @@ int apm_driver_mysql_mshutdown(SHUTDOWN_FUNC_ARGS)
 	UNREGISTER_INI_ENTRIES();
 
 	if (APM_MY_G(event_db) != NULL) {
-		mysql_destroy();
+		mysql_destroy(TSRMLS_C);
 	}
 
 	return SUCCESS;
 }
 
-int apm_driver_mysql_rshutdown()
+int apm_driver_mysql_rshutdown(TSRMLS_D)
 {
 	return SUCCESS;
 }
 
-void apm_driver_mysql_process_stats()
+void apm_driver_mysql_process_stats(TSRMLS_D)
 {
 	char *sql = NULL;
 	MYSQL *connection;
 
-	apm_driver_mysql_insert_request();
+	apm_driver_mysql_insert_request(TSRMLS_C);
 
 	MYSQL_INSTANCE_INIT
 

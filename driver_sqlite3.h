@@ -24,7 +24,7 @@
 
 #define APM_E_sqlite3 APM_E_ALL
 
-#define SQLITE_INSTANCE_INIT_EX(ret) connection = sqlite_get_instance(); \
+#define SQLITE_INSTANCE_INIT_EX(ret) connection = sqlite_get_instance(TSRMLS_C); \
 	if (connection == NULL) { \
 		return ret; \
 	}
@@ -35,11 +35,11 @@
 apm_driver_entry * apm_driver_sqlite3_create();
 void apm_driver_sqlite3_insert_request(TSRMLS_D);
 void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_sqlite3_process_stats();
-int apm_driver_sqlite3_minit(int);
-int apm_driver_sqlite3_rinit();
+void apm_driver_sqlite3_process_stats(TSRMLS_D);
+int apm_driver_sqlite3_minit(int TSRMLS_DC);
+int apm_driver_sqlite3_rinit(TSRMLS_D);
 int apm_driver_sqlite3_mshutdown();
-int apm_driver_sqlite3_rshutdown();
+int apm_driver_sqlite3_rshutdown(TSRMLS_D);
 
 /* Extension globals */
 ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)

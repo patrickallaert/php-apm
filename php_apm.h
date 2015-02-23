@@ -60,15 +60,15 @@ typedef struct apm_event_entry {
 
 typedef struct apm_driver {
 	void (* process_event)(PROCESS_EVENT_ARGS);
-	void (* process_stats)();
-	int (* minit)(int);
-	int (* rinit)();
+	void (* process_stats)(TSRMLS_D);
+	int (* minit)(int TSRMLS_DC);
+	int (* rinit)(TSRMLS_D);
 	int (* mshutdown)(SHUTDOWN_FUNC_ARGS);
-	int (* rshutdown)();
-	zend_bool (* is_enabled)();
-	zend_bool (* want_event)(int, int, char *);
-	zend_bool (* want_stats)();
-	int (* error_reporting)();
+	int (* rshutdown)(TSRMLS_D);
+	zend_bool (* is_enabled)(TSRMLS_D);
+	zend_bool (* want_event)(int, int, char * TSRMLS_DC);
+	zend_bool (* want_stats)(TSRMLS_D);
+	int (* error_reporting)(TSRMLS_D);
 	zend_bool is_request_created;
 } apm_driver;
 
@@ -96,13 +96,13 @@ static PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
 	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_##name ); \
 	return SUCCESS; \
 } \
-zend_bool apm_driver_##name##_is_enabled() { \
+zend_bool apm_driver_##name##_is_enabled(TSRMLS_D) { \
 	return APM_GLOBAL(name, enabled); \
 } \
-int apm_driver_##name##_error_reporting() { \
+int apm_driver_##name##_error_reporting(TSRMLS_D) { \
 	return APM_GLOBAL(name, error_reporting); \
 } \
-zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *msg) { \
+zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *msg TSRMLS_DC) { \
 	return \
 		APM_GLOBAL(name, enabled) \
 		&& ( \
@@ -115,7 +115,7 @@ zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *
 		) \
 	; \
 } \
-zend_bool apm_driver_##name##_want_stats() { \
+zend_bool apm_driver_##name##_want_stats(TSRMLS_D) { \
 	return \
 		APM_GLOBAL(name, enabled) \
 		&& ( \
@@ -222,7 +222,7 @@ ZEND_END_MODULE_GLOBALS(apm)
 #define apm_json_encode(buf, pzval) php_json_encode(buf, pzval, 0 TSRMLS_CC);
 #endif
 
-void get_script(char ** script_filename);
+void get_script(char ** script_filename TSRMLS_DC);
 
 #define EXTRACT_DATA() \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
