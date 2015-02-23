@@ -19,6 +19,8 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
+#define PHP_APM_VERSION "2.0.1"
+
 #include "config.h"
 #include "php.h"
 #include "zend_errors.h"
