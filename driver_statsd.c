@@ -34,26 +34,7 @@
 #include <arpa/inet.h>
 #endif
 
-ZEND_EXTERN_MODULE_GLOBALS(apm)
-
-ZEND_DECLARE_MODULE_GLOBALS(apm_statsd)
-
 APM_DRIVER_CREATE(statsd)
-
-PHP_INI_BEGIN()
-	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.statsd_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, enabled, zend_apm_statsd_globals, apm_statsd_globals)
-	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.statsd_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_statsd_globals, apm_statsd_globals)
-	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMstatsdErrorReporting, error_reporting, zend_apm_statsd_globals, apm_statsd_globals)
-	/* StatsD host */
-	STD_PHP_INI_ENTRY("apm.statsd_host", "localhost", PHP_INI_PERDIR, OnUpdateString, host, zend_apm_statsd_globals, apm_statsd_globals)
-	/* StatsD port */
-	STD_PHP_INI_ENTRY("apm.statsd_port", "8125", PHP_INI_PERDIR, OnUpdateLong, port, zend_apm_statsd_globals, apm_statsd_globals)
-	/* StatsD port */
-	STD_PHP_INI_ENTRY("apm.statsd_prefix", "apm", PHP_INI_ALL, OnUpdateString, prefix, zend_apm_statsd_globals, apm_statsd_globals)
-PHP_INI_END()
 
 /* Insert an event in the backend */
 void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
@@ -62,7 +43,7 @@ void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
 	char data[1024], type_string[20];
 
 	if (
-		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
+		(socketDescriptor = socket(APM_G(statsd_servinfo)->ai_family, APM_G(statsd_servinfo)->ai_socktype, APM_G(statsd_servinfo)->ai_protocol)) != -1
 	) {
 		switch(type) {
 			case E_ERROR:
@@ -114,8 +95,8 @@ void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
 				strcpy(type_string, "unknown");
 		}
 
-		sprintf(data, "%s.%s:1|ms", APM_SD_G(prefix), type_string);
-		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
+		sprintf(data, "%s.%s:1|ms", APM_G(statsd_prefix), type_string);
+		if (sendto(socketDescriptor, data, strlen(data), 0, APM_G(statsd_servinfo)->ai_addr, APM_G(statsd_servinfo)->ai_addrlen) == -1) {/* cannot send */ }
 
 		close(socketDescriptor);
 	}
@@ -126,16 +107,14 @@ int apm_driver_statsd_minit(int module_number TSRMLS_DC)
 	struct addrinfo hints;
 	char port[8];
 
-	REGISTER_INI_ENTRIES();
-
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
 
-	sprintf(port, "%u", APM_SD_G(port));
+	sprintf(port, "%u", APM_G(statsd_port));
 
-	if (getaddrinfo(APM_SD_G(host), port, &hints, &APM_SD_G(servinfo)) != 0) {
-		APM_SD_G(enabled) = 0;
+	if (getaddrinfo(APM_G(statsd_host), port, &hints, &APM_G(statsd_servinfo)) != 0) {
+		APM_G(statsd_enabled) = 0;
 	}
 	return SUCCESS;
 }
@@ -147,9 +126,7 @@ int apm_driver_statsd_rinit(TSRMLS_D)
 
 int apm_driver_statsd_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
-	UNREGISTER_INI_ENTRIES();
-
-	freeaddrinfo(APM_SD_G(servinfo));
+	freeaddrinfo(APM_G(statsd_servinfo));
 
 	return SUCCESS;
 }
@@ -167,11 +144,11 @@ void apm_driver_statsd_process_stats(TSRMLS_D)
 	setlocale(LC_ALL, "C");
 
 	if (
-		(socketDescriptor = socket(APM_SD_G(servinfo)->ai_family, APM_SD_G(servinfo)->ai_socktype, APM_SD_G(servinfo)->ai_protocol)) != -1
+		(socketDescriptor = socket(APM_G(statsd_servinfo)->ai_family, APM_G(statsd_servinfo)->ai_socktype, APM_G(statsd_servinfo)->ai_protocol)) != -1
 	) {
 		APM_DEBUG("Sending data to StatsD");
-		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g\n%1$s.response.code.%6$d:1|c", APM_SD_G(prefix), APM_G(duration) / 1000, APM_G(user_cpu) / 1000, APM_G(sys_cpu) / 1000, APM_G(mem_peak_usage), SG(sapi_headers).http_response_code);
-		if (sendto(socketDescriptor, data, strlen(data), 0, APM_SD_G(servinfo)->ai_addr, APM_SD_G(servinfo)->ai_addrlen) == -1) {/* cannot send */ }
+		sprintf(data, "%1$s.duration:%2$f|ms\n%1$s.user_cpu:%3$f|ms\n%1$s.sys_cpu:%4$f|ms\n%1$s.mem_peak_usage:%5$ld|g\n%1$s.response.code.%6$d:1|c", APM_G(statsd_prefix), APM_G(duration) / 1000, APM_G(user_cpu) / 1000, APM_G(sys_cpu) / 1000, APM_G(mem_peak_usage), SG(sapi_headers).http_response_code);
+		if (sendto(socketDescriptor, data, strlen(data), 0, APM_G(statsd_servinfo)->ai_addr, APM_G(statsd_servinfo)->ai_addrlen) == -1) {/* cannot send */ }
 
 		close(socketDescriptor);
 	}

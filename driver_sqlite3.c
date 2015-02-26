@@ -31,20 +31,20 @@
 #include <arpa/inet.h>
 #endif
 
-ZEND_EXTERN_MODULE_GLOBALS(apm)
-
-ZEND_DECLARE_MODULE_GLOBALS(apm_sqlite3)
+APM_DRIVER_CREATE(sqlite3);
 
 static void disconnect(TSRMLS_D)
 {
-	if (APM_S3_G(event_db) != NULL) {
-		sqlite3_close(APM_S3_G(event_db));
-		APM_S3_G(event_db) = NULL;
+	if (APM_G(sqlite3_event_db) != NULL) {
+		sqlite3_close(APM_G(sqlite3_event_db));
+		APM_G(sqlite3_event_db) = NULL;
 	}
 }
 
 static int perform_db_access_checks(const char *path TSRMLS_DC)
 {
+// php_stat() crashes with ZTS, see later
+#ifndef ZTS
 	zend_bool is_dir;
 	zval *stat;
 
@@ -65,52 +65,34 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 		zend_error(E_CORE_WARNING, "APM cannot be enabled, %s needs to be readable, writable and executable", path);
 		return FAILURE;
 	}
+#endif
 
 	return SUCCESS;
 }
 
-static PHP_INI_MH(OnUpdateDBFile)
+PHP_INI_MH(OnUpdateDBFile)
 {
 	if (new_value && new_value_length > 0) {
-		snprintf(APM_S3_G(db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
+		snprintf(APM_G(sqlite3_db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
 		disconnect(TSRMLS_C);
 
 		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
-			APM_S3_G(enabled) = 0;
+			APM_G(sqlite3_enabled) = 0;
 		}
 	} else {
-		APM_S3_G(enabled) = 0;
+		APM_G(sqlite3_enabled) = 0;
 	}
 	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }
-
-APM_DRIVER_CREATE(sqlite3)
-
-PHP_INI_BEGIN()
-	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.sqlite_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, enabled, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.sqlite_stats_enabled", "0", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
-	STD_PHP_INI_ENTRY("apm.sqlite_exception_mode", "1", PHP_INI_PERDIR, OnUpdateLongGEZero, exception_mode, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.sqlite_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMsqlite3ErrorReporting, error_reporting, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* Path to the SQLite database file */
-	STD_PHP_INI_ENTRY("apm.sqlite_max_event_insert_timeout", "100", PHP_INI_ALL, OnUpdateLong, timeout, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.sqlite_db_path", "/var/php/apm/db", PHP_INI_ALL, OnUpdateDBFile, db_path, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-	/* Store silenced events? */
-	STD_PHP_INI_BOOLEAN("apm.sqlite_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_sqlite3_globals, apm_sqlite3_globals)
-PHP_INI_END()
 
 /* Returns the SQLite instance (singleton) */
 sqlite3 * sqlite_get_instance(TSRMLS_D) {
 	int code;
 
-	if (APM_S3_G(event_db) == NULL) {
+	if (APM_G(sqlite3_event_db) == NULL) {
 		/* Opening the sqlite database file */
 		APM_DEBUG("[SQLite driver] Connecting to db...");
-		if (sqlite3_open(APM_S3_G(db_file), &APM_S3_G(event_db))) {
+		if (sqlite3_open(APM_G(sqlite3_db_file), &APM_G(sqlite3_event_db))) {
 			APM_DEBUG("FAILED!\n");
 			/*
 			 Closing DB file and stop loading the extension
@@ -121,15 +103,15 @@ sqlite3 * sqlite_get_instance(TSRMLS_D) {
 		}
 		APM_DEBUG("OK\n");
 
-		sqlite3_busy_timeout(APM_S3_G(event_db), APM_S3_G(timeout));
+		sqlite3_busy_timeout(APM_G(sqlite3_event_db), APM_G(sqlite3_timeout));
 
 		/* Making the connection asynchronous, not waiting for data being really written to the disk */
-		sqlite3_exec(APM_S3_G(event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
+		sqlite3_exec(APM_G(sqlite3_event_db), "PRAGMA synchronous = OFF", NULL, NULL, NULL);
 
 		APM_DEBUG("[SQLite driver] Setting up database\n");
 
 		if ((code = sqlite3_exec(
-			APM_S3_G(event_db),
+			APM_G(sqlite3_event_db),
 			"\n\
 CREATE TABLE IF NOT EXISTS request (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
@@ -168,7 +150,7 @@ CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 		}
 	}
 
-	return APM_S3_G(event_db);
+	return APM_G(sqlite3_event_db);
 }
 
 /* Insert a request in the backend */
@@ -183,7 +165,7 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 	EXTRACT_DATA();
 
 	APM_DEBUG("[SQLite driver] Begin insert request\n");
-	if (APM_S3_G(is_request_created)) {
+	if (APM_G(sqlite3_is_request_created)) {
 		APM_DEBUG("[SQLite driver] SKIPPED, request already created.\n");
 		return;
 	}
@@ -206,8 +188,8 @@ void apm_driver_sqlite3_insert_request(TSRMLS_D)
 		APM_DEBUG("[SQLite driver] Error occured with previous query. Error code: %d\n", code);
 
 	sqlite3_free(sql);
-	APM_S3_G(request_id) = sqlite3_last_insert_rowid(connection);
-	APM_S3_G(is_request_created) = 1;
+	APM_G(sqlite3_request_id) = sqlite3_last_insert_rowid(connection);
+	APM_G(sqlite3_is_request_created) = 1;
 	APM_DEBUG("[SQLite driver] End insert request\n");
 }
 
@@ -224,7 +206,7 @@ void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf(
 		"INSERT INTO event (request_id, ts, type, file, line, message, backtrace) VALUES (%d, %d, %d, %Q, %d, %Q, %Q)",
-		APM_S3_G(request_id), (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : ""
+		APM_G(sqlite3_request_id), (long)time(NULL), type, error_filename ? error_filename : "", error_lineno, msg ? msg : "", trace ? trace : ""
 	);
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
@@ -236,20 +218,17 @@ void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS)
 
 int apm_driver_sqlite3_minit(int module_number TSRMLS_DC)
 {
-	REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 
 int apm_driver_sqlite3_rinit(TSRMLS_D)
 {
-	APM_S3_G(is_request_created) = 0;
+	APM_G(sqlite3_is_request_created) = 0;
 	return SUCCESS;
 }
 
 int apm_driver_sqlite3_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
-	UNREGISTER_INI_ENTRIES();
-
 	return SUCCESS;
 }
 
@@ -271,7 +250,7 @@ void apm_driver_sqlite3_process_stats(TSRMLS_D)
 	/* Building SQL insert query */
 	sql = sqlite3_mprintf(
 		"INSERT INTO stats (request_id, duration, user_cpu, sys_cpu, mem_peak_usage) VALUES (%d, %f, %f, %f, %d)",
-		APM_S3_G(request_id), USEC_TO_SEC(APM_G(duration)), USEC_TO_SEC(APM_G(user_cpu)), USEC_TO_SEC(APM_G(sys_cpu)), APM_G(mem_peak_usage)
+		APM_G(sqlite3_request_id), USEC_TO_SEC(APM_G(duration)), USEC_TO_SEC(APM_G(user_cpu)), USEC_TO_SEC(APM_G(sys_cpu)), APM_G(mem_peak_usage)
 	);
 
 	/* Executing SQL insert query */

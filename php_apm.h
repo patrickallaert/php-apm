@@ -26,8 +26,12 @@
 #include "zend_errors.h"
 #include "ext/standard/php_smart_str.h"
 
-extern zend_module_entry apm_module_entry;
-#define phpext_apm_ptr &apm_module_entry
+#ifdef APM_DRIVER_SQLITE3
+	#include <sqlite3.h>
+#endif
+#ifdef APM_DRIVER_MYSQL
+	#include <mysql/mysql.h>
+#endif
 
 #ifdef PHP_WIN32
 #define PHP_APM_API __declspec(dllexport)
@@ -41,6 +45,8 @@ extern zend_module_entry apm_module_entry;
 
 #define APM_EVENT_ERROR 1
 #define APM_EVENT_EXCEPTION 2
+
+ZEND_EXTERN_MODULE_GLOBALS(apm);
 
 #define PROCESS_EVENT_ARGS int type, char * error_filename, uint error_lineno, char * msg, char * trace  TSRMLS_DC
 
@@ -85,13 +91,20 @@ typedef struct apm_request_data {
 
 
 #ifdef ZTS
-#define APM_GLOBAL(driver, v) TSRMG(apm_##driver##_globals_id, zend_apm_##driver##_globals *, v)
+#define APM_GLOBAL(driver, v) TSRMG(apm_globals_id, zend_apm_globals *, driver##_##v)
 #else
-#define APM_GLOBAL(driver, v) (apm_##driver##_globals.v)
+#define APM_GLOBAL(driver, v) (apm_globals.driver##_##v)
 #endif
 
 #define APM_DRIVER_CREATE(name) \
-static PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
+void apm_driver_##name##_insert_request(TSRMLS_D); \
+void apm_driver_##name##_process_event(PROCESS_EVENT_ARGS); \
+void apm_driver_##name##_process_stats(TSRMLS_D); \
+int apm_driver_##name##_minit(int TSRMLS_DC); \
+int apm_driver_##name##_rinit(TSRMLS_D); \
+int apm_driver_##name##_mshutdown(); \
+int apm_driver_##name##_rshutdown(TSRMLS_D); \
+PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
 { \
 	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_##name ); \
 	return SUCCESS; \
@@ -202,6 +215,97 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 
 #ifdef APM_DEBUGFILE
 	FILE * debugfile;
+#endif
+
+#ifdef APM_DRIVER_SQLITE3
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool sqlite3_enabled;
+	/* Boolean controlling the collection of stats */
+	zend_bool sqlite3_stats_enabled;
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	long sqlite3_exception_mode;
+	/* driver error reporting */
+	int sqlite3_error_reporting;
+	/* Path to the SQLite database file */
+	char *sqlite3_db_path;
+	/* The actual db file */
+	char sqlite3_db_file[MAXPATHLEN];
+	/* DB handle */
+	sqlite3 *sqlite3_event_db;
+	/* Max timeout to wait for storing the event in the DB */
+	long sqlite3_timeout;
+	/* Request ID */
+	sqlite3_int64 sqlite3_request_id;
+	/* Boolean to ensure request content is only inserted once */
+	zend_bool sqlite3_is_request_created;
+	/* Option to process silenced events */
+	zend_bool sqlite3_process_silenced_events;
+#endif
+
+#ifdef APM_DRIVER_MYSQL
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool mysql_enabled;
+	/* Boolean controlling the collection of stats */
+	zend_bool mysql_stats_enabled;
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	long mysql_exception_mode;
+	/* driver error reporting */
+	int mysql_error_reporting;
+	/* MySQL host */
+	char *mysql_db_host;
+	/* MySQL port */
+	unsigned int mysql_db_port;
+	/* MySQL user */
+	char *mysql_db_user;
+	/* MySQL password */
+	char *mysql_db_pass;
+	/* MySQL database */
+	char *mysql_db_name;
+	/* DB handle */
+	MYSQL *mysql_event_db;
+	/* Option to process silenced events */
+	zend_bool mysql_process_silenced_events;
+
+	/* Boolean to ensure request content is only inserted once */
+	zend_bool mysql_is_request_created;
+#endif
+
+#ifdef APM_DRIVER_STATSD
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool statsd_enabled;
+	/* Boolean controlling the collection of stats */
+	zend_bool statsd_stats_enabled;
+	/* (unused for StatsD) */
+	long statsd_exception_mode;
+	/* (unused for StatsD) */
+	int statsd_error_reporting;
+	/* StatsD host */
+	char *statsd_host;
+	/* StatsD port */
+	unsigned int statsd_port;
+	/* StatsD key prefix */
+	char *statsd_prefix;
+	/* addinfo for StatsD server */
+	struct addrinfo *statsd_servinfo;
+	/* Option to process silenced events */
+	zend_bool statsd_process_silenced_events;
+#endif
+
+#ifdef APM_DRIVER_SOCKET
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool socket_enabled;
+	/* Boolean controlling the collection of stats */
+	zend_bool socket_stats_enabled;
+	/* (unused for StatsD) */
+	long socket_exception_mode;
+	/* (unused for StatsD) */
+	int socket_error_reporting;
+	/* Option to process silenced events */
+	zend_bool socket_process_silenced_events;
+	/* socket path */
+	char *socket_path;
+	apm_event_entry *socket_events;
+	apm_event_entry **socket_last_event;
 #endif
 ZEND_END_MODULE_GLOBALS(apm)
 

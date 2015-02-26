@@ -33,75 +33,54 @@
 #include "driver_socket.h"
 #include "SAPI.h"
 
-ZEND_EXTERN_MODULE_GLOBALS(apm)
-
-ZEND_DECLARE_MODULE_GLOBALS(apm_socket)
-
 APM_DRIVER_CREATE(socket)
-
-PHP_INI_BEGIN()
-	/* Boolean controlling whether the driver is active or not */
-	STD_PHP_INI_BOOLEAN("apm.socket_enabled", "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_apm_socket_globals, apm_socket_globals)
-	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.socket_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_socket_globals, apm_socket_globals)
-	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMsocketErrorReporting, error_reporting, zend_apm_socket_globals, apm_socket_globals)
-	/* Socket path */
-	STD_PHP_INI_ENTRY("apm.socket_path", "file:/tmp/apm.sock|tcp:127.0.0.1:8264", PHP_INI_ALL, OnUpdateString, path, zend_apm_socket_globals, apm_socket_globals)
-	/* process silenced events? */
-	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_socket_globals, apm_socket_globals)
-PHP_INI_END()
 
 /* Insert an event in the backend */
 void apm_driver_socket_process_event(PROCESS_EVENT_ARGS)
 {
-	(*APM_SOCK_G(last_event))->next = (apm_event_entry *) calloc(1, sizeof(apm_event_entry));
+	(*APM_G(socket_last_event))->next = (apm_event_entry *) calloc(1, sizeof(apm_event_entry));
 	// Event type not provided yet
-	// (*APM_SOCK_G(last_event))->next->event.event_type = ;
-	(*APM_SOCK_G(last_event))->next->event.type = type;
+	// (*APM_G(socket_last_event))->next->event.event_type = ;
+	(*APM_G(socket_last_event))->next->event.type = type;
 
-	if (((*APM_SOCK_G(last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
-		strcpy((*APM_SOCK_G(last_event))->next->event.error_filename, error_filename);
+	if (((*APM_G(socket_last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
+		strcpy((*APM_G(socket_last_event))->next->event.error_filename, error_filename);
 	}
 
-	(*APM_SOCK_G(last_event))->next->event.error_lineno = error_lineno;
+	(*APM_G(socket_last_event))->next->event.error_lineno = error_lineno;
 
-	if (((*APM_SOCK_G(last_event))->next->event.msg = malloc(strlen(msg) + 1)) != NULL) {
-		strcpy((*APM_SOCK_G(last_event))->next->event.msg, msg);
+	if (((*APM_G(socket_last_event))->next->event.msg = malloc(strlen(msg) + 1)) != NULL) {
+		strcpy((*APM_G(socket_last_event))->next->event.msg, msg);
 	}
 
-	if (APM_G(store_stacktrace) && trace && (((*APM_SOCK_G(last_event))->next->event.trace = malloc(strlen(trace) + 1)) != NULL)) {
-		strcpy((*APM_SOCK_G(last_event))->next->event.trace, trace);
+	if (APM_G(store_stacktrace) && trace && (((*APM_G(socket_last_event))->next->event.trace = malloc(strlen(trace) + 1)) != NULL)) {
+		strcpy((*APM_G(socket_last_event))->next->event.trace, trace);
 	}
 
-	APM_SOCK_G(last_event) = &(*APM_SOCK_G(last_event))->next;
+	APM_G(socket_last_event) = &(*APM_G(socket_last_event))->next;
 }
 
 int apm_driver_socket_minit(int module_number TSRMLS_DC)
 {
-	REGISTER_INI_ENTRIES();
-
 	return SUCCESS;
 }
 
 int apm_driver_socket_rinit(TSRMLS_D)
 {
-	APM_SOCK_G(events) = (apm_event_entry *) malloc(sizeof(apm_event_entry));
-	APM_SOCK_G(events)->event.type = 0;
-	APM_SOCK_G(events)->event.error_filename = NULL;
-	APM_SOCK_G(events)->event.error_lineno = 0;
-	APM_SOCK_G(events)->event.msg = NULL;
-	APM_SOCK_G(events)->event.trace = NULL;
-	APM_SOCK_G(events)->next = NULL;
-	APM_SOCK_G(last_event) = &APM_SOCK_G(events);
+	APM_G(socket_events) = (apm_event_entry *) malloc(sizeof(apm_event_entry));
+	APM_G(socket_events)->event.type = 0;
+	APM_G(socket_events)->event.error_filename = NULL;
+	APM_G(socket_events)->event.error_lineno = 0;
+	APM_G(socket_events)->event.msg = NULL;
+	APM_G(socket_events)->event.trace = NULL;
+	APM_G(socket_events)->next = NULL;
+	APM_G(socket_last_event) = &APM_G(socket_events);
 
 	return SUCCESS;
 }
 
 int apm_driver_socket_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
-	UNREGISTER_INI_ENTRIES();
-
 	return SUCCESS;
 }
 
@@ -118,7 +97,7 @@ static void recursive_free_event(apm_event_entry **event)
 
 static void clear_events(TSRMLS_D)
 {
-	recursive_free_event(&APM_SOCK_G(events));
+	recursive_free_event(&APM_G(socket_events));
 }
 
 int apm_driver_socket_rshutdown(TSRMLS_D)
@@ -134,15 +113,15 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	struct addrinfo hints, *servinfo;
 	char host[1024], *port;
 
-	if (!APM_SOCK_G(enabled)) {
+	if (!APM_G(socket_enabled)) {
 		return SUCCESS;
 	}
 
 	sd_it = 0;
 
 	// Path must be copied for strtok to work
-	path_copy = (char*)malloc(strlen(APM_SOCK_G(path)) + 1);
-	strcpy(path_copy, APM_SOCK_G(path));
+	path_copy = (char*)malloc(strlen(APM_G(socket_path)) + 1);
+	strcpy(path_copy, APM_G(socket_path));
 
 	socket_path = strtok(path_copy, "|");
 
@@ -226,7 +205,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 		}
 		// Add ip, referer, ... if an error occured or if thresold is reached.
 		if (
-			APM_SOCK_G(events) != *APM_SOCK_G(last_event)
+			APM_G(socket_events) != *APM_G(socket_last_event)
 			|| APM_G(duration) > 1000.0 * APM_G(stats_duration_threshold)
 #ifdef HAVE_GETRUSAGE
 			|| APM_G(user_cpu) > 1000.0 * APM_G(stats_user_cpu_threshold)
@@ -262,7 +241,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			*/
 		}
 	}
-	if (APM_SOCK_G(stats_enabled)) {
+	if (APM_G(socket_stats_enabled)) {
 		add_assoc_double(data, "duration", APM_G(duration));
 		add_assoc_long(data, "mem_peak_usage", APM_G(mem_peak_usage));
 #ifdef HAVE_GETRUSAGE
@@ -271,8 +250,8 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 #endif
 	}
 
-	if (APM_SOCK_G(events) != *APM_SOCK_G(last_event)) {
-		event_entry_cursor = APM_SOCK_G(events);
+	if (APM_G(socket_events) != *APM_G(socket_last_event)) {
+		event_entry_cursor = APM_G(socket_events);
 		event_entry_cursor_next = event_entry_cursor->next;
 
 		ALLOC_INIT_ZVAL(errors);

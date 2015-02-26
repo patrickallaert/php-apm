@@ -19,8 +19,8 @@
 #ifndef DRIVER_SQLITE3_H
 #define DRIVER_SQLITE3_H
 
-#include <sqlite3.h>
 #include "zend_API.h"
+#include "php_apm.h"
 
 #define APM_E_sqlite3 APM_E_ALL
 
@@ -33,55 +33,8 @@
 #define DB_FILE "events"
 
 apm_driver_entry * apm_driver_sqlite3_create();
-void apm_driver_sqlite3_insert_request(TSRMLS_D);
-void apm_driver_sqlite3_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_sqlite3_process_stats(TSRMLS_D);
-int apm_driver_sqlite3_minit(int TSRMLS_DC);
-int apm_driver_sqlite3_rinit(TSRMLS_D);
-int apm_driver_sqlite3_mshutdown();
-int apm_driver_sqlite3_rshutdown(TSRMLS_D);
 
-/* Extension globals */
-ZEND_BEGIN_MODULE_GLOBALS(apm_sqlite3)
-	/* Boolean controlling whether the driver is active or not */
-	zend_bool enabled;
-
-	/* Boolean controlling the collection of stats */
-	zend_bool stats_enabled;
-
-	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
-	long exception_mode;
-
-	/* driver error reporting */
-	int error_reporting;
-
-	/* Path to the SQLite database file */
-	char *db_path;
-
-	/* The actual db file */
-	char db_file[MAXPATHLEN];
-
-	/* DB handle */
-	sqlite3 *event_db;
-
-	/* Max timeout to wait for storing the event in the DB */
-	long timeout;
-
-	/* Request ID */
-	sqlite3_int64 request_id;
-
-	/* Boolean to ensure request content is only inserted once */
-	zend_bool is_request_created;
-
-	/* Option to process silenced events */
-	zend_bool process_silenced_events;
-
-ZEND_END_MODULE_GLOBALS(apm_sqlite3)
-
-#ifdef ZTS
-#define APM_S3_G(v) TSRMG(apm_sqlite3_globals_id, zend_apm_sqlite3_globals *, v)
-#else
-#define APM_S3_G(v) (apm_sqlite3_globals.v)
-#endif
+PHP_INI_MH(OnUpdateDBFile);
+PHP_INI_MH(OnUpdateAPMsqlite3ErrorReporting);
 
 #endif
