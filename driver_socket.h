@@ -26,41 +26,7 @@
 #define MAX_SOCKETS 10
 
 apm_driver_entry * apm_driver_socket_create();
-void apm_driver_socket_process_event(PROCESS_EVENT_ARGS);
-void apm_driver_socket_process_stats(TSRMLS_D);
-int apm_driver_socket_minit(int TSRMLS_DC);
-int apm_driver_socket_rinit(TSRMLS_D);
-int apm_driver_socket_mshutdown();
-int apm_driver_socket_rshutdown(TSRMLS_D);
 
-/* Extension globals */
-ZEND_BEGIN_MODULE_GLOBALS(apm_socket)
-	/* Boolean controlling whether the driver is active or not */
-	zend_bool enabled;
-
-	/* Boolean controlling the collection of stats */
-	zend_bool stats_enabled;
-
-	/* (unused for StatsD) */
-	long exception_mode;
-
-	/* (unused for StatsD) */
-	int error_reporting;
-
-	/* Option to process silenced events */
-	zend_bool process_silenced_events;
-
-	/* socket path */
-	char *path;
-
-	apm_event_entry *events;
-	apm_event_entry **last_event;
-ZEND_END_MODULE_GLOBALS(apm_socket)
-
-#ifdef ZTS
-#define APM_SOCK_G(v) TSRMG(apm_socket_globals_id, zend_apm_socket_globals *, v)
-#else
-#define APM_SOCK_G(v) (apm_socket_globals.v)
-#endif
+PHP_INI_MH(OnUpdateAPMsocketErrorReporting);
 
 #endif

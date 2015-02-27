@@ -31,40 +31,6 @@ int apm_driver_statsd_rinit(TSRMLS_D);
 int apm_driver_statsd_mshutdown();
 int apm_driver_statsd_rshutdown(TSRMLS_D);
 
-/* Extension globals */
-ZEND_BEGIN_MODULE_GLOBALS(apm_statsd)
-	/* Boolean controlling whether the driver is active or not */
-	zend_bool enabled;
-
-	/* Boolean controlling the collection of stats */
-	zend_bool stats_enabled;
-
-	/* (unused for StatsD) */
-	long exception_mode;
-
-	/* (unused for StatsD) */
-	int error_reporting;
-
-	/* StatsD host */
-	char *host;
-
-	/* StatsD port */
-	unsigned int port;
-
-	/* StatsD key prefix */
-	char *prefix;
-	
-	/* addinfo for StatsD server */
-	struct addrinfo *servinfo;
-
-	/* Option to process silenced events */
-	zend_bool process_silenced_events;
-ZEND_END_MODULE_GLOBALS(apm_statsd)
-
-#ifdef ZTS
-#define APM_SD_G(v) TSRMG(apm_statsd_globals_id, zend_apm_statsd_globals *, v)
-#else
-#define APM_SD_G(v) (apm_statsd_globals.v)
-#endif
+PHP_INI_MH(OnUpdateAPMstatsdErrorReporting);
 
 #endif

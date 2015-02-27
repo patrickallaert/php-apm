@@ -29,66 +29,39 @@
 #include <arpa/inet.h>
 #endif
 
-ZEND_EXTERN_MODULE_GLOBALS(apm)
-
-ZEND_DECLARE_MODULE_GLOBALS(apm_mysql)
-
 APM_DRIVER_CREATE(mysql)
-
-PHP_INI_BEGIN()
- 	/* Boolean controlling whether the driver is active or not */
- 	STD_PHP_INI_BOOLEAN("apm.mysql_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, enabled, zend_apm_mysql_globals, apm_mysql_globals)
-	/* Boolean controlling the collection of stats */
-	STD_PHP_INI_BOOLEAN("apm.mysql_stats_enabled", "0", PHP_INI_ALL, OnUpdateBool, stats_enabled, zend_apm_mysql_globals, apm_mysql_globals)
-	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
-	STD_PHP_INI_ENTRY("apm.mysql_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, exception_mode, zend_apm_mysql_globals, apm_mysql_globals)
-	/* error_reporting of the driver */
-	STD_PHP_INI_ENTRY("apm.mysql_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMmysqlErrorReporting, error_reporting, zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql host */
-	STD_PHP_INI_ENTRY("apm.mysql_host", "localhost", PHP_INI_PERDIR, OnUpdateString, db_host, zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql port */
-	STD_PHP_INI_ENTRY("apm.mysql_port", "0", PHP_INI_PERDIR, OnUpdateLong, db_port, zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql user */
-	STD_PHP_INI_ENTRY("apm.mysql_user", "root", PHP_INI_PERDIR, OnUpdateString, db_user, zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql password */
-	STD_PHP_INI_ENTRY("apm.mysql_pass", "", PHP_INI_PERDIR, OnUpdateString, db_pass, zend_apm_mysql_globals, apm_mysql_globals)
-	/* mysql database */
-	STD_PHP_INI_ENTRY("apm.mysql_db", "apm", PHP_INI_PERDIR, OnUpdateString, db_name, zend_apm_mysql_globals, apm_mysql_globals)
-	/* process silenced events? */
-	STD_PHP_INI_BOOLEAN("apm.mysql_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, process_silenced_events, zend_apm_mysql_globals, apm_mysql_globals)
-PHP_INI_END()
 
 static void mysql_destroy(TSRMLS_D) {
 	APM_DEBUG("[MySQL driver] Closing connection\n");
-	mysql_close(APM_MY_G(event_db));
-	free(APM_MY_G(event_db));
-	APM_MY_G(event_db) = NULL;
+	mysql_close(APM_G(mysql_event_db));
+	free(APM_G(mysql_event_db));
+	APM_G(mysql_event_db) = NULL;
 	mysql_library_end();
 }
 
 /* Returns the MYSQL instance (singleton) */
 MYSQL * mysql_get_instance(TSRMLS_D) {
 	my_bool reconnect = 1;
-	if (APM_MY_G(event_db) == NULL) {
+	if (APM_G(mysql_event_db) == NULL) {
 		mysql_library_init(0, NULL, NULL);
-		APM_MY_G(event_db) = malloc(sizeof(MYSQL));
+		APM_G(mysql_event_db) = malloc(sizeof(MYSQL));
 
-		mysql_init(APM_MY_G(event_db));
+		mysql_init(APM_G(mysql_event_db));
 
-		mysql_options(APM_MY_G(event_db), MYSQL_OPT_RECONNECT, &reconnect);
+		mysql_options(APM_G(mysql_event_db), MYSQL_OPT_RECONNECT, &reconnect);
 		APM_DEBUG("[MySQL driver] Connecting to server...");
-		if (mysql_real_connect(APM_MY_G(event_db), APM_MY_G(db_host), APM_MY_G(db_user), APM_MY_G(db_pass), APM_MY_G(db_name), APM_MY_G(db_port), NULL, 0) == NULL) {
-			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_MY_G(event_db)));
+		if (mysql_real_connect(APM_G(mysql_event_db), APM_G(mysql_db_host), APM_G(mysql_db_user), APM_G(mysql_db_pass), APM_G(mysql_db_name), APM_G(mysql_db_port), NULL, 0) == NULL) {
+			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_G(mysql_event_db)));
 
 			mysql_destroy(TSRMLS_C);
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
 
-		mysql_set_character_set(APM_MY_G(event_db), "utf8");
+		mysql_set_character_set(APM_G(mysql_event_db), "utf8");
 
 		mysql_query(
-			APM_MY_G(event_db),
+			APM_G(mysql_event_db),
 			"\
 CREATE TABLE IF NOT EXISTS request (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
@@ -104,7 +77,7 @@ CREATE TABLE IF NOT EXISTS request (\
 )"
 	);
 		mysql_query(
-			APM_MY_G(event_db),
+			APM_G(mysql_event_db),
 			"\
 CREATE TABLE IF NOT EXISTS event (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
@@ -120,7 +93,7 @@ CREATE TABLE IF NOT EXISTS event (\
 	);
 
 		mysql_query(
-			APM_MY_G(event_db),
+			APM_G(mysql_event_db),
 			"\
 CREATE TABLE IF NOT EXISTS stats (\
     id INTEGER UNSIGNED PRIMARY KEY auto_increment,\
@@ -134,7 +107,7 @@ CREATE TABLE IF NOT EXISTS stats (\
 		);
 	}
 
-	return APM_MY_G(event_db);
+	return APM_G(mysql_event_db);
 }
 
 /* Insert a request in the backend */
@@ -149,7 +122,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	EXTRACT_DATA();
 
 	APM_DEBUG("[MySQL driver] Begin insert request\n");
-	if (APM_MY_G(is_request_created)) {
+	if (APM_G(mysql_is_request_created)) {
 		APM_DEBUG("[MySQL driver] SKIPPED, request already created.\n");
 		return;
 	}
@@ -212,7 +185,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_MY_G(event_db)));
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
 
 	mysql_query(connection, "SET @request_id = LAST_INSERT_ID()");
 
@@ -230,7 +203,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	if (referer_esc)
 		efree(referer_esc);
 
-	APM_MY_G(is_request_created) = 1;
+	APM_G(mysql_is_request_created) = 1;
 	APM_DEBUG("[MySQL driver] End insert request\n");
 }
 
@@ -271,7 +244,7 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_MY_G(event_db)));
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
 
 	efree(sql);
 	efree(filename_esc);
@@ -281,21 +254,18 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 
 int apm_driver_mysql_minit(int module_number TSRMLS_DC)
 {
-	REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 
 int apm_driver_mysql_rinit(TSRMLS_D)
 {
-	APM_MY_G(is_request_created) = 0;
+	APM_G(mysql_is_request_created) = 0;
 	return SUCCESS;
 }
 
 int apm_driver_mysql_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
-	UNREGISTER_INI_ENTRIES();
-
-	if (APM_MY_G(event_db) != NULL) {
+	if (APM_G(mysql_event_db) != NULL) {
 		mysql_destroy(TSRMLS_C);
 	}
 
@@ -328,7 +298,7 @@ void apm_driver_mysql_process_stats(TSRMLS_D)
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_MY_G(event_db)));
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
 
 	efree(sql);
 }
