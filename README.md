@@ -115,13 +115,7 @@ The socket driver lets you send errors and stats directly by Unix and/or TCP soc
 
 ### Web frontend
 
-1. Copy the *web/* directory so that it can be accessed by your webserver.
-2. Configure *web/config/db.php* to use the correct backend:
-
-    ```php
-    return new PDO("sqlite:/var/php/apm/db/events");
-    ```
-3. Reach the created directory from your browser: http://localhost/path/to/web/
+The web frontend to visualize the data is now available at: https://github.com/patrickallaert/php-apm-web
 
 ### Advanced configuration
 
