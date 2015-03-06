@@ -292,6 +292,11 @@ PHP_MINIT_FUNCTION(apm)
 				return FAILURE;
 			}
 		}
+
+		/* Since xdebug looks for zend_error_cb in his MINIT, we change it once more so he can get our address */
+		zend_error_cb = apm_error_cb;
+		zend_throw_exception_hook = apm_throw_exception_hook;
+
 	}
 
 	return SUCCESS;
@@ -453,10 +458,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	}
 	efree(msg);
 
-	/* Calling saved callback function for error handling, unless xdebug is loaded */
-	if (zend_hash_find(&module_registry, "xdebug", 7, (void**) &tmp_mod_entry) != SUCCESS) {
-		old_error_cb(type, error_filename, error_lineno, format, args);
-	}
+	old_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
 
