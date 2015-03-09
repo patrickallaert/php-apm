@@ -40,59 +40,60 @@ APM_DRIVER_CREATE(statsd)
 void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
 {
 	int socketDescriptor;
-	char data[1024], type_string[20];
+	char data[1024];
+	const char *type_string;
 
 	if (
 		(socketDescriptor = socket(APM_G(statsd_servinfo)->ai_family, APM_G(statsd_servinfo)->ai_socktype, APM_G(statsd_servinfo)->ai_protocol)) != -1
 	) {
 		switch(type) {
 			case E_ERROR:
-				strcpy(type_string, "error");
+				type_string = "error";
 				break;
 			case E_WARNING:
-				strcpy(type_string, "warning");
+				type_string = "warning";
 				break;
 			case E_PARSE:
-				strcpy(type_string, "parse_error");
+				type_string = "parse_error";
 				break;
 			case E_NOTICE:
-				strcpy(type_string, "notice");
+				type_string = "notice";
 				break;
 			case E_CORE_ERROR:
-				strcpy(type_string, "core_error");
+				type_string = "core_error";
 				break;
 			case E_CORE_WARNING:
-				strcpy(type_string, "core_warning");
+				type_string = "core_warning";
 				break;
 			case E_COMPILE_ERROR:
-				strcpy(type_string, "compile_error");
+				type_string = "compile_error";
 				break;
 			case E_COMPILE_WARNING:
-				strcpy(type_string, "compile_warning");
+				type_string = "compile_warning";
 				break;
 			case E_USER_ERROR:
-				strcpy(type_string, "user_error");
+				type_string = "user_error";
 				break;
 			case E_USER_WARNING:
-				strcpy(type_string, "user_warning");
+				type_string = "user_warning";
 				break;
 			case E_USER_NOTICE:
-				strcpy(type_string, "user_notice");
+				type_string = "user_notice";
 				break;
 			case E_STRICT:
-				strcpy(type_string, "strict");
+				type_string = "strict";
 				break;
 			case E_RECOVERABLE_ERROR:
-				strcpy(type_string, "recoverable_error");
+				type_string = "recoverable_error";
 				break;
 			case E_DEPRECATED:
-				strcpy(type_string, "deprecated");
+				type_string = "deprecated";
 				break;
 			case E_USER_DEPRECATED:
-				strcpy(type_string, "user_deprecated");
+				type_string = "user_deprecated";
 				break;
 			default:
-				strcpy(type_string, "unknown");
+				type_string = "unknown";
 		}
 
 		sprintf(data, "%s.%s:1|ms", APM_G(statsd_prefix), type_string);
