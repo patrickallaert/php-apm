@@ -1,3 +1,20 @@
+APM 2.0.1        09 Mar 2015
+----------------------------
+Fixed:
+- #10: Bad configure message (thx @RemiCollet)
+- #11: Bad version reported (thx @RemiCollet)
+- #13: ZTS build is broken (thx @RemiCollet)
+- APM not working with XDebug
+  If Xdebug is enabled as in xdebug_enable() or xdebug.default_enable, APM error callback will not be called.
+  Use xdebug.default_enable=0 or xdebug_disable() to go through APM error handling.
+
+Improved:
+- #12: Installation of files via pecl install
+- StatsD driver (thanks @0livier for the discovery!)
+
+Changed:
+- Web frontend located on its own repository: https://github.com/patrickallaert/php-apm-web
+
 APM 2.0.0        20 Feb 2015
 ----------------------------
 New drivers:
