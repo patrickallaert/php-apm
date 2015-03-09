@@ -29,6 +29,8 @@
 #include <arpa/inet.h>
 #endif
 
+ZEND_EXTERN_MODULE_GLOBALS(apm);
+
 APM_DRIVER_CREATE(mysql)
 
 static void mysql_destroy(TSRMLS_D) {

@@ -46,8 +46,6 @@
 #define APM_EVENT_ERROR 1
 #define APM_EVENT_EXCEPTION 2
 
-ZEND_EXTERN_MODULE_GLOBALS(apm);
-
 #define PROCESS_EVENT_ARGS int type, char * error_filename, uint error_lineno, char * msg, char * trace  TSRMLS_DC
 
 typedef struct apm_event {

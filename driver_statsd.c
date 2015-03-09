@@ -34,6 +34,8 @@
 #include <arpa/inet.h>
 #endif
 
+ZEND_EXTERN_MODULE_GLOBALS(apm);
+
 APM_DRIVER_CREATE(statsd)
 
 /* Insert an event in the backend */

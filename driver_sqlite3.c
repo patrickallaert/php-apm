@@ -31,6 +31,8 @@
 #include <arpa/inet.h>
 #endif
 
+ZEND_EXTERN_MODULE_GLOBALS(apm);
+
 APM_DRIVER_CREATE(sqlite3);
 
 static void disconnect(TSRMLS_D)

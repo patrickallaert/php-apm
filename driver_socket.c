@@ -33,6 +33,8 @@
 #include "driver_socket.h"
 #include "SAPI.h"
 
+ZEND_EXTERN_MODULE_GLOBALS(apm);
+
 APM_DRIVER_CREATE(socket)
 
 /* Insert an event in the backend */
