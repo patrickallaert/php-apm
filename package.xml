@@ -32,7 +32,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
  </lead>
  <date>2015-03-09</date>
  <version>
-  <release>2.0.1</release>
+  <release>2.0.2</release>
   <api>2.0.0</api>
  </version>
  <stability>
@@ -42,19 +42,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Fixed:
-- #10: Bad configure message (thx @RemiCollet)
-- #11: Bad version reported (thx @RemiCollet)
-- #13: ZTS build is broken (thx @RemiCollet)
-- APM not working with XDebug
-  If Xdebug is enabled as in xdebug_enable() or xdebug.default_enable, APM error callback will not be called.
-  Use xdebug.default_enable=0 or xdebug_disable() to go through APM error handling.
-
-Improved:
-- #12: Installation of files via pecl install
-- StatsD driver (thanks @0livier for the discovery!)
-
-Changed:
-- Web frontend located on its own repository: https://github.com/patrickallaert/php-apm-web
+- Compilation issue on non ZTS setup
  </notes>
  <contents>
   <dir name="/">
@@ -98,6 +86,22 @@ Changed:
   <configureoption name="enable-statsd" default="yes" prompt="Enable Statsd support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.0.2</release>
+    <api>2.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2015-03-09</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+ Fixed:
+ - Compilation issue on non ZTS setup
+   </notes>
+  </release>
   <release>
    <version>
     <release>2.0.1</release>

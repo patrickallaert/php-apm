@@ -19,7 +19,7 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
-#define PHP_APM_VERSION "2.0.1"
+#define PHP_APM_VERSION "2.0.2"
 
 #include "config.h"
 #include "php.h"
