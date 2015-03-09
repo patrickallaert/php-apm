@@ -1,3 +1,52 @@
+APM 2.0.0        20 Feb 2015
+----------------------------
+New drivers:
+- StatsD
+- Socket
+
+Added:
+- Per-driver option 'apm.&lt;storage driver&gt;_store_silenced_events that lets you toggle whether to store silenced (@-ed) errors (thanks Mathieu Kooiman (@mathieuk))
+- apm.*_exception_mode configuration to control exception collection
+- Auto creation of SQLite and MariaDB/MySQL schemas
+- Stats:
+  - User and System CPU time
+  - Memory Peak Usage
+  - HTTP response code
+- 'application_id' field to categorize the issues per application/server/environment/...
+- Support for compilation on Ubuntu (thanks Olivier Garcia (@0livier))
+
+Changed:
+- Deep refactoring:
+  - New DB schema
+  - No more native functions, retrieval of data is directly made in PHP
+- SQLite drivder attempts to create the directory structure by himself
+- Renamed 'slow request' to 'stats'
+- Connect to MySQL once and reconnect if needed
+- Small UI improvements
+- Avoiding int / uint conversion
+- MariaDB/MySQL driver activated by default
+
+Fixed:
+- Parse error test failing on PHP 5.4
+- Possible segfault with APM_DEBUG used outside RINIT/RSHUTDOWN phases
+- Missing disconnect from SQLite DB if changed with ini_set()
+- Too few arguments to sprintf() with MariaDB/MySQL backend
+- Possible segfault with PHP 5.5
+- Segmentation fault with "zend_mm_heap corrupted" message.
+- Missing zval reference incrementing
+- Out of memory error in backtrace generation
+- Removed hard-coded limit of 64kB json data
+- Do not activate silence handler if APM is not enabled
+- Some compiler warnings
+- Incorrect status propagation for PHP_RSHUTDOWN_FUNCTION
+- Several memory leaks
+
+Removed:
+- Deffered processing (can't be easily implemented in a generic and driver
+  agnostic way. Depending on the drivers, some deffered processing will
+  happen inside them.)
+- Reference SQL files, see source code for that ;-)
+
 APM 2.0.0alpha1  11 May 2013
 ----------------------------
 Changed:
