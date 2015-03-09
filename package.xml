@@ -4,11 +4,13 @@
  <channel>pecl.php.net</channel>
  <summary>Alternative PHP Monitor</summary>
  <description>
-Monitoring extension for PHP, collects error events and statistics and send them to one of his drivers.
+Monitoring extension for PHP, collects error events and statistics and send them to one of his drivers:
 SQLite and MariaDB/MySQL drivers are storing those in a database.
 StatsD driver sends them to StatsD using UDP.
 Socket driver sends them via UDP or TCP socket using its dedicated protocol.
 More drivers to come (SNMP, e-mail, Hadoop,...).
+
+A web frontend exists for manipulating the data stored in database at: https://github.com/patrickallaert/php-apm-web
  </description>
  <lead>
   <name>Patrick Allaert</name>
