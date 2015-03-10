@@ -74,15 +74,17 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 
 PHP_INI_MH(OnUpdateDBFile)
 {
-	if (new_value && new_value_length > 0) {
-		snprintf(APM_G(sqlite3_db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
-		disconnect(TSRMLS_C);
+	if (APM_G(enabled) && APM_G(sqlite3_enabled)) {
+		if (new_value && new_value_length > 0) {
+			snprintf(APM_G(sqlite3_db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
+			disconnect(TSRMLS_C);
 
-		if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
+			if (perform_db_access_checks(new_value TSRMLS_CC) == FAILURE) {
+				APM_G(sqlite3_enabled) = 0;
+			}
+		} else {
 			APM_G(sqlite3_enabled) = 0;
 		}
-	} else {
-		APM_G(sqlite3_enabled) = 0;
 	}
 	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
 }

@@ -110,6 +110,10 @@ int apm_driver_statsd_minit(int module_number TSRMLS_DC)
 	struct addrinfo hints;
 	char port[8];
 
+	if (!(APM_G(enabled) && APM_G(statsd_enabled))) {
+		return SUCCESS;
+	}
+
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -129,6 +133,10 @@ int apm_driver_statsd_rinit(TSRMLS_D)
 
 int apm_driver_statsd_mshutdown(SHUTDOWN_FUNC_ARGS)
 {
+	if (!(APM_G(enabled) && APM_G(statsd_enabled))) {
+		return SUCCESS;
+	}
+
 	freeaddrinfo(APM_G(statsd_servinfo));
 
 	return SUCCESS;

@@ -115,7 +115,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	struct addrinfo hints, *servinfo;
 	char host[1024], *port;
 
-	if (!APM_G(socket_enabled)) {
+	if (!(APM_G(enabled) && APM_G(socket_enabled))) {
 		return SUCCESS;
 	}
 
