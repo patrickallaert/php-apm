@@ -445,7 +445,6 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 {
 	char *msg;
 	va_list args_copy;
-	zend_module_entry tmp_mod_entry;
 	TSRMLS_FETCH();
 
 	/* A copy of args is needed to be used for the old_error_cb */
