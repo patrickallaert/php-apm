@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS stats (\
 /* Insert a request in the backend */
 void apm_driver_mysql_insert_request(TSRMLS_D)
 {
-	char *script = NULL, *application_esc, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
+	char *script = NULL, *application_esc = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
 	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
 	struct in_addr ip_addr;
 	MYSQL *connection;
@@ -183,7 +183,7 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	sprintf(
 		sql,
 		"INSERT INTO request (application, script, uri, host, ip, cookies, post_vars, referer) VALUES ('%s', '%s', '%s', '%s', %u, '%s', '%s', '%s')",
-		APM_G(application_id) ? application_esc : "", script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
+		application_esc ? application_esc : "", script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
