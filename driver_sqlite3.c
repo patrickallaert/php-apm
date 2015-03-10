@@ -100,7 +100,7 @@ sqlite3 * sqlite_get_instance(TSRMLS_D) {
 			 Closing DB file and stop loading the extension
 			 in case of error while opening the database file
 			 */
-            disconnect(TSRMLS_C);
+			disconnect(TSRMLS_C);
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
@@ -236,7 +236,7 @@ int apm_driver_sqlite3_mshutdown(SHUTDOWN_FUNC_ARGS)
 
 int apm_driver_sqlite3_rshutdown(TSRMLS_D)
 {
-    disconnect(TSRMLS_C);
+	disconnect(TSRMLS_C);
 	return SUCCESS;
 }
 
