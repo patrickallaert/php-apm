@@ -115,7 +115,7 @@ zend_module_entry apm_module_entry = {
 	PHP_RSHUTDOWN(apm),
 	PHP_MINFO(apm),
 #if ZEND_MODULE_API_NO >= 20010901
-	"0.1.0",
+	PHP_APM_VERSION,
 #endif
 	PHP_MODULE_GLOBALS(apm),
 	PHP_GINIT(apm),
