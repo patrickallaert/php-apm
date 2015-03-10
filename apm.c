@@ -17,7 +17,7 @@
 */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+# include "config.h"
 #endif
 
 /* gettimeofday */
@@ -27,8 +27,14 @@
 # include "main/php_config.h"
 #endif
 
-#include <sys/resource.h>
-#include <sys/time.h>
+#ifdef HAVE_GETRUSAGE
+# include <sys/resource.h>
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
@@ -36,16 +42,16 @@
 #include "backtrace.h"
 #include "ext/standard/info.h"
 #ifdef APM_DRIVER_SQLITE3
-	#include "driver_sqlite3.h"
+# include "driver_sqlite3.h"
 #endif
 #ifdef APM_DRIVER_MYSQL
-	#include "driver_mysql.h"
+# include "driver_mysql.h"
 #endif
 #ifdef APM_DRIVER_STATSD
-	#include "driver_statsd.h"
+# include "driver_statsd.h"
 #endif
 #ifdef APM_DRIVER_SOCKET
-	#include "driver_socket.h"
+# include "driver_socket.h"
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);

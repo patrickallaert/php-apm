@@ -21,7 +21,10 @@
 
 #define PHP_APM_VERSION "2.0.2"
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "php.h"
 #include "zend_errors.h"
 #include "ext/standard/php_smart_str.h"
