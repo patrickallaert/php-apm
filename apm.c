@@ -172,7 +172,7 @@ PHP_INI_BEGIN()
 	/* Path to the SQLite database file */
 	STD_PHP_INI_ENTRY("apm.sqlite_max_event_insert_timeout", "100", PHP_INI_ALL, OnUpdateLong, sqlite3_timeout, zend_apm_globals, apm_globals)
 	/* Max timeout to wait for storing the event in the DB */
-	STD_PHP_INI_ENTRY("apm.sqlite_db_path", "/var/php/apm/db", PHP_INI_ALL, OnUpdateDBFile, sqlite3_db_path, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.sqlite_db_path", SQLITE3_DEFAULTDB, PHP_INI_ALL, OnUpdateDBFile, sqlite3_db_path, zend_apm_globals, apm_globals)
 	/* Store silenced events? */
 	STD_PHP_INI_BOOLEAN("apm.sqlite_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, sqlite3_process_silenced_events, zend_apm_globals, apm_globals)
 #endif
