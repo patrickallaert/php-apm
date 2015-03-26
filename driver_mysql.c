@@ -20,7 +20,13 @@
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_mysql.h"
-#include "ext/standard/php_smart_str.h"
+
+#if PHP_VERSION_ID >= 70000
+# include "zend_smart_str.h"
+#else
+# include "ext/standard/php_smart_str.h"
+#endif
+
 #include "ext/json/php_json.h"
 #ifdef NETWARE
 #include <netinet/in.h>
@@ -146,37 +152,37 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	}
 
 	if (APM_RD(uri_found)) {
-		uri_len = strlen(Z_STRVAL_PP(APM_RD(uri)));
+		uri_len = strlen(APM_RD_STRVAL(uri));
 		uri_esc = emalloc(uri_len * 2 + 1);
-		uri_len = mysql_real_escape_string(connection, uri_esc, Z_STRVAL_PP(APM_RD(uri)), uri_len);
+		uri_len = mysql_real_escape_string(connection, uri_esc, APM_RD_STRVAL(uri), uri_len);
 	}
 
 	if (APM_RD(host_found)) {
-		host_len = strlen(Z_STRVAL_PP(APM_RD(host)));
+		host_len = strlen(APM_RD_STRVAL(host));
 		host_esc = emalloc(host_len * 2 + 1);
-		host_len = mysql_real_escape_string(connection, host_esc, Z_STRVAL_PP(APM_RD(host)), host_len);
+		host_len = mysql_real_escape_string(connection, host_esc, APM_RD_STRVAL(host), host_len);
 	}
 
-	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
+	if (APM_RD(ip_found) && (inet_pton(AF_INET, APM_RD_STRVAL(ip), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
 	
 	if (APM_RD(cookies_found)) {
-		cookies_len = strlen(APM_RD(cookies).c);
+		cookies_len = strlen(APM_RD_SMART_STRVAL(cookies));
 		cookies_esc = emalloc(cookies_len * 2 + 1);
-		cookies_len = mysql_real_escape_string(connection, cookies_esc, APM_RD(cookies).c, cookies_len);
+		cookies_len = mysql_real_escape_string(connection, cookies_esc, APM_RD_SMART_STRVAL(cookies), cookies_len);
 	}
 
 	if (APM_RD(post_vars_found)) {
-		post_vars_len = strlen(APM_RD(post_vars).c);
+		post_vars_len = strlen(APM_RD_SMART_STRVAL(post_vars));
 		post_vars_esc = emalloc(post_vars_len * 2 + 1);
-		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, APM_RD(post_vars).c, post_vars_len);
+		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, APM_RD_SMART_STRVAL(post_vars), post_vars_len);
 	}
 
 	if (APM_RD(referer_found)) {
-		referer_len = strlen(Z_STRVAL_PP(APM_RD(referer)));
+		referer_len = strlen(APM_RD_STRVAL(referer));
 		referer_esc = emalloc(referer_len * 2 + 1);
-		referer_len = mysql_real_escape_string(connection, referer_esc, Z_STRVAL_PP(APM_RD(referer)), referer_len);
+		referer_len = mysql_real_escape_string(connection, referer_esc, APM_RD_STRVAL(referer), referer_len);
 	}
 
 	sql = emalloc(154 + application_len + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len);

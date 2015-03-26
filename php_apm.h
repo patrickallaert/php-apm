@@ -27,7 +27,12 @@
 
 #include "php.h"
 #include "zend_errors.h"
-#include "ext/standard/php_smart_str.h"
+
+#if PHP_VERSION_ID >= 70000
+# include "zend_smart_str.h"
+#else
+# include "ext/standard/php_smart_str.h"
+#endif
 
 #ifdef APM_DRIVER_SQLITE3
 	#include <sqlite3.h>
@@ -85,7 +90,11 @@ typedef struct apm_driver_entry {
 } apm_driver_entry;
 
 typedef struct apm_request_data {
+#if PHP_VERSION_ID >= 70000
+	zval *uri, *host, *ip, *referer;
+#else
 	zval **uri, **host, **ip, **referer;
+#endif
 	zend_bool uri_found, host_found, ip_found, cookies_found, post_vars_found, referer_found;
 	smart_str cookies, post_vars;
 } apm_request_data;
@@ -95,6 +104,12 @@ typedef struct apm_request_data {
 #define APM_GLOBAL(driver, v) TSRMG(apm_globals_id, zend_apm_globals *, driver##_##v)
 #else
 #define APM_GLOBAL(driver, v) (apm_globals.driver##_##v)
+#endif
+
+#if PHP_VERSION_ID >= 70000
+# define apm_error_reporting_new_value (new_value && new_value->val) ? atoi(new_value->val)
+#else
+# define apm_error_reporting_new_value new_value ? atoi(new_value)
 #endif
 
 #define APM_DRIVER_CREATE(name) \
@@ -107,7 +122,7 @@ int apm_driver_##name##_mshutdown(); \
 int apm_driver_##name##_rshutdown(TSRMLS_D); \
 PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
 { \
-	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_##name ); \
+	APM_GLOBAL(name, error_reporting) = (apm_error_reporting_new_value : APM_E_##name); \
 	return SUCCESS; \
 } \
 zend_bool apm_driver_##name##_is_enabled(TSRMLS_D) { \
@@ -318,6 +333,14 @@ ZEND_END_MODULE_GLOBALS(apm)
 
 #define APM_RD(data) APM_G(request_data).data
 
+#if PHP_VERSION_ID >= 70000
+# define APM_RD_STRVAL(var) Z_STRVAL_P(APM_RD(var))
+# define APM_RD_SMART_STRVAL(var) APM_RD(var).s->val
+#else
+# define APM_RD_STRVAL(var) Z_STRVAL_PP(APM_RD(var))
+# define APM_RD_SMART_STRVAL(var) APM_RD(var).c
+#endif
+
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
 #define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
@@ -329,6 +352,48 @@ ZEND_END_MODULE_GLOBALS(apm)
 
 void get_script(char ** script_filename TSRMLS_DC);
 
+#if PHP_VERSION_ID >= 70000
+#define EXTRACT_DATA() \
+zend_is_auto_global_str(ZEND_STRL("_SERVER")); \
+if ((tmp = &PG(http_globals)[TRACK_VARS_SERVER])) { \
+	if ((APM_RD(uri) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"))) && \
+		(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
+		APM_RD(uri_found) = 1; \
+	} \
+	if ((APM_RD(host) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"))) && \
+		(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
+		APM_RD(host_found) = 1; \
+	} \
+	if (APM_G(store_ip) && (APM_RD(ip) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"))) && \
+		(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
+		APM_RD(ip_found) = 1; \
+	} \
+	if ((APM_RD(referer) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"))) && \
+		(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
+		APM_RD(referer_found) = 1; \
+	} \
+} \
+if (APM_G(store_cookies)) { \
+	zend_is_auto_global_str(ZEND_STRL("_COOKIE")); \
+	if ((tmp = &PG(http_globals)[TRACK_VARS_COOKIE])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &APM_RD(cookies); \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			APM_RD(cookies_found) = 1; \
+		} \
+	} \
+} \
+if (APM_G(store_post)) { \
+	zend_is_auto_global_str(ZEND_STRL("_POST")); \
+	if ((tmp = &PG(http_globals)[TRACK_VARS_POST])) { \
+		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+			APM_G(buffer) = &APM_RD(post_vars); \
+			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+			APM_RD(post_vars_found) = 1; \
+		} \
+	} \
+}
+#else
 #define EXTRACT_DATA() \
 zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
 if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
@@ -369,8 +434,15 @@ if (APM_G(store_post)) { \
 		} \
 	} \
 }
+#endif
 
-int apm_write(const char *str, uint length);
+int apm_write(const char *str,
+#if PHP_VERSION_ID >= 70000
+size_t
+#else
+uint
+#endif
+length);
 
 #endif
 

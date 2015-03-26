@@ -28,7 +28,13 @@
 
 #include "php_apm.h"
 #include "php_ini.h"
-#include "ext/standard/php_smart_str.h"
+
+#if PHP_VERSION_ID >= 70000
+# include "zend_smart_str.h"
+#else
+# include "ext/standard/php_smart_str.h"
+#endif
+
 #include "ext/json/php_json.h"
 #include "driver_socket.h"
 #include "SAPI.h"
@@ -105,7 +111,7 @@ static void clear_events(TSRMLS_D)
 int apm_driver_socket_rshutdown(TSRMLS_D)
 {
 	struct sockaddr_un serveraddr;
-	zval *data, *tmp, **val, *errors;
+	zval *tmp;
 	smart_str buf = {0};
 	apm_event_entry * event_entry_cursor = NULL;
 	apm_event_entry * event_entry_cursor_next = NULL;
@@ -114,7 +120,11 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	char *socket_path, *path_copy;
 	struct addrinfo hints, *servinfo;
 	char host[1024], *port;
-
+#if PHP_VERSION_ID >= 70000
+	zval *val, data, errors;
+#else
+	zval **val, *data, *errors;
+#endif
 	if (!(APM_G(enabled) && APM_G(socket_enabled))) {
 		return SUCCESS;
 	}
@@ -183,8 +193,68 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 
 	free(path_copy);
 
+#if PHP_VERSION_ID >= 70000
+	array_init(&data);
+
+	add_assoc_string_ex(&data, "application_id", sizeof("application_id") - 1, APM_G(application_id));
+	add_assoc_long_ex(&data, "response_code", sizeof("response_code") - 1, SG(sapi_headers).http_response_code);
+
+	zend_is_auto_global_str(ZEND_STRL("_SERVER"));
+	if ((tmp = &PG(http_globals)[TRACK_VARS_SERVER])) {
+		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_TIME", sizeof("REQUEST_TIME"))) && (Z_TYPE_P(val) == IS_LONG)) {
+			add_assoc_long_ex(&data, "ts", sizeof("ts") - 1, Z_LVAL_PP(val));
+		}
+		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"))) && (Z_TYPE_P(val) == IS_STRING)) {
+			zval_add_ref(val);
+			add_assoc_zval_ex(&data, "script", sizeof("script") - 1, val);
+		}
+		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"))) && (Z_TYPE_P(val) == IS_STRING)) {
+			zval_add_ref(val);
+			add_assoc_zval_ex(&data, "uri", sizeof("uri") - 1, val);
+		}
+		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"))) && (Z_TYPE_P(val) == IS_STRING)) {
+			zval_add_ref(val);
+			add_assoc_zval_ex(&data, "host", sizeof("host") - 1, val);
+		}
+		// Add ip, referer, ... if an error occured or if thresold is reached.
+		if (
+			APM_G(socket_events) != *APM_G(socket_last_event)
+			|| APM_G(duration) > 1000.0 * APM_G(stats_duration_threshold)
+#ifdef HAVE_GETRUSAGE
+			|| APM_G(user_cpu) > 1000.0 * APM_G(stats_user_cpu_threshold)
+			|| APM_G(sys_cpu) > 1000.0 * APM_G(stats_sys_cpu_threshold)
+#endif
+		) {
+			if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"))) && (Z_TYPE_P(val) == IS_STRING)) {
+				zval_add_ref(val);
+				add_assoc_zval_ex(&data, "ip", sizeof("ip") - 1, val);
+			}
+			if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"))) && (Z_TYPE_P(val) == IS_STRING)) {
+				zval_add_ref(val);
+				add_assoc_zval_ex(&data, "referer", sizeof("referer") - 1, val);
+			}
+			if (APM_G(store_cookies)) {
+				zend_is_auto_global_str(ZEND_STRL("_COOKIE"));
+				if ((tmp = &PG(http_globals)[TRACK_VARS_COOKIE]) && (Z_ARRVAL_P(tmp)->nNumOfElements > 0)) {
+					zval_add_ref(tmp);
+					add_assoc_zval_ex(&data, "cookies", sizeof("cookies") - 1, tmp);
+				}
+			}
+		}
+	}
+
+	if (APM_G(socket_stats_enabled)) {
+		add_assoc_double(&data, "duration", APM_G(duration));
+		add_assoc_long(&data, "mem_peak_usage", APM_G(mem_peak_usage));
+#ifdef HAVE_GETRUSAGE
+		add_assoc_double(&data, "user_cpu", APM_G(user_cpu));
+		add_assoc_double(&data, "sys_cpu", APM_G(sys_cpu));
+#endif
+	}
+#else
 	ALLOC_INIT_ZVAL(data);
 	array_init(data);
+
 	add_assoc_string(data, "application_id", APM_G(application_id), 1);
 	add_assoc_long(data, "response_code", SG(sapi_headers).http_response_code);
 
@@ -243,6 +313,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			*/
 		}
 	}
+
 	if (APM_G(socket_stats_enabled)) {
 		add_assoc_double(data, "duration", APM_G(duration));
 		add_assoc_long(data, "mem_peak_usage", APM_G(mem_peak_usage));
@@ -251,15 +322,39 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 		add_assoc_double(data, "sys_cpu", APM_G(sys_cpu));
 #endif
 	}
+#endif
 
 	if (APM_G(socket_events) != *APM_G(socket_last_event)) {
 		event_entry_cursor = APM_G(socket_events);
 		event_entry_cursor_next = event_entry_cursor->next;
 
+#if PHP_VERSION_ID >= 70000
+		array_init(&errors);
+#else
 		ALLOC_INIT_ZVAL(errors);
 		array_init(errors);
+#endif
 
 		while ((event_entry_cursor = event_entry_cursor_next) != NULL) {
+
+#if PHP_VERSION_ID >= 70000
+			zval error;
+			array_init(&error);
+
+			add_assoc_long_ex(&error, "type", sizeof("type") - 1, event_entry_cursor->event.type);
+			add_assoc_long_ex(&error, "line", sizeof("line") - 1, event_entry_cursor->event.error_lineno);
+			add_assoc_string_ex(&error, "file", sizeof("file") - 1, event_entry_cursor->event.error_filename);
+			add_assoc_string_ex(&error, "message", sizeof("message") - 1, event_entry_cursor->event.msg);
+			add_assoc_string_ex(&error, "trace", sizeof("trace") - 1, event_entry_cursor->event.trace);
+
+			add_next_index_zval(&errors, &error);
+			event_entry_cursor_next = event_entry_cursor->next;
+		}
+		add_assoc_zval(&data, "errors", &errors);
+	}
+
+	php_json_encode(&buf, &data, 0);
+#else
 			ALLOC_INIT_ZVAL(tmp);
 			array_init(tmp);
 
@@ -270,20 +365,31 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			add_assoc_string(tmp, "trace", event_entry_cursor->event.trace, 1);
 
 			add_next_index_zval(errors, tmp);
-
 			event_entry_cursor_next = event_entry_cursor->next;
 		}
 		add_assoc_zval(data, "errors", errors);
 	}
 
 	php_json_encode(&buf, data, 0 TSRMLS_CC);
+#endif
 
 	smart_str_0(&buf);
 
 	zval_ptr_dtor(&data);
 
 	for (i = 0; i < sd_it; ++i) {
-		if (send(sds[i], buf.c, buf.len, 0) < 0) {
+		if (
+			send(
+				sds[i],
+#if PHP_VERSION_ID >= 70000
+				buf.s->val,
+				buf.s->len,
+#else
+				buf.c,
+				buf.len,
+#endif
+			0) < 0
+		) {
 		}
 	}
 

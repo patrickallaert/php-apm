@@ -72,8 +72,9 @@ static int apm_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 1;
 
-	if (_orig_begin_silence_opcode_handler)
-		return _orig_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+	if (_orig_begin_silence_opcode_handler) {
+		ZEND_VM_DISPATCH_TO_HELPER(_orig_begin_silence_opcode_handler);
+	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
 }
@@ -82,13 +83,20 @@ static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 0;
 
-	if (_orig_end_silence_opcode_handler)
-		return _orig_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+	if (_orig_end_silence_opcode_handler) {
+		ZEND_VM_DISPATCH_TO_HELPER(_orig_end_silence_opcode_handler);
+	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-int apm_write(const char *str, uint length) {
+int apm_write(const char *str,
+#if PHP_VERSION_ID >= 70000
+size_t
+#else
+uint
+#endif
+length) {
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
 	smart_str_0(APM_G(buffer));
@@ -471,6 +479,9 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 	zval *message, *file, *line;
+#if PHP_VERSION_ID >= 70000
+	zval rv;
+#endif
 	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
@@ -480,9 +491,15 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 
 		default_ce = zend_exception_get_default(TSRMLS_C);
 
+#if PHP_VERSION_ID >= 70000
+		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
+		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
+		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
+#else
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
+#endif
 
 		process_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
@@ -508,7 +525,11 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 				error_filename,
 				error_lineno,
 				msg,
+#if PHP_VERSION_ID >= 70000
+				(APM_G(store_stacktrace) && trace_str.s && trace_str.s->val) ? trace_str.s->val : ""
+#else
 				(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
+#endif
 				TSRMLS_CC
 			);
 		}
@@ -519,6 +540,16 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 }
 
 void get_script(char ** script_filename TSRMLS_DC) {
+#if PHP_VERSION_ID >= 70000
+	zval *array, *token;
+
+	zend_is_auto_global_str(ZEND_STRL("_SERVER"));
+	if ((array = zend_hash_str_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"))) &&
+		Z_TYPE_P(array) == IS_ARRAY &&
+		(token = zend_hash_str_find(Z_ARRVAL_P(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME")))) {
+		*script_filename = Z_STRVAL_P(token);
+	}
+#else
 	zval **array, **token;
 
 	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
@@ -527,4 +558,5 @@ void get_script(char ** script_filename TSRMLS_DC) {
 		zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
 		*script_filename = Z_STRVAL_PP(token);
 	}
+#endif
 }
