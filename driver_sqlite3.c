@@ -160,7 +160,7 @@ CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 /* Insert a request in the backend */
 void apm_driver_sqlite3_insert_request(TSRMLS_D)
 {
-	char *sql, *script;
+	char *sql, *script = NULL;
 	int ip_int = 0, code;
 	struct in_addr ip_addr;
 	sqlite3 *connection;
