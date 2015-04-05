@@ -36,7 +36,9 @@ PHP_ARG_ENABLE(statsd, enable support for statsd,
 PHP_ARG_ENABLE(socket, enable support for socket,
 [  --enable-socket         Enable socket support], yes, no)
 PHP_ARG_WITH(debugfile, enable the debug file,
-[  --with-debugfile=[FILE] Location of debugging file (/tmp/apm.debug by default)], no, no)
+[  --with-debugfile=[FILE]   Location of debugging file (/tmp/apm.debug by default)], no, no)
+PHP_ARG_WITH(defaultdb, set default sqlite3 default DB path,
+[  --with-defaultdb=DIR    Location of sqlite3 default DB], no, no)
 
 if test -z "$PHP_ZLIB_DIR"; then
   PHP_ARG_WITH(zlib-dir, for the location of libz, 
@@ -84,6 +86,21 @@ if test "$PHP_APM" != "no"; then
     ])
 
     AC_DEFINE(HAVE_SQLITE3,1,[sqlite3 found and included])
+
+    AC_MSG_CHECKING([location of default sqlite3 DB])
+    if test "$PHP_DEFAULTDB" != "no"; then
+       dnl Value defined at buildtime
+       AC_MSG_RESULT($PHP_DEFAULTDB)
+       AC_DEFINE_UNQUOTED(SQLITE3_DEFAULTDB,"$PHP_DEFAULTDB",[Default sqlite3 DB])
+    elif test -d /var/lib/php; then
+       dnl RPM distro use /var/lib/php
+       AC_MSG_RESULT("/var/lib/php/apm/db")
+       AC_DEFINE(SQLITE3_DEFAULTDB,"/var/lib/php/apm/db",[Default sqlite3 DB])
+    else
+       dnl Other distro use /var/php
+       AC_MSG_RESULT("/var/php/apm/db")
+       AC_DEFINE(SQLITE3_DEFAULTDB,"/var/php/apm/db",[Default sqlite3 DB])
+    fi
   fi
 
   if test "$PHP_MYSQL" != "no"; then
