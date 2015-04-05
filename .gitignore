@@ -24,3 +24,4 @@ missing
 mkinstalldirs
 modules/
 run-tests.php
+*.lo
