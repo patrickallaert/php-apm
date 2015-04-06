@@ -192,6 +192,8 @@ void apm_driver_mysql_insert_request(TSRMLS_D)
 	mysql_query(connection, "SET @request_id = LAST_INSERT_ID()");
 
 	efree(sql);
+	if (application_esc)
+		efree(application_esc);
 	if (script_esc)
 		efree(script_esc);
 	if (uri_esc)
