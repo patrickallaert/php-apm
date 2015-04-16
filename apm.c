@@ -136,7 +136,7 @@ ZEND_GET_MODULE(apm)
 
 PHP_INI_BEGIN()
 	/* Boolean controlling whether the extension is globally active or not */
-	STD_PHP_INI_BOOLEAN("apm.enabled", "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_apm_globals, apm_globals)
+	STD_PHP_INI_BOOLEAN("apm.enabled", "1", PHP_INI_SYSTEM, OnUpdateBool, enabled, zend_apm_globals, apm_globals)
 	/* Application identifier, helps identifying which application is being monitored */
 	STD_PHP_INI_ENTRY("apm.application_id", "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
