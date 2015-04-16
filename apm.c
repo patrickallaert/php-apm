@@ -475,9 +475,7 @@ PHP_MINFO_FUNCTION(apm)
 /* {{{ */
 ZEND_API void apm_error_log_cb(ZEND_ERROR_CB_HOOK_ARGS)
 {
-	if (APM_G(event_enabled)) {
-		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, PG(last_error_message));
-	}
+	process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, PG(last_error_message));
 }
 /* }}} */
 #else
