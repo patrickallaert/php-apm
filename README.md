@@ -1,5 +1,7 @@
 # APM (Alternative PHP Monitor)
 
+[![Build Status](https://travis-ci.org/patrickallaert/php-apm.svg?branch=master)](https://travis-ci.org/patrickallert/php-apm)
+
 APM (Alternative PHP Monitor) is a monitoring extension enabling native [Application Performance Management (APM)](http://en.wikipedia.org/wiki/Application_performance_management) for PHP.
 It doesn't require any modification to your application's code and let's you collect performance metrics as well as catching issues that may arise.
 
