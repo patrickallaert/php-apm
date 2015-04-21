@@ -11,7 +11,8 @@ before_script:
 
 notifications:
   email:
-    olivier@lol.cat
+    - oliviergarcia@php.net
+    - patrickallaert@php.net
 
 script:
   - MYPHP=`which php`
