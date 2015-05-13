@@ -44,6 +44,7 @@ It doesn't require any modification to your application's code and let's you col
     ```ini
     extension=apm.so
     ```
+    Note: APM depends on JSON, so the apm.so extension must be loaded **after** JSON!
 
 ### MariaDB/MySQL driver
 
@@ -121,7 +122,7 @@ The web frontend to visualize the data is now available at: https://github.com/p
 
 ### Advanced configuration
 
-```ini    
+```ini
 ; Application identifier, helps identifying which application is being monitored
 apm.application_id="My application"
 ; Enable the capture of events such as errors, notices, warnings,...
@@ -158,3 +159,18 @@ apm.<driver_name>_process_silenced_events=On|Off
 ```
 
 For a list of all PHP ini directives, take a look at the [apm.ini file](apm.ini).
+
+### Common issues
+
+- SQLite database isn't created: this usually happens when your webserver or PHP process (fcgi, fpm) has no filesystem access:
+    - Check your configuration: maybe SQLite isn't configured properly for APM
+    - Check permissions on the directory and events file for the user that PHP runs as (sometimes it's your webserver user)
+    - Check open_basedir restrictions
+
+- Not all data on the specific PHP scripts in which errors occur is collected:
+    - Usually an access issue, check permissions
+    - Sometimes this is due to open_basedir restrictions
+
+- APM is configured correctly, but nothing shows up, and phpinfo() doesn't show anyting related to APM:
+    - APM wasn't actually loaded, check if the ini file you configured is actually used by PHP
+    - the APM module was tried, but fatal errors prevented it from loading; check the PHP error log, usually a dependency like JSON wasn't loaded yet
