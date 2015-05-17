@@ -321,12 +321,6 @@ ZEND_END_MODULE_GLOBALS(apm)
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
 #define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
-#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3))
-#define apm_json_encode(buf, pzval) php_json_encode(buf, pzval TSRMLS_CC);
-#else
-#define apm_json_encode(buf, pzval) php_json_encode(buf, pzval, 0 TSRMLS_CC);
-#endif
-
 void get_script(char ** script_filename TSRMLS_DC);
 
 #define EXTRACT_DATA() \
