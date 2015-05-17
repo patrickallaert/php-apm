@@ -158,7 +158,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.stats_sys_cpu_threshold", "10", PHP_INI_ALL, OnUpdateLong, stats_sys_cpu_threshold, zend_apm_globals, apm_globals)
 #endif
 	/* Maximum recursion depth used when dumping a variable */
-	STD_PHP_INI_ENTRY("apm.dump_max_depth", "4", PHP_INI_ALL, OnUpdateLong, dump_max_depth, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.dump_max_depth", "1", PHP_INI_ALL, OnUpdateLong, dump_max_depth, zend_apm_globals, apm_globals)
 
 #ifdef APM_DRIVER_SQLITE3
 	/* Boolean controlling whether the driver is active or not */

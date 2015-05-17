@@ -141,7 +141,10 @@ apm.store_cookies=On|Off
 ; Boolean controlling whether the POST variables should be stored or not
 apm.store_post=On|Off
 ; Maximum recursion depth used when dumping a variable
-apm.dump_max_depth=4
+; NOTE: With today's application complexity, the amount of data collected in stacktraces
+; including arguments can lead to several thousands of MiB of memory consumed.
+; We recommend increasing this value with care.
+apm.dump_max_depth=1
 
 ; For the configuration below, <driver_name> can be any of: sqlite, mysql, statsd or socket
 

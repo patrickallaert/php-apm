@@ -32,7 +32,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
  </lead>
  <date>2015-03-09</date>
  <version>
-  <release>2.0.2</release>
+  <release>2.0.3</release>
   <api>2.0.0</api>
  </version>
  <stability>
@@ -86,6 +86,25 @@ Fixed:
   <configureoption name="enable-statsd" default="yes" prompt="Enable Statsd support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.0.3</release>
+    <api>2.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2015-??-??</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+ Changed:
+ - Default value of apm.dump_max_depth decreased to 1.
+   With today's application complexity, the amount of data collected in stacktraces
+   including arguments can lead to several thousands of MiB of memory consumed.
+   We recommend increasing this value with care.
+   </notes>
+  </release>
   <release>
    <version>
     <release>2.0.2</release>
