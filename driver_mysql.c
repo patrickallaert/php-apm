@@ -20,8 +20,6 @@
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_mysql.h"
-#include "ext/standard/php_smart_str.h"
-#include "ext/json/php_json.h"
 #ifdef NETWARE
 #include <netinet/in.h>
 #endif

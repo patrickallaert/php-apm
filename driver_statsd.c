@@ -27,9 +27,6 @@
 #include "php_ini.h"
 #include "driver_statsd.h"
 #include "SAPI.h"
-#ifdef NETWARE
-#include <netinet/in.h>
-#endif
 #if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif

@@ -20,9 +20,7 @@
 #include <time.h>
 #include "php_apm.h"
 #include "php_ini.h"
-#include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_filestat.h"
-#include "ext/json/php_json.h"
 #include "driver_sqlite3.h"
 #ifdef NETWARE
 #include <netinet/in.h>
