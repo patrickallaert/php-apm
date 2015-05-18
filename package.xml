@@ -49,6 +49,8 @@ Changed:
   With today's application complexity, the amount of data collected in stacktraces
   including arguments can lead to several thousands of MiB of memory consumed.
   We recommend increasing this value with care.
+- Weird things could happen when changing 'apm.enabled' during a request. It doesn't make much sense to support
+  in request activation/deactivation. 'apm.enabled' is therefor now PHP_INI_SYSTEM.
  </notes>
  <contents>
   <dir name="/">
@@ -112,6 +114,8 @@ Changed:
    With today's application complexity, the amount of data collected in stacktraces
    including arguments can lead to several thousands of MiB of memory consumed.
    We recommend increasing this value with care.
+ - Weird things could happen when changing 'apm.enabled' during a request. It doesn't make much sense to support
+   in request activation/deactivation. 'apm.enabled' is therefor now PHP_INI_SYSTEM.
    </notes>
   </release>
   <release>
