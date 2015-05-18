@@ -1,5 +1,8 @@
 APM 2.0.3        ?? ??? 2015
 ----------------------------
+Fixed:
+- Double initialization of request data.
+  This could lead to data being present twice in DBs (reproducible with both SQLite and MySQL enabled).
 Changed:
 - Default value of apm.dump_max_depth decreased to 1.
   With today's application complexity, the amount of data collected in stacktraces

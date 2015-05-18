@@ -42,7 +42,13 @@ A web frontend exists for manipulating the data stored in database at: https://g
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Fixed:
-- Compilation issue on non ZTS setup
+- Double initialization of request data.
+  This could lead to data being present twice in DBs (reproducible with both SQLite and MySQL enabled).
+Changed:
+- Default value of apm.dump_max_depth decreased to 1.
+  With today's application complexity, the amount of data collected in stacktraces
+  including arguments can lead to several thousands of MiB of memory consumed.
+  We recommend increasing this value with care.
  </notes>
  <contents>
   <dir name="/">
@@ -98,6 +104,9 @@ Fixed:
    <date>2015-??-??</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
+ Fixed:
+ - Double initialization of request data.
+   This could lead to data being present twice in DBs (reproducible with both SQLite and MySQL enabled).
  Changed:
  - Default value of apm.dump_max_depth decreased to 1.
    With today's application complexity, the amount of data collected in stacktraces

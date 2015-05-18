@@ -86,7 +86,7 @@ typedef struct apm_driver_entry {
 
 typedef struct apm_request_data {
 	zval **uri, **host, **ip, **referer;
-	zend_bool uri_found, host_found, ip_found, cookies_found, post_vars_found, referer_found;
+	zend_bool initialized, uri_found, host_found, ip_found, cookies_found, post_vars_found, referer_found;
 	smart_str cookies, post_vars;
 } apm_request_data;
 
@@ -323,42 +323,45 @@ ZEND_END_MODULE_GLOBALS(apm)
 void get_script(char ** script_filename TSRMLS_DC);
 
 #define EXTRACT_DATA() \
-zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
-if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&APM_RD(uri)) == SUCCESS) && \
-		(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
-		APM_RD(uri_found) = 1; \
-	} \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&APM_RD(host)) == SUCCESS) && \
-		(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
-		APM_RD(host_found) = 1; \
-	} \
-	if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&APM_RD(ip)) == SUCCESS) && \
-		(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
-		APM_RD(ip_found) = 1; \
-	} \
-	if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&APM_RD(referer)) == SUCCESS) && \
-		(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
-		APM_RD(referer_found) = 1; \
-	} \
-} \
-if (APM_G(store_cookies)) { \
-	zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
-	if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &APM_RD(cookies); \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			APM_RD(cookies_found) = 1; \
+if (!APM_RD(initialized)) { \
+	APM_RD(initialized) = 1; \
+	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
+	if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
+		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&APM_RD(uri)) == SUCCESS) && \
+			(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
+			APM_RD(uri_found) = 1; \
+		} \
+		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&APM_RD(host)) == SUCCESS) && \
+			(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
+			APM_RD(host_found) = 1; \
+		} \
+		if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&APM_RD(ip)) == SUCCESS) && \
+			(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
+			APM_RD(ip_found) = 1; \
+		} \
+		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&APM_RD(referer)) == SUCCESS) && \
+			(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
+			APM_RD(referer_found) = 1; \
 		} \
 	} \
-} \
-if (APM_G(store_post)) { \
-	zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
-	if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &APM_RD(post_vars); \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			APM_RD(post_vars_found) = 1; \
+	if (APM_G(store_cookies)) { \
+		zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
+		if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+				APM_G(buffer) = &APM_RD(cookies); \
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+				APM_RD(cookies_found) = 1; \
+			} \
+		} \
+	} \
+	if (APM_G(store_post)) { \
+		zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
+		if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
+				APM_G(buffer) = &APM_RD(post_vars); \
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
+				APM_RD(post_vars_found) = 1; \
+			} \
 		} \
 	} \
 }
