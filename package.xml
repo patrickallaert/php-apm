@@ -30,7 +30,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
   <email>dmendolia@php.net</email>
   <active>no</active>
  </lead>
- <date>2015-03-09</date>
+ <date>2015-05-18</date>
  <version>
   <release>2.0.3</release>
   <api>2.0.0</api>
@@ -101,7 +101,7 @@ Changed:
     <release>stable</release>
     <api>stable</api>
    </stability>
-   <date>2015-??-??</date>
+   <date>2015-05-18</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
  Fixed:
