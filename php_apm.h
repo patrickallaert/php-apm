@@ -98,7 +98,6 @@ typedef struct apm_request_data {
 #endif
 
 #define APM_DRIVER_CREATE(name) \
-void apm_driver_##name##_insert_request(TSRMLS_D); \
 void apm_driver_##name##_process_event(PROCESS_EVENT_ARGS); \
 void apm_driver_##name##_process_stats(TSRMLS_D); \
 int apm_driver_##name##_minit(int TSRMLS_DC); \

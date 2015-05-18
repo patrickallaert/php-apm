@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS stats (\
 }
 
 /* Insert a request in the backend */
-void apm_driver_mysql_insert_request(TSRMLS_D)
+static void apm_driver_mysql_insert_request(TSRMLS_D)
 {
 	char *script = NULL, *application_esc = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
 	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
