@@ -1,11 +1,31 @@
-ARG_WITH('apm', 'Whether to enable APM support', 'no');
+ARG_ENABLE('apm', 'APM support', 'no');
+ARG_ENABLE('apm-sqlite3', 'APM support with SQLite3 driver', 'yes');
+ARG_ENABLE('apm-mysql', 'APM support with MySQL driver', 'yes');
+ARG_ENABLE('apm-socket', 'APM support with Socket driver', 'no');
+ARG_ENABLE('apm-statsd', 'APM support with StatsD driver', 'no');
   
   if (PHP_APM != 'no') {
-    ADD_EXTENSION_DEP('apm', 'sqlite3', true);
-    
-    EXTENSION('apm', 'apm.c backtrace.c', null, "/DSQLITE_THREADSAFE=" + (PHP_ZTS == "yes" ? "1" : "0") + " /D SQLITE_ENABLE_FTS3=1 /D SQLITE_ENABLE_COLUMN_METADATA=1 /D SQLITE_CORE=1 /I" + CWD + "/ext/sqlite3/libsqlite /I" + configure_module_dirname);
-    
-    if (PHP_APM_SHARED || PHP_SQLITE3_SHARED || PHP_SQLITE3 == 'no') {
-      ADD_SOURCES(CWD + "/ext/sqlite3/libsqlite", "sqlite3.c", "apm");
+    EXTENSION('apm', 'apm.c backtrace.c');
+
+    if (PHP_APM_SQLITE3 != 'no') {
+      ADD_EXTENSION_DEP('apm', 'sqlite3', true);
+      ADD_SOURCES(configure_module_dirname, "driver_sqlite3.c", "apm");
+      AC_DEFINE("APM_DRIVER_SQLITE3", 1, "APM SQLite3 driver enabled");
+    }
+
+    if (PHP_APM_MYSQL != 'no') {
+      ADD_EXTENSION_DEP('apm', 'mysql', true);
+      ADD_SOURCES(configure_module_dirname, "driver_mysql.c", "apm");
+      AC_DEFINE("APM_DRIVER_MYSQL", 1, "APM MySQL driver enabled");
+    }
+
+    if (PHP_APM_SOCKET != 'no') {
+      ADD_SOURCES(configure_module_dirname, "driver_socket.c", "apm");
+      AC_DEFINE("APM_DRIVER_SOCKET", 1, "APM Socket driver enabled");
+    }
+
+    if (PHP_APM_STATSD != 'no') {
+      ADD_SOURCES(configure_module_dirname, "driver_statsd.c", "apm");
+      AC_DEFINE("APM_DRIVER_STATSD", 1, "APM StatsD driver enabled");
     }
 }
