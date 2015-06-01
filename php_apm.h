@@ -313,6 +313,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 #endif
 ZEND_END_MODULE_GLOBALS(apm)
 
+ZEND_EXTERN_MODULE_GLOBALS(apm)
+
 #ifdef ZTS
 #define APM_G(v) TSRMG(apm_globals_id, zend_apm_globals *, v)
 #else

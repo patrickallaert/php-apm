@@ -22,8 +22,6 @@
 #include "ext/standard/php_smart_str.h"
 #include "ext/standard/php_string.h"
 
-ZEND_DECLARE_MODULE_GLOBALS(apm);
-
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth);
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth);
