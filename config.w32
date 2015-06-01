@@ -1,6 +1,6 @@
 ARG_ENABLE('apm', 'APM support', 'no');
-ARG_ENABLE('apm-sqlite3', 'APM support with SQLite3 driver', 'yes');
-ARG_ENABLE('apm-mysql', 'APM support with MySQL driver', 'yes');
+ARG_WITH('apm-sqlite3', 'APM support with SQLite3 driver', 'yes');
+ARG_WITH('apm-mysql', 'APM support with MySQL driver', 'yes');
 ARG_ENABLE('apm-socket', 'APM support with Socket driver', 'no');
 ARG_ENABLE('apm-statsd', 'APM support with StatsD driver', 'no');
   
