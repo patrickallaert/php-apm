@@ -25,8 +25,8 @@
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
-static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit);
-static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char limit);
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth);
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth);
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 static int append_variable(zval *expr, smart_str *trace_str);
 static char *apm_addslashes(char *str, uint length, int *new_length);
@@ -248,16 +248,17 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 }
 
 
-static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char limit)
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth)
 {
 	HashTable *properties = NULL;
 	char *class_name = NULL;
 	zend_uint clen;
 
-	if (limit > APM_G(dump_max_depth)) {
+	if (depth >= APM_G(dump_max_depth)) {
 		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
 		return;
 	}
+
 	switch (Z_TYPE_P(expr)) {
 		case IS_ARRAY:
 			smart_str_appendl(trace_str, "array(", 6);
@@ -266,7 +267,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 				Z_ARRVAL_P(expr)->nApplyCount--;
 				return;
 			}
-			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, limit + 1);
+			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
 			smart_str_appendc(trace_str, ')');
 			Z_ARRVAL_P(expr)->nApplyCount--;
 			break;
@@ -293,7 +294,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 					properties->nApplyCount--;
 					return;
 				}
-				append_flat_hash(properties TSRMLS_CC, trace_str, 1, limit + 1);
+				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
 				properties->nApplyCount--;
 			}
 			smart_str_appendc(trace_str, ')');
@@ -305,7 +306,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 	}
 }
 
-static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char limit)
+static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth)
 {
 	zval **tmp;
 	char *string_key;
@@ -318,6 +319,11 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 
 	zend_hash_internal_pointer_reset_ex(ht, &iterator);
 	while (zend_hash_get_current_data_ex(ht, (void **) &tmp, &iterator) == SUCCESS) {
+		if (depth >= APM_G(dump_max_depth)) {
+			smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
+			return;
+		}
+
 		if (i++ > 0) {
 			smart_str_appendl(trace_str, ", ", 2);
 		}
@@ -354,7 +360,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 				break;
 		}
 		smart_str_appendl(trace_str, " => ", 4);
-		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, limit);
+		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, depth);
 		zend_hash_move_forward_ex(ht, &iterator);
 	}
 }
