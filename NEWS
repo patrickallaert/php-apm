@@ -1,4 +1,4 @@
-APM 2.0.3        ?? ??? 2015
+APM 2.0.3        18 May 2015
 ----------------------------
 Fixed:
 - Double initialization of request data.
