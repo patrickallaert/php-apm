@@ -109,13 +109,16 @@ PHP_INI_MH(OnUpdateAPM##name##ErrorReporting) \
 	APM_GLOBAL(name, error_reporting) = (new_value ? atoi(new_value) : APM_E_##name ); \
 	return SUCCESS; \
 } \
-zend_bool apm_driver_##name##_is_enabled(TSRMLS_D) { \
+zend_bool apm_driver_##name##_is_enabled(TSRMLS_D) \
+{ \
 	return APM_GLOBAL(name, enabled); \
 } \
-int apm_driver_##name##_error_reporting(TSRMLS_D) { \
+int apm_driver_##name##_error_reporting(TSRMLS_D) \
+{ \
 	return APM_GLOBAL(name, error_reporting); \
 } \
-zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *msg TSRMLS_DC) { \
+zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *msg TSRMLS_DC) \
+{ \
 	return \
 		APM_GLOBAL(name, enabled) \
 		&& ( \
@@ -128,7 +131,8 @@ zend_bool apm_driver_##name##_want_event(int event_type, int error_level, char *
 		) \
 	; \
 } \
-zend_bool apm_driver_##name##_want_stats(TSRMLS_D) { \
+zend_bool apm_driver_##name##_want_stats(TSRMLS_D) \
+{ \
 	return \
 		APM_GLOBAL(name, enabled) \
 		&& ( \

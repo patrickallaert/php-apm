@@ -88,7 +88,8 @@ PHP_INI_MH(OnUpdateDBFile)
 }
 
 /* Returns the SQLite instance (singleton) */
-sqlite3 * sqlite_get_instance(TSRMLS_D) {
+sqlite3 * sqlite_get_instance(TSRMLS_D)
+{
 	int code;
 
 	if (APM_G(sqlite3_event_db) == NULL) {

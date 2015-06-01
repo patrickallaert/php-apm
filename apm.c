@@ -88,7 +88,8 @@ static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-int apm_write(const char *str, uint length) {
+int apm_write(const char *str, uint length)
+{
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
 	smart_str_0(APM_G(buffer));
@@ -518,7 +519,8 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str_free(&trace_str);
 }
 
-void get_script(char ** script_filename TSRMLS_DC) {
+void get_script(char ** script_filename TSRMLS_DC)
+{
 	zval **array, **token;
 
 	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
