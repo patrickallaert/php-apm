@@ -338,6 +338,9 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 				if (str_len > 0) {
 					temp = apm_addslashes(string_key, str_len - 1, &new_len);
 					smart_str_appendl(trace_str, temp, new_len);
+					if (temp) {
+						efree(temp);
+					}
 				}
 				else
 				{
@@ -387,6 +390,9 @@ static int append_variable(zval *expr, smart_str *trace_str)
 		temp = apm_addslashes(Z_STRVAL_P(expr), Z_STRLEN_P(expr), &new_len);
 		smart_str_appendl(trace_str, temp, new_len);
 		smart_str_appendc(trace_str, '"');
+		if (temp) {
+			efree(temp);
+		}
 	} else {
 		smart_str_appendl(trace_str, Z_STRVAL_P(expr), Z_STRLEN_P(expr));
 	}

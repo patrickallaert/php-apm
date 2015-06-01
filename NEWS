@@ -1,3 +1,8 @@
+APM 2.0.4        ?? Jun 2015
+----------------------------
+Fixed:
+- Temporary buffer not freed when generating stacktraces
+
 APM 2.0.3        18 May 2015
 ----------------------------
 Fixed:
