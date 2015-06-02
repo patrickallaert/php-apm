@@ -50,7 +50,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	int frames_on_stack = 0;
 #endif
 	int indent = 0;
-	zend_uint class_name_len;
+	zend_uint class_name_len = 0;
 	int dup;
 
 #if PHP_API_VERSION < 20090626
@@ -103,6 +103,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 			if (ptr->object) {
 				if (ptr->function_state.function->common.scope) {
 					class_name = ptr->function_state.function->common.scope->name;
+					class_name_len = strlen(class_name);
 				} else {
 					dup = zend_get_object_classname(ptr->object, &class_name, &class_name_len TSRMLS_CC);
 					if(!dup) {
@@ -113,6 +114,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 				call_type = "->";
 			} else if (ptr->function_state.function->common.scope) {
 				class_name = ptr->function_state.function->common.scope->name;
+				class_name_len = strlen(class_name);
 				call_type = "::";
 			} else {
 				class_name = NULL;
@@ -179,8 +181,9 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 		smart_str_append_long(trace_str, indent);
 		smart_str_appendc(trace_str, ' ');
 		if (class_name) {
-			smart_str_appends(trace_str, class_name);
-			smart_str_appends(trace_str, call_type);
+			smart_str_appendl(trace_str, class_name, class_name_len);
+			/* here, call_type is either "::" or "->" */
+			smart_str_appendl(trace_str, call_type, 2);
 		}
 		if (function_name) {
 			smart_str_appends(trace_str, function_name);
@@ -277,7 +280,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 				Z_OBJ_HANDLER_P(expr, get_class_name)(expr, (const char **) &class_name, &clen, 0 TSRMLS_CC);
 			}
 			if (class_name) {
-				smart_str_appends(trace_str, class_name);
+				smart_str_appendl(trace_str, class_name, clen);
 				smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
 			} else {
 				smart_str_appendl(trace_str, "Unknown Class Object (", sizeof("Unknown Class Object (") - 1);
