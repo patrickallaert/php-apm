@@ -206,6 +206,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.statsd_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, statsd_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling the collection of stats */
 	STD_PHP_INI_BOOLEAN("apm.statsd_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, statsd_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.statsd_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, statsd_exception_mode, zend_apm_globals, apm_globals)
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMstatsdErrorReporting, statsd_error_reporting, zend_apm_globals, apm_globals)
 	/* StatsD host */
@@ -221,6 +223,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.socket_enabled", "1", PHP_INI_ALL, OnUpdateBool, socket_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling the collection of stats */
 	STD_PHP_INI_BOOLEAN("apm.socket_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, socket_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.socket_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, socket_exception_mode, zend_apm_globals, apm_globals)
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMsocketErrorReporting, socket_error_reporting, zend_apm_globals, apm_globals)
 	/* Socket path */

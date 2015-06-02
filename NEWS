@@ -1,4 +1,9 @@
-APM 2.0.4        ?? Jun 2015
+APM 2.0.5        ?? Jun 2015
+----------------------------
+Fixed:
+- missing apm.statsd_exception_mode and apm.socket_exception_mode
+
+APM 2.0.4        01 Jun 2015
 ----------------------------
 Fixed:
 - Temporary buffer not freed when generating stacktraces.
