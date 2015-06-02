@@ -8,9 +8,11 @@ ARG_ENABLE('apm-statsd', 'APM support with StatsD driver', 'no');
     EXTENSION('apm', 'apm.c backtrace.c');
 
     if (PHP_APM_SQLITE3 != 'no') {
-      ADD_EXTENSION_DEP('apm', 'sqlite3', true);
-      ADD_SOURCES(configure_module_dirname, "driver_sqlite3.c", "apm");
-      AC_DEFINE("APM_DRIVER_SQLITE3", 1, "APM SQLite3 driver enabled");
+      if (CHECK_HEADER_ADD_INCLUDE("sqlite3.h", "CFLAGS_APM", "ext\\sqlite3\\libsqlite")) {
+        ADD_EXTENSION_DEP('apm', 'sqlite3', true);
+        ADD_SOURCES(configure_module_dirname, "driver_sqlite3.c", "apm");
+        AC_DEFINE("APM_DRIVER_SQLITE3", 1, "APM SQLite3 driver enabled");
+      }
     }
 
     if (PHP_APM_MYSQL != 'no') {
