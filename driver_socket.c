@@ -41,8 +41,9 @@ APM_DRIVER_CREATE(socket)
 void apm_driver_socket_process_event(PROCESS_EVENT_ARGS)
 {
 	(*APM_G(socket_last_event))->next = (apm_event_entry *) calloc(1, sizeof(apm_event_entry));
-	// Event type not provided yet
-	// (*APM_G(socket_last_event))->next->event.event_type = ;
+	/* Event type not provided yet
+	   (*APM_G(socket_last_event))->next->event.event_type = ;
+	*/
 	(*APM_G(socket_last_event))->next->event.type = type;
 
 	if (((*APM_G(socket_last_event))->next->event.error_filename = malloc(strlen(error_filename) + 1)) != NULL) {
@@ -121,7 +122,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 
 	sd_it = 0;
 
-	// Path must be copied for strtok to work
+	/* Path must be copied for strtok to work */
 	path_copy = (char*)malloc(strlen(APM_G(socket_path)) + 1);
 	strcpy(path_copy, APM_G(socket_path));
 
@@ -158,7 +159,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			} else {
 				strncpy(host, socket_path, port - socket_path);
 				host[port - socket_path] = '\0';
-				// advance one char to be on port number
+				/* advance one char to be on port number */
 				++port;
 			}
 
@@ -205,7 +206,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			zval_add_ref(val);
 			add_assoc_zval(data, "host", *val);
 		}
-		// Add ip, referer, ... if an error occured or if thresold is reached.
+		/* Add ip, referer, ... if an error occured or if thresold is reached. */
 		if (
 			APM_G(socket_events) != *APM_G(socket_last_event)
 			|| APM_G(duration) > 1000.0 * APM_G(stats_duration_threshold)
