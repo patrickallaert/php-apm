@@ -61,10 +61,6 @@ static PHP_GSHUTDOWN_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
-#if PHP_VERSION_ID < 50300
-typedef opcode_handler_t user_opcode_handler_t;
-#endif
-
 static user_opcode_handler_t _orig_begin_silence_opcode_handler = NULL;
 static user_opcode_handler_t _orig_end_silence_opcode_handler = NULL;
 
@@ -111,9 +107,7 @@ struct rusage begin_usg;
 #endif
 
 zend_module_entry apm_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
-#endif
 	"apm",
 	NULL,
 	PHP_MINIT(apm),
@@ -121,9 +115,7 @@ zend_module_entry apm_module_entry = {
 	PHP_RINIT(apm),
 	PHP_RSHUTDOWN(apm),
 	PHP_MINFO(apm),
-#if ZEND_MODULE_API_NO >= 20010901
 	PHP_APM_VERSION,
-#endif
 	PHP_MODULE_GLOBALS(apm),
 	PHP_GINIT(apm),
 	PHP_GSHUTDOWN(apm),

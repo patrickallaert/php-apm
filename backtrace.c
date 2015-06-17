@@ -43,35 +43,10 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 	char *call_type;
 	const char *include_filename = NULL;
 	zval *arg_array = NULL;
-#if PHP_API_VERSION < 20090626
-	void **cur_arg_pos = EG(argument_stack).top_element;
-	void **args = cur_arg_pos;
-	int arg_stack_consistent = 0;
-	int frames_on_stack = 0;
-#endif
 	int indent = 0;
 	zend_uint class_name_len = 0;
 	int dup;
 
-#if PHP_API_VERSION < 20090626
-	while (--args > EG(argument_stack).elements) {
-		if (*args--) {
-			break;
-		}
-		args -= *(ulong*)args;
-		frames_on_stack++;
-
-		/* skip args from incomplete frames */
-		while (((args-1) > EG(argument_stack).elements) && *(args-1)) {
-			args--;
-		}
-
-		if ((args-1) == EG(argument_stack).elements) {
-			arg_stack_consistent = 1;
-			break;
-		}
-	}
-#endif
 	ptr = EG(current_execute_data);
 
 	while (ptr) {
@@ -121,16 +96,9 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 				call_type = NULL;
 			}
 			if ((! ptr->opline) || ((ptr->opline->opcode == ZEND_DO_FCALL_BY_NAME) || (ptr->opline->opcode == ZEND_DO_FCALL))) {
-#if PHP_API_VERSION >= 20090626
 				if (ptr->function_state.arguments) {
 					arg_array = debug_backtrace_get_args(&ptr->function_state.arguments TSRMLS_CC);
 				}
-#else
-				if (arg_stack_consistent && (frames_on_stack > 0)) {
-					arg_array = debug_backtrace_get_args(&cur_arg_pos TSRMLS_CC);
-					frames_on_stack--;
-				}
-#endif
 			}
 		} else {
 			/* i know this is kinda ugly, but i'm trying to avoid extra cycles in the main execution loop */
@@ -141,11 +109,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 				function_name = "unknown";
 				build_filename_arg = 0;
 			} else
-#if ZEND_MODULE_API_NO >= 20100409 /* ZE2.4 */
 			switch (ptr->opline->op2.constant) {
-#else
-			switch (Z_LVAL(ptr->opline->op2.u.constant)) {
-#endif
 				case ZEND_EVAL:
 					function_name = "eval";
 					build_filename_arg = 0;
@@ -414,29 +378,13 @@ static int append_variable(zval *expr, smart_str *trace_str)
 
 static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 {
-#if PHP_API_VERSION >= 20090626
 	void **p = *curpos;
-#else
-	void **p = *curpos - 2;
-#endif
 	zval *arg_array, **arg;
 	int arg_count = 
-#if PHP_VERSION_ID >= 50202
-	(int)(zend_uintptr_t)
-#else
-	(ulong)
-#endif
-	*p;
-#if PHP_API_VERSION < 20090626
-	*curpos -= (arg_count+2);
+	(int)(zend_uintptr_t) *p;
 
-#endif
 	MAKE_STD_ZVAL(arg_array);
-#if PHP_API_VERSION >= 20090626
 	array_init_size(arg_array, arg_count);
-#else
-	array_init(arg_array);
-#endif
 	p -= arg_count;
 
 	while (--arg_count >= 0) {
@@ -445,24 +393,13 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 			if (Z_TYPE_PP(arg) != IS_OBJECT) {
 				SEPARATE_ZVAL_TO_MAKE_IS_REF(arg);
 			}
-#if PHP_API_VERSION >= 20090626
 			Z_ADDREF_PP(arg);
-#else
-			(*arg)->refcount++;
-#endif
 			add_next_index_zval(arg_array, *arg);
 		} else {
 			add_next_index_null(arg_array);
 		}
 	}
 
-#if PHP_API_VERSION < 20090626
-	/* skip args from incomplete frames */
-	while ((((*curpos)-1) > EG(argument_stack).elements) && *((*curpos)-1)) {
-		(*curpos)--;
-	}
-
-#endif
 	return arg_array;
 }
 
