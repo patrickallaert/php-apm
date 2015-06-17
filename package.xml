@@ -30,9 +30,9 @@ A web frontend exists for manipulating the data stored in database at: https://g
   <email>dmendolia@php.net</email>
   <active>no</active>
  </lead>
- <date>2015-06-01</date>
+ <date>2015-06-17</date>
  <version>
-  <release>2.0.4</release>
+  <release>2.0.5</release>
   <api>2.0.0</api>
  </version>
  <stability>
@@ -42,8 +42,11 @@ A web frontend exists for manipulating the data stored in database at: https://g
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
 Fixed:
-- Temporary buffer not freed when generating stacktraces.
-- Arguments in stacktraces dumped with a bigger depth than what is configured with apm.dump_max_depth.
+- missing apm.statsd_exception_mode and apm.socket_exception_mode
+- sqlite3.h file not found in Windows build
+
+Improved:
+- Minor optimizations in stacktrace creation
  </notes>
  <contents>
   <dir name="/">
@@ -87,6 +90,26 @@ Fixed:
   <configureoption name="enable-statsd" default="yes" prompt="Enable Statsd support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.0.5</release>
+    <api>2.0.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <date>2015-06-17</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+ Fixed:
+ - missing apm.statsd_exception_mode and apm.socket_exception_mode
+ - sqlite3.h file not found in Windows build
+
+ Improved:
+ - Minor optimizations in stacktrace creation
+   </notes>
+  </release>
   <release>
    <version>
     <release>2.0.4</release>
