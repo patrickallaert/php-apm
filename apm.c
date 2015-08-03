@@ -64,23 +64,31 @@ static PHP_GSHUTDOWN_FUNCTION(apm);
 static user_opcode_handler_t _orig_begin_silence_opcode_handler = NULL;
 static user_opcode_handler_t _orig_end_silence_opcode_handler = NULL;
 
-static int apm_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+#if PHP_VERSION_ID >= 70000
+# define ZEND_USER_OPCODE_HANDLER_ARGS zend_execute_data *execute_data
+# define ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU execute_data
+#else
+# define ZEND_USER_OPCODE_HANDLER_ARGS ZEND_OPCODE_HANDLER_ARGS
+# define ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU ZEND_OPCODE_HANDLER_ARGS_PASSTHRU
+#endif
+
+static int apm_begin_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 1;
 
 	if (_orig_begin_silence_opcode_handler) {
-		ZEND_VM_DISPATCH_TO_HELPER(_orig_begin_silence_opcode_handler);
+		_orig_begin_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU);
 	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+static int apm_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 0;
 
 	if (_orig_end_silence_opcode_handler) {
-		ZEND_VM_DISPATCH_TO_HELPER(_orig_end_silence_opcode_handler);
+		_orig_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU);
 	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
