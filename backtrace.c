@@ -465,11 +465,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth)
 {
-	char * temp;
-	HashPosition iterator;
-	uint str_len;
 	int i = 0;
-	int new_len;
 
 #if PHP_VERSION_ID >= 70000
 	zval *tmp;
@@ -479,8 +475,11 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 	ZEND_HASH_FOREACH_KEY_VAL_IND(ht, num_key, string_key, tmp) {
 #else
 	zval **tmp;
-	char *string_key;
+	char *string_key, *temp;
 	ulong num_key;
+	int new_len;
+	uint str_len;
+	HashPosition iterator;
 
 	zend_hash_internal_pointer_reset_ex(ht, &iterator);
 	while (zend_hash_get_current_data_ex(ht, (void **) &tmp, &iterator) == SUCCESS) {

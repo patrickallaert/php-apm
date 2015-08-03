@@ -358,19 +358,19 @@ void get_script(char ** script_filename TSRMLS_DC);
 zend_is_auto_global_str(ZEND_STRL("_SERVER")); \
 if ((tmp = &PG(http_globals)[TRACK_VARS_SERVER])) { \
 	if ((APM_RD(uri) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"))) && \
-		(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
+		(Z_TYPE_P(APM_RD(uri)) == IS_STRING)) { \
 		APM_RD(uri_found) = 1; \
 	} \
 	if ((APM_RD(host) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"))) && \
-		(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
+		(Z_TYPE_P(APM_RD(host)) == IS_STRING)) { \
 		APM_RD(host_found) = 1; \
 	} \
 	if (APM_G(store_ip) && (APM_RD(ip) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"))) && \
-		(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
+		(Z_TYPE_P(APM_RD(ip)) == IS_STRING)) { \
 		APM_RD(ip_found) = 1; \
 	} \
 	if ((APM_RD(referer) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"))) && \
-		(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
+		(Z_TYPE_P(APM_RD(referer)) == IS_STRING)) { \
 		APM_RD(referer_found) = 1; \
 	} \
 } \

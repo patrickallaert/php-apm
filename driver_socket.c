@@ -203,7 +203,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	zend_is_auto_global_str(ZEND_STRL("_SERVER"));
 	if ((tmp = &PG(http_globals)[TRACK_VARS_SERVER])) {
 		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_TIME", sizeof("REQUEST_TIME"))) && (Z_TYPE_P(val) == IS_LONG)) {
-			add_assoc_long_ex(&data, "ts", sizeof("ts") - 1, Z_LVAL_PP(val));
+			add_assoc_long_ex(&data, "ts", sizeof("ts") - 1, Z_LVAL_P(val));
 		}
 		if ((val = zend_hash_str_find(Z_ARRVAL_P(tmp), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"))) && (Z_TYPE_P(val) == IS_STRING)) {
 			zval_add_ref(val);
