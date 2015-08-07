@@ -544,25 +544,67 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str_free(&trace_str);
 }
 
-void get_script(char ** script_filename TSRMLS_DC)
-{
 #if PHP_VERSION_ID >= 70000
-	zval *array, *token;
-
-	zend_is_auto_global_str(ZEND_STRL("_SERVER"));
-	if ((array = zend_hash_str_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"))) &&
-		Z_TYPE_P(array) == IS_ARRAY &&
-		(token = zend_hash_str_find(Z_ARRVAL_P(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME")))) {
-		*script_filename = Z_STRVAL_P(token);
+#define REGISTER_INFO(name, dest, type) \
+	if ((APM_RD(dest) = zend_hash_str_find(Z_ARRVAL_P(tmp), name, sizeof(name))) && (Z_TYPE_P(APM_RD(dest)) == (type))) { \
+		APM_RD(dest##_found) = 1; \
 	}
 #else
-	zval **array, **token;
-
-	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
-	if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
-		Z_TYPE_PP(array) == IS_ARRAY &&
-		zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-		*script_filename = Z_STRVAL_PP(token);
+#define REGISTER_INFO(name, dest, type) \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), name, sizeof(name), (void**)&APM_RD(dest)) == SUCCESS) && (Z_TYPE_PP(APM_RD(dest)) == (type))) { \
+		APM_RD(dest##_found) = 1; \
 	}
 #endif
+
+#if PHP_VERSION_ID >= 70000
+#define FETCH_HTTP_GLOBALS(name) (tmp = &PG(http_globals)[TRACK_VARS_##name])
+#else
+#define FETCH_HTTP_GLOBALS(name) (tmp = PG(http_globals)[TRACK_VARS_##name])
+#endif
+
+void extract_data()
+{
+	zval *tmp;
+
+	APM_DEBUG("Extracting data\n");
+	
+	if (APM_RD(initialized)) {
+		APM_DEBUG("Data already initialized\n");
+		return;
+	}
+
+	APM_RD(initialized) = 1;
+	
+	zend_is_auto_global_compat("_SERVER");
+	if (FETCH_HTTP_GLOBALS(SERVER)) {
+		REGISTER_INFO("REQUEST_URI", uri, IS_STRING);
+		REGISTER_INFO("HTTP_HOST", host, IS_STRING);
+		REGISTER_INFO("HTTP_REFERER", referer, IS_STRING);
+		REGISTER_INFO("REQUEST_TIME", ts, IS_LONG);
+		REGISTER_INFO("SCRIPT_FILENAME", script, IS_STRING);
+		
+		if (APM_G(store_ip)) {
+			REGISTER_INFO("REMOTE_ADDR", ip, IS_STRING);
+		}
+	}
+	if (APM_G(store_cookies)) {
+		zend_is_auto_global_compat("_COOKIE");
+		if (FETCH_HTTP_GLOBALS(COOKIE)) {
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+				APM_G(buffer) = &APM_RD(cookies);
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+				APM_RD(cookies_found) = 1;
+			}
+		}
+	}
+	if (APM_G(store_post)) {
+		zend_is_auto_global_compat("_POST");
+		if (FETCH_HTTP_GLOBALS(POST)) {
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+				APM_G(buffer) = &APM_RD(post_vars);
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+				APM_RD(post_vars_found) = 1;
+			}
+		}
+	}
 }

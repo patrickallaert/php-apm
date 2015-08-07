@@ -93,13 +93,21 @@ typedef struct apm_driver_entry {
 	struct apm_driver_entry *next;
 } apm_driver_entry;
 
-typedef struct apm_request_data {
 #if PHP_VERSION_ID >= 70000
-	zval *uri, *host, *ip, *referer;
+# define RD_DEF(var) zval *var; zend_bool var##_found;
 #else
-	zval **uri, **host, **ip, **referer;
+# define RD_DEF(var) zval **var; zend_bool var##_found;
 #endif
-	zend_bool initialized, uri_found, host_found, ip_found, cookies_found, post_vars_found, referer_found;
+
+typedef struct apm_request_data {
+	RD_DEF(uri);
+	RD_DEF(host);
+	RD_DEF(ip);
+	RD_DEF(referer);
+	RD_DEF(ts);
+	RD_DEF(script);
+
+	zend_bool initialized, cookies_found, post_vars_found;
 	smart_str cookies, post_vars;
 } apm_request_data;
 
@@ -351,93 +359,10 @@ ZEND_END_MODULE_GLOBALS(apm)
 #define SEC_TO_USEC(sec) ((sec) * 1000000.00)
 #define USEC_TO_SEC(usec) ((usec) / 1000000.00)
 
-void get_script(char ** script_filename TSRMLS_DC);
-
 #if PHP_VERSION_ID >= 70000
-#define EXTRACT_DATA() \
-zend_is_auto_global_str(ZEND_STRL("_SERVER")); \
-if ((tmp = &PG(http_globals)[TRACK_VARS_SERVER])) { \
-	if ((APM_RD(uri) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"))) && \
-		(Z_TYPE_P(APM_RD(uri)) == IS_STRING)) { \
-		APM_RD(uri_found) = 1; \
-	} \
-	if ((APM_RD(host) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"))) && \
-		(Z_TYPE_P(APM_RD(host)) == IS_STRING)) { \
-		APM_RD(host_found) = 1; \
-	} \
-	if (APM_G(store_ip) && (APM_RD(ip) = zend_hash_str_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"))) && \
-		(Z_TYPE_P(APM_RD(ip)) == IS_STRING)) { \
-		APM_RD(ip_found) = 1; \
-	} \
-	if ((APM_RD(referer) = zend_hash_str_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"))) && \
-		(Z_TYPE_P(APM_RD(referer)) == IS_STRING)) { \
-		APM_RD(referer_found) = 1; \
-	} \
-} \
-if (APM_G(store_cookies)) { \
-	zend_is_auto_global_str(ZEND_STRL("_COOKIE")); \
-	if ((tmp = &PG(http_globals)[TRACK_VARS_COOKIE])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &APM_RD(cookies); \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			APM_RD(cookies_found) = 1; \
-		} \
-	} \
-} \
-if (APM_G(store_post)) { \
-	zend_is_auto_global_str(ZEND_STRL("_POST")); \
-	if ((tmp = &PG(http_globals)[TRACK_VARS_POST])) { \
-		if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-			APM_G(buffer) = &APM_RD(post_vars); \
-			zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-			APM_RD(post_vars_found) = 1; \
-		} \
-	} \
-}
+# define zend_is_auto_global_compat(name) (zend_is_auto_global_str(ZEND_STRL((name))))
 #else
-#define EXTRACT_DATA() \
-if (!APM_RD(initialized)) { \
-	APM_RD(initialized) = 1; \
-	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC); \
-	if ((tmp = PG(http_globals)[TRACK_VARS_SERVER])) { \
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "REQUEST_URI", sizeof("REQUEST_URI"), (void**)&APM_RD(uri)) == SUCCESS) && \
-			(Z_TYPE_PP(APM_RD(uri)) == IS_STRING)) { \
-			APM_RD(uri_found) = 1; \
-		} \
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_HOST", sizeof("HTTP_HOST"), (void**)&APM_RD(host)) == SUCCESS) && \
-			(Z_TYPE_PP(APM_RD(host)) == IS_STRING)) { \
-			APM_RD(host_found) = 1; \
-		} \
-		if (APM_G(store_ip) && (zend_hash_find(Z_ARRVAL_P(tmp), "REMOTE_ADDR", sizeof("REMOTE_ADDR"), (void**)&APM_RD(ip)) == SUCCESS) && \
-			(Z_TYPE_PP(APM_RD(ip)) == IS_STRING)) { \
-			APM_RD(ip_found) = 1; \
-		} \
-		if ((zend_hash_find(Z_ARRVAL_P(tmp), "HTTP_REFERER", sizeof("HTTP_REFERER"), (void**)&APM_RD(referer)) == SUCCESS) && \
-			(Z_TYPE_PP(APM_RD(referer)) == IS_STRING)) { \
-			APM_RD(referer_found) = 1; \
-		} \
-	} \
-	if (APM_G(store_cookies)) { \
-		zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC); \
-		if ((tmp = PG(http_globals)[TRACK_VARS_COOKIE])) { \
-			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-				APM_G(buffer) = &APM_RD(cookies); \
-				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-				APM_RD(cookies_found) = 1; \
-			} \
-		} \
-	} \
-	if (APM_G(store_post)) { \
-		zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC); \
-		if ((tmp = PG(http_globals)[TRACK_VARS_POST])) { \
-			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) { \
-				APM_G(buffer) = &APM_RD(post_vars); \
-				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC); \
-				APM_RD(post_vars_found) = 1; \
-			} \
-		} \
-	} \
-}
+# define zend_is_auto_global_compat(name) (zend_is_auto_global(ZEND_STRL((name)) TSRMLS_CC))
 #endif
 
 int apm_write(const char *str,
@@ -450,3 +375,4 @@ length);
 
 #endif
 
+void extract_data();

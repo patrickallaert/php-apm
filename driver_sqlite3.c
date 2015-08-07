@@ -185,13 +185,12 @@ CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 /* Insert a request in the backend */
 static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 {
-	char *sql, *script = NULL;
+	char *sql;
 	int ip_int = 0, code;
 	struct in_addr ip_addr;
 	sqlite3 *connection;
-	zval *tmp;
 
-	EXTRACT_DATA();
+	extract_data();
 
 	APM_DEBUG("[SQLite driver] Begin insert request\n");
 	if (APM_G(sqlite3_is_request_created)) {
@@ -201,8 +200,6 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 
 	SQLITE_INSTANCE_INIT
 
-	get_script(&script TSRMLS_CC);
-
 	if (APM_RD(ip_found) && (inet_pton(AF_INET, APM_RD_STRVAL(ip), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
@@ -211,7 +208,8 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 	sql = sqlite3_mprintf(
 		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
 		APM_G(application_id) ? APM_G(application_id) : "",
-		(long)time(NULL), script ? script : "",
+		(long)time(NULL),
+		APM_RD(script_found) ? APM_RD_STRVAL(script) : "",
 		APM_RD(uri_found) ? APM_RD_STRVAL(uri) : "",
 		APM_RD(host_found) ? APM_RD_STRVAL(host) : "",
 		ip_int,
