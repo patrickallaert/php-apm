@@ -152,7 +152,8 @@ CREATE TABLE IF NOT EXISTS request (\n\
     ip INTEGER UNSIGNED NOT NULL,\n\
     cookies TEXT NOT NULL,\n\
     post_vars TEXT NOT NULL,\n\
-    referer TEXT NOT NULL\n\
+    referer TEXT NOT NULL,\n\
+    method TEXT NOT NULL\n\
 );\n\
 CREATE TABLE IF NOT EXISTS event (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
@@ -206,7 +207,7 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf(
-		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
+		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer, method) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q, %Q)",
 		APM_G(application_id) ? APM_G(application_id) : "",
 		(long)time(NULL),
 		APM_RD(script_found) ? APM_RD_STRVAL(script) : "",
@@ -215,7 +216,8 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 		ip_int,
 		APM_RD(cookies_found) ? APM_RD_SMART_STRVAL(cookies) : "",
 		APM_RD(post_vars_found) ? APM_RD_SMART_STRVAL(post_vars) : "",
-		APM_RD(referer_found) ? APM_RD_STRVAL(referer) : ""
+		APM_RD(referer_found) ? APM_RD_STRVAL(referer) : "",
+		APM_RD(method_found) ? APM_RD_STRVAL(method) : ""
 	);
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);

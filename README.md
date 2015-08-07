@@ -35,6 +35,22 @@ It doesn't require any modification to your application's code and let's you col
     $ sudo make install
     ```
 
+## Upgrading
+
+### From 2.0 to 2.1
+
+#### MariaDB / MySQL
+
+   ```sql
+   ALTER TABLE request ADD COLUMN method TEXT NOT NULL;
+   ```
+
+#### SQLite
+
+   ```sql
+   ALTER TABLE request ADD COLUMN method TEXT NOT NULL DEFAULT '';
+   ```
+
 ## Configuration
 
 ### Common

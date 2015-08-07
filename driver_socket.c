@@ -244,8 +244,9 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	) {
 		ADD_Z_DATA("ip", ip);
 		ADD_Z_DATA("referer", referer);
+		ADD_Z_DATA("method", method);
 		/* FIXME: ADD_Z_DATA("cookies", cookies); */
-		/* FIXME: ADD_Z_DATA("cookies", post_vars); */
+		/* FIXME: ADD_Z_DATA("post_vars", post_vars); */
 	}
 	if (APM_G(socket_stats_enabled)) {
 		add_assoc_double(ZDATA, "duration", APM_G(duration));
