@@ -222,11 +222,10 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 
 #if PHP_VERSION_ID >= 70000
 	add_assoc_string_ex(ZDATA, ZEND_STRL("application_id"), APM_G(application_id));
-	add_assoc_long_ex(ZDATA, ZEND_STRL("response_code"), SG(sapi_headers).http_response_code);
 #else
 	add_assoc_string(ZDATA, "application_id", APM_G(application_id), 1);
-	add_assoc_long(ZDATA, "response_code", SG(sapi_headers).http_response_code);
 #endif
+	add_assoc_long_compat(ZDATA, "response_code", SG(sapi_headers).http_response_code)
 
 	ADD_Z_DATA("ts", ts);
 	ADD_Z_DATA("script", script);
@@ -250,7 +249,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 	}
 	if (APM_G(socket_stats_enabled)) {
 		add_assoc_double(ZDATA, "duration", APM_G(duration));
-		add_assoc_long(ZDATA, "mem_peak_usage", APM_G(mem_peak_usage));
+		add_assoc_long_compat(ZDATA, "mem_peak_usage", APM_G(mem_peak_usage));
 #ifdef HAVE_GETRUSAGE
 		add_assoc_double(ZDATA, "user_cpu", APM_G(user_cpu));
 		add_assoc_double(ZDATA, "sys_cpu", APM_G(sys_cpu));
@@ -289,8 +288,8 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 			ALLOC_INIT_ZVAL(tmp);
 			array_init(tmp);
 
-			add_assoc_long(tmp, "type", event_entry_cursor->event.type);
-			add_assoc_long(tmp, "line", event_entry_cursor->event.error_lineno);
+			add_assoc_long_compat(tmp, "type", event_entry_cursor->event.type);
+			add_assoc_long_compat(tmp, "line", event_entry_cursor->event.error_lineno);
 			add_assoc_string(tmp, "file", event_entry_cursor->event.error_filename, 1);
 			add_assoc_string(tmp, "message", event_entry_cursor->event.msg, 1);
 			add_assoc_string(tmp, "trace", event_entry_cursor->event.trace, 1);

@@ -362,8 +362,10 @@ ZEND_END_MODULE_GLOBALS(apm)
 
 #if PHP_VERSION_ID >= 70000
 # define zend_is_auto_global_compat(name) (zend_is_auto_global_str(ZEND_STRL((name))))
+# define add_assoc_long_compat(array, key, value) add_assoc_long_ex((array), (key), (sizeof(key) - 1), (value));
 #else
 # define zend_is_auto_global_compat(name) (zend_is_auto_global(ZEND_STRL((name)) TSRMLS_CC))
+# define add_assoc_long_compat(array, key, value) add_assoc_long_ex((array), (key), (sizeof(key)), (value));
 #endif
 
 int apm_write(const char *str,
