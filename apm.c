@@ -285,12 +285,6 @@ PHP_MINIT_FUNCTION(apm)
 
 	/* Initialize the storage drivers */
 	if (APM_G(enabled)) {
-		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
-		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
-		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
-
-		_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
-		zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
 
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
@@ -335,6 +329,14 @@ PHP_RINIT_FUNCTION(apm)
 
 	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
+
+		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
+		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
+		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
+
+		_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
+		zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
+
 		memset(&APM_G(request_data), 0, sizeof(struct apm_request_data));
 		if (APM_G(event_enabled)) {
 			/* storing timestamp of request */
@@ -374,6 +376,11 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	int code = SUCCESS;
 
 	if (APM_G(enabled)) {
+
+		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, _orig_begin_silence_opcode_handler);
+		zend_set_user_opcode_handler(ZEND_END_SILENCE, _orig_end_silence_opcode_handler);
+
+
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL && stats_enabled == 0) {
 			stats_enabled = driver_entry->driver.want_stats(TSRMLS_C);
