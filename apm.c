@@ -342,7 +342,6 @@ PHP_RINIT_FUNCTION(apm)
 
 	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
-
 		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
 		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
 		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
@@ -389,10 +388,8 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	int code = SUCCESS;
 
 	if (APM_G(enabled)) {
-
 		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, _orig_begin_silence_opcode_handler);
 		zend_set_user_opcode_handler(ZEND_END_SILENCE, _orig_end_silence_opcode_handler);
-
 
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL && stats_enabled == 0) {
