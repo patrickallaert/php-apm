@@ -550,7 +550,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 
 #if PHP_VERSION_ID >= 70000
 #define REGISTER_INFO(name, dest, type) \
-	if ((APM_RD(dest) = zend_hash_str_find(Z_ARRVAL_P(tmp), name, sizeof(name))) && (Z_TYPE_P(APM_RD(dest)) == (type))) { \
+	if ((APM_RD(dest) = zend_hash_str_find(Z_ARRVAL_P(tmp), name, sizeof(name) - 1)) && (Z_TYPE_P(APM_RD(dest)) == (type))) { \
 		APM_RD(dest##_found) = 1; \
 	}
 #else
