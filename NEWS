@@ -3,6 +3,7 @@ APM 2.1.0        xx Aug 2015
 Added:
 - Support for PHP 7
 - collecting HTTP method
+- Better coexistence with Xdebug
 
 APM 2.0.5        17 Jun 2015
 ----------------------------
