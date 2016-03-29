@@ -32,7 +32,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
  </lead>
  <date>2016-03-29</date>
  <version>
-  <release>2.1.0</release>
+  <release>2.1.1</release>
   <api>2.0.0</api>
  </version>
  <stability>
@@ -41,12 +41,8 @@ A web frontend exists for manipulating the data stored in database at: https://g
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-Added:
-- Support for PHP 7
-- collecting HTTP method
-
-Improved:
-- Better coexistence with Xdebug
+Fixed:
+- Compilation issue with ZTS
  </notes>
  <contents>
   <dir name="/">
@@ -90,6 +86,22 @@ Improved:
   <configureoption name="enable-statsd" default="yes" prompt="Enable Statsd support"/>
  </extsrcrelease>
  <changelog>
+  <release>
+   <version>
+    <release>2.1.1</release>
+    <api>2.0.0</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>stable</api>
+   </stability>
+   <date>2016-03-29</date>
+   <license uri="http://www.php.net/license">PHP License</license>
+   <notes>
+Fixed:
+- Compilation issue with ZTS
+   </notes>
+  </release>
   <release>
    <version>
     <release>2.1.0</release>

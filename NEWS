@@ -1,3 +1,8 @@
+APM 2.1.1        29 Mar 2016
+----------------------------
+Fixed:
+- Compilation issue with ZTS
+
 APM 2.1.0        29 Mar 2016
 ----------------------------
 Added:
