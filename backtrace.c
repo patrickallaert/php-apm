@@ -19,14 +19,9 @@
 #include "php_apm.h"
 #include "php.h"
 #include "zend_types.h"
-
-#if PHP_VERSION_ID >= 70000
-# include "zend_smart_str.h"
-#else
-# include "ext/standard/php_smart_str.h"
-#endif
-
 #include "ext/standard/php_string.h"
+
+#include "backtrace.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 

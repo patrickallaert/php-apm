@@ -29,12 +29,6 @@
 #include "php_apm.h"
 #include "php_ini.h"
 
-#if PHP_VERSION_ID >= 70000
-# include "zend_smart_str.h"
-#else
-# include "ext/standard/php_smart_str.h"
-#endif
-
 #include "ext/json/php_json.h"
 #include "driver_socket.h"
 #include "SAPI.h"
