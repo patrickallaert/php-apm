@@ -19,7 +19,7 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
-#define PHP_APM_VERSION "2.0.5"
+#define PHP_APM_VERSION "2.1.0"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
