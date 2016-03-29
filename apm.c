@@ -566,7 +566,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 #define FETCH_HTTP_GLOBALS(name) (tmp = PG(http_globals)[TRACK_VARS_##name])
 #endif
 
-void extract_data()
+void extract_data(TSRMLS_D)
 {
 	zval *tmp;
 

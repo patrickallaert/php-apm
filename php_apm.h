@@ -378,4 +378,4 @@ length);
 
 #endif
 
-void extract_data();
+void extract_data(TSRMLS_D);
