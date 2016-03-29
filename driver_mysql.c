@@ -140,7 +140,7 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 	struct in_addr ip_addr;
 	MYSQL *connection;
 
-	extract_data();
+	extract_data(TSRMLS_C);
 
 	APM_DEBUG("[MySQL driver] Begin insert request\n");
 	if (APM_G(mysql_is_request_created)) {

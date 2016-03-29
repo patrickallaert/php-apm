@@ -191,7 +191,7 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 	struct in_addr ip_addr;
 	sqlite3 *connection;
 
-	extract_data();
+	extract_data(TSRMLS_C);
 
 	APM_DEBUG("[SQLite driver] Begin insert request\n");
 	if (APM_G(sqlite3_is_request_created)) {

@@ -143,7 +143,7 @@ int apm_driver_socket_rshutdown(TSRMLS_D)
 		return SUCCESS;
 	}
 	
-	extract_data();
+	extract_data(TSRMLS_C);
 
 	sd_it = 0;
 
