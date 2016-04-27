@@ -35,6 +35,8 @@ PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
 PHP_ARG_ENABLE(socket, enable support for socket,
 [  --enable-socket         Enable socket support], yes, no)
+PHP_ARG_ENABLE(http, enable support for http,
+[  --enable-http         Enable HTTP support], yes, no)
 PHP_ARG_WITH(debugfile, enable the debug file,
 [  --with-debugfile=[FILE]   Location of debugging file (/tmp/apm.debug by default)], no, no)
 PHP_ARG_WITH(defaultdb, set default sqlite3 default DB path,
@@ -199,6 +201,39 @@ if test "$PHP_APM" != "no"; then
     AC_DEFINE(APM_DRIVER_SOCKET, 1, [activate socket driver])
   fi
 
-  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver $statsd_driver $socket_driver, $ext_shared)
+  if test "$PHP_HTTP" != "no"; then
+    http_driver="driver_http.c"
+    AC_DEFINE(APM_DRIVER_HTTP, 1, [activate HTTP sending driver])
+    AC_DEFINE(HAVE_HTTP, 1, [HTTP found and included])
+
+    if test -r $PHP_CURL/include/curl/easy.h; then
+      CURL_DIR=$PHP_CURL
+    else
+      AC_MSG_CHECKING(for cURL in default path)
+      for i in /usr/local /usr; do
+        if test -r $i/include/curl/easy.h; then
+          CURL_DIR=$i
+          AC_MSG_RESULT(found in $i)
+          break
+        fi
+      done
+    fi
+
+    PHP_ADD_INCLUDE($CURL_DIR/include)
+    PHP_EVAL_LIBLINE($CURL_LIBS, APM_SHARED_LIBADD)
+    PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, APM_SHARED_LIBADD)
+
+    PHP_CHECK_LIBRARY(curl,curl_easy_perform,
+      [
+        AC_DEFINE(HAVE_CURL,1,[ ])
+      ],[
+        AC_MSG_ERROR(There is something wrong. Please check config.log for more information.)
+      ],[
+        $CURL_LIBS -L$CURL_DIR/$PHP_LIBDIR
+      ])
+
+  fi
+
+  PHP_NEW_EXTENSION(apm, apm.c backtrace.c $sqlite3_driver $mysql_driver $statsd_driver $socket_driver $http_driver, $ext_shared)
   PHP_SUBST(APM_SHARED_LIBADD)
 fi

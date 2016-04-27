@@ -339,6 +339,27 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	apm_event_entry *socket_events;
 	apm_event_entry **socket_last_event;
 #endif
+
+#ifdef APM_DRIVER_HTTP
+	/* Boolean controlling whether the driver is active or not */
+	zend_bool http_enabled;
+	/* Boolean controlling the collection of stats */
+	zend_bool http_stats_enabled;
+	/* (unused for HTTP) */
+	long http_exception_mode;
+	/* (unused for HTTP) */
+	int http_error_reporting;
+	/* Option to process silenced events */
+	zend_bool http_process_silenced_events;
+
+	long http_request_timeout;
+	char *http_server;
+	char *http_client_certificate;
+	char *http_client_key;
+	char *http_certificate_authorities;
+	long http_max_backtrace_length;
+#endif
+
 ZEND_END_MODULE_GLOBALS(apm)
 
 #ifdef ZTS
