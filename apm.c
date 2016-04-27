@@ -38,6 +38,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
+#include "zend_interfaces.h"
 #include "php_apm.h"
 #include "backtrace.h"
 #include "ext/standard/info.h"
@@ -52,6 +53,9 @@
 #endif
 #ifdef APM_DRIVER_SOCKET
 # include "driver_socket.h"
+#endif
+#ifdef APM_DRIVER_HTTP
+  #include "driver_http.h"
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
@@ -240,6 +244,25 @@ PHP_INI_BEGIN()
 	/* process silenced events? */
 	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, socket_process_silenced_events, zend_apm_globals, apm_globals)
 #endif
+
+#ifdef APM_DRIVER_HTTP
+	/* Boolean controlling whether the driver is active or not */
+	STD_PHP_INI_BOOLEAN("apm.http_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_enabled, zend_apm_globals, apm_globals)
+	/* Boolean controlling the collection of stats */
+	STD_PHP_INI_BOOLEAN("apm.http_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.http_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, http_exception_mode, zend_apm_globals, apm_globals)
+	/* error_reporting of the driver */
+	STD_PHP_INI_ENTRY("apm.http_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMhttpErrorReporting, http_error_reporting, zend_apm_globals, apm_globals)
+	/* process silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.http_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, http_process_silenced_events, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_request_timeout", "1000", PHP_INI_ALL, OnUpdateLong, http_request_timeout, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_server", "http://localhost", PHP_INI_ALL, OnUpdateString, http_server, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_certificate", NULL, PHP_INI_ALL, OnUpdateString, http_client_certificate, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_key", NULL, PHP_INI_ALL, OnUpdateString, http_client_key, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_certificate_authorities", NULL, PHP_INI_ALL, OnUpdateString, http_certificate_authorities, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_max_backtrace_length", "0", PHP_INI_ALL, OnUpdateLong, http_max_backtrace_length, zend_apm_globals, apm_globals)
+#endif
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(apm)
@@ -271,6 +294,9 @@ static PHP_GINIT_FUNCTION(apm)
 #ifdef APM_DRIVER_SOCKET
 	*next = apm_driver_socket_create();
 	next = &(*next)->next;
+#endif
+#ifdef APM_DRIVER_HTTP
+	*next = apm_driver_http_create();
 #endif
 }
 
@@ -487,9 +513,11 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
-	zval *message, *file, *line;
 #if PHP_VERSION_ID >= 70000
+	zval message, file, line;
 	zval rv;
+#else
+	zval *message, *file, *line;
 #endif
 	zend_class_entry *default_ce;
 
@@ -501,16 +529,20 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		default_ce = zend_exception_get_default(TSRMLS_C);
 
 #if PHP_VERSION_ID >= 70000
-		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
-		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
-		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getmessage", &message);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getfile", &file);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getline", &line);
 #else
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
 #endif
 
+#if PHP_VERSION_ID >= 70000
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL(file), Z_LVAL(line), Z_STRVAL(message) TSRMLS_CC);
+#else
 		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+#endif
 	}
 }
 
