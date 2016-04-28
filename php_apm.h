@@ -328,9 +328,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool socket_enabled;
 	/* Boolean controlling the collection of stats */
 	zend_bool socket_stats_enabled;
-	/* (unused for StatsD) */
+	/* (unused for socket driver) */
 	long socket_exception_mode;
-	/* (unused for StatsD) */
+	/* (unused for socket driver) */
 	int socket_error_reporting;
 	/* Option to process silenced events */
 	zend_bool socket_process_silenced_events;
