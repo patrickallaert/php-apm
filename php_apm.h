@@ -45,6 +45,9 @@
 	#include <mysql/mysql.h>
 #endif
 
+#define phpext_apm_ptr &apm_module_entry
+extern zend_module_entry apm_module_entry;
+
 #ifdef PHP_WIN32
 #define PHP_APM_API __declspec(dllexport)
 #else
