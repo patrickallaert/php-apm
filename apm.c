@@ -38,6 +38,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
+#include "zend_interfaces.h"
 #include "php_apm.h"
 #include "backtrace.h"
 #include "ext/standard/info.h"
@@ -487,9 +488,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
-	zval *message, *file, *line;
 #if PHP_VERSION_ID >= 70000
-	zval rv;
+	zval message, file, line;
+#else
+	zval *message, *file, *line;
 #endif
 	zend_class_entry *default_ce;
 
@@ -501,16 +503,20 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		default_ce = zend_exception_get_default(TSRMLS_C);
 
 #if PHP_VERSION_ID >= 70000
-		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
-		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
-		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getmessage", &message);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getfile", &file);
+		zend_call_method_with_0_params(exception, default_ce, NULL, "getline", &line);
 #else
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
 #endif
 
+#if PHP_VERSION_ID >= 70000
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL(file), Z_LVAL(line), Z_STRVAL(message) TSRMLS_CC);
+#else
 		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+#endif
 	}
 }
 
