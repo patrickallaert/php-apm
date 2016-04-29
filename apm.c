@@ -54,6 +54,9 @@
 #ifdef APM_DRIVER_SOCKET
 # include "driver_socket.h"
 #endif
+#ifdef APM_DRIVER_HTTP
+  #include "driver_http.h"
+#endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 static PHP_GINIT_FUNCTION(apm);
@@ -241,6 +244,25 @@ PHP_INI_BEGIN()
 	/* process silenced events? */
 	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, socket_process_silenced_events, zend_apm_globals, apm_globals)
 #endif
+
+#ifdef APM_DRIVER_HTTP
+	/* Boolean controlling whether the driver is active or not */
+	STD_PHP_INI_BOOLEAN("apm.http_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_enabled, zend_apm_globals, apm_globals)
+	/* Boolean controlling the collection of stats */
+	STD_PHP_INI_BOOLEAN("apm.http_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.http_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, http_exception_mode, zend_apm_globals, apm_globals)
+	/* error_reporting of the driver */
+	STD_PHP_INI_ENTRY("apm.http_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMhttpErrorReporting, http_error_reporting, zend_apm_globals, apm_globals)
+	/* process silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.http_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, http_process_silenced_events, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_request_timeout", "1000", PHP_INI_ALL, OnUpdateLong, http_request_timeout, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_server", "http://localhost", PHP_INI_ALL, OnUpdateString, http_server, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_certificate", NULL, PHP_INI_ALL, OnUpdateString, http_client_certificate, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_key", NULL, PHP_INI_ALL, OnUpdateString, http_client_key, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_certificate_authorities", NULL, PHP_INI_ALL, OnUpdateString, http_certificate_authorities, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_max_backtrace_length", "0", PHP_INI_ALL, OnUpdateLong, http_max_backtrace_length, zend_apm_globals, apm_globals)
+#endif
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(apm)
@@ -272,6 +294,9 @@ static PHP_GINIT_FUNCTION(apm)
 #ifdef APM_DRIVER_SOCKET
 	*next = apm_driver_socket_create();
 	next = &(*next)->next;
+#endif
+#ifdef APM_DRIVER_HTTP
+	*next = apm_driver_http_create();
 #endif
 }
 

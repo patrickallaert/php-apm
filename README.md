@@ -16,10 +16,10 @@ It doesn't require any modification to your application's code and let's you col
 1. `$ git clone https://github.com/patrickallaert/php-apm.git`
 2. `$ cd php-apm`
 3. `$ phpize`
-4. Configure the extension, by default, **sqlite3**, **MariaDB/MySQL**, **[StatsD](https://github.com/etsy/statsd/)** and **Socket** support are enabled:
+4. Configure the extension, by default, **sqlite3**, **MariaDB/MySQL**, **[StatsD](https://github.com/etsy/statsd/)**, **HTTP**, and **Socket** support are enabled:
 
     ```
-    $ ./configure [--with-sqlite3[=DIR]] [--with-mysql[=DIR]] [--enable-statsd] [--enable-socket] [--with-debugfile[=FILE]]
+    $ ./configure [--with-sqlite3[=DIR]] [--with-mysql[=DIR]] [--enable-statsd] [--enable-socket] [--enable-http] [--with-debugfile[=FILE]]
     ```
     To disable the support of a `--with-*` switch, use: `--without-*`, example: `$ ./configure --without-sqlite3`
     To disable the support of a `--enable-*` switch, use: `--disable-*`, example: `$ ./configure --disable-socket`
