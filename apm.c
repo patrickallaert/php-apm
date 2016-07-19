@@ -118,7 +118,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
-static void process_event(int, int, char *, uint, char * TSRMLS_DC);
+static void process_event(int, int, char *, uint, char * TSRMLS_DC, unsigned int depth);
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
@@ -492,7 +492,8 @@ PHP_MINFO_FUNCTION(apm)
 	This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	char *msg;
+        static unsigned int depth = 0;
+  	char *msg;
 	va_list args_copy;
 	TSRMLS_FETCH();
 
@@ -501,8 +502,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	vspprintf(&msg, 0, format, args_copy);
 	va_end(args_copy);
 
-	if (APM_G(event_enabled)) {
-		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
+	if (APM_G(event_enabled) && depth < 2) {
+		++depth;
+		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC, depth);
+		--depth;
 	}
 	efree(msg);
 
@@ -538,20 +541,20 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 #endif
 
 #if PHP_VERSION_ID >= 70000
-		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL(file), Z_LVAL(line), Z_STRVAL(message) TSRMLS_CC);
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL(file), Z_LVAL(line), Z_STRVAL(message) TSRMLS_CC, 0);
 #else
-		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC, 0);
 #endif
 	}
 }
 
 /* Insert an event in the backend */
-static void process_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
+static void process_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC, unsigned int depth)
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
 
-	if (APM_G(store_stacktrace)) {
+	if (APM_G(store_stacktrace) && 0 == depth) {
 		append_backtrace(&trace_str TSRMLS_CC);
 		smart_str_0(&trace_str);
 	}
