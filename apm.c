@@ -154,8 +154,10 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.application_id", "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.event_enabled", "1", PHP_INI_ALL, OnUpdateBool, event_enabled, zend_apm_globals, apm_globals)
+#if PHP_VERSION_ID < 70000
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace", "1", PHP_INI_ALL, OnUpdateBool, store_stacktrace, zend_apm_globals, apm_globals)
+#endif
 	/* Boolean controlling whether the ip should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_ip", "1", PHP_INI_ALL, OnUpdateBool, store_ip, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the cookies should be stored or not */
@@ -517,10 +519,9 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 #if PHP_VERSION_ID >= 70000
-	zval message, file, line;
-#else
-	zval *message, *file, *line;
+	zval dummy;
 #endif
+	zval *message, *file, *line;
 	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
@@ -528,23 +529,22 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 			return;
 		}
 
+#if PHP_VERSION_ID >= 70000
+		default_ce = Z_OBJCE_P(exception);
+#else
 		default_ce = zend_exception_get_default(TSRMLS_C);
+#endif
 
 #if PHP_VERSION_ID >= 70000
-		zend_call_method_with_0_params(exception, default_ce, NULL, "getmessage", &message);
-		zend_call_method_with_0_params(exception, default_ce, NULL, "getfile", &file);
-		zend_call_method_with_0_params(exception, default_ce, NULL, "getline", &line);
+	        message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC, &dummy);
+		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC, &dummy);
+		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC, &dummy);
 #else
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
 #endif
-
-#if PHP_VERSION_ID >= 70000
-		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL(file), Z_LVAL(line), Z_STRVAL(message) TSRMLS_CC, 0);
-#else
 		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC, 0);
-#endif
 	}
 }
 
@@ -554,10 +554,12 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
 
+#if PHP_VERSION_ID < 70000
 	if (APM_G(store_stacktrace) && 0 == depth) {
 		append_backtrace(&trace_str TSRMLS_CC);
 		smart_str_0(&trace_str);
 	}
+#endif
 
 	driver_entry = APM_G(drivers);
 	APM_DEBUG("Direct processing process_event loop begin\n");
@@ -569,7 +571,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 				error_lineno,
 				msg,
 #if PHP_VERSION_ID >= 70000
-				(APM_G(store_stacktrace) && trace_str.s && trace_str.s->val) ? trace_str.s->val : ""
+				""
 #else
 				(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
 #endif
