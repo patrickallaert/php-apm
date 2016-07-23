@@ -94,7 +94,8 @@ static int apm_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-int apm_write(const char *str,
+#if PHP_VERSION_ID <  70100
+static int apm_write(const char *str,
 #if PHP_VERSION_ID >= 70000
 size_t
 #else
@@ -107,6 +108,7 @@ length)
 	smart_str_0(APM_G(buffer));
 	return length;
 }
+#endif
 
 void (*old_error_cb)(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
 
@@ -598,8 +600,15 @@ void extract_data(TSRMLS_D)
 		zend_is_auto_global_compat("_COOKIE");
 		if (FETCH_HTTP_GLOBALS(COOKIE)) {
 			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+#if PHP_VERSION_ID >= 70100
+				zend_string *tmpstr;
+				tmpstr = zend_print_zval_r_to_str(tmp, 0);
+				smart_str_append(&APM_RD(cookies), tmpstr);
+				zend_string_release(tmpstr);
+#else
 				APM_G(buffer) = &APM_RD(cookies);
 				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+#endif
 				APM_RD(cookies_found) = 1;
 			}
 		}
@@ -608,8 +617,15 @@ void extract_data(TSRMLS_D)
 		zend_is_auto_global_compat("_POST");
 		if (FETCH_HTTP_GLOBALS(POST)) {
 			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+#if PHP_VERSION_ID >= 70100
+				zend_string *tmpstr;
+				tmpstr = zend_print_zval_r_to_str(tmp, 0);
+				smart_str_append(&APM_RD(post_vars), tmpstr);
+				zend_string_release(tmpstr);
+#else
 				APM_G(buffer) = &APM_RD(post_vars);
 				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+#endif
 				APM_RD(post_vars_found) = 1;
 			}
 		}

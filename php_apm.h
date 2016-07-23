@@ -370,14 +370,6 @@ ZEND_EXTERN_MODULE_GLOBALS(apm)
 # define add_assoc_long_compat(array, key, value) add_assoc_long_ex((array), (key), (sizeof(key)), (value));
 #endif
 
-int apm_write(const char *str,
-#if PHP_VERSION_ID >= 70000
-size_t
-#else
-uint
-#endif
-length);
-
-#endif
-
 void extract_data(TSRMLS_D);
+#endif
+
