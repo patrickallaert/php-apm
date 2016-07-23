@@ -122,8 +122,20 @@ struct timeval begin_tp;
 struct rusage begin_usg;
 #endif
 
+static const zend_module_dep apm_deps[] = {
+#ifdef APM_DRIVER_SOCKET
+	ZEND_MOD_REQUIRED("json")
+#endif
+#ifdef APM_DRIVER_MYSQLND
+	ZEND_MOD_REQUIRED("mysqlnd")
+#endif
+	ZEND_MOD_END
+};
+
 zend_module_entry apm_module_entry = {
-	STANDARD_MODULE_HEADER,
+	STANDARD_MODULE_HEADER_EX,
+	NULL,
+	apm_deps,
 	"apm",
 	NULL,
 	PHP_MINIT(apm),
