@@ -44,7 +44,7 @@
 #ifdef APM_DRIVER_SQLITE3
 # include "driver_sqlite3.h"
 #endif
-#ifdef APM_DRIVER_MYSQL
+#if defined(APM_DRIVER_MYSQL) || defined(APM_DRIVER_MYSQLND)
 # include "driver_mysql.h"
 #endif
 #ifdef APM_DRIVER_STATSD
@@ -186,7 +186,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.sqlite_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, sqlite3_process_silenced_events, zend_apm_globals, apm_globals)
 #endif
 
-#ifdef APM_DRIVER_MYSQL
+#if defined(APM_DRIVER_MYSQL) || defined(APM_DRIVER_MYSQLND)
 	/* Boolean controlling whether the driver is active or not */
 	STD_PHP_INI_BOOLEAN("apm.mysql_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, mysql_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling the collection of stats */
@@ -260,7 +260,7 @@ static PHP_GINIT_FUNCTION(apm)
 	*next = apm_driver_sqlite3_create();
 	next = &(*next)->next;
 #endif
-#ifdef APM_DRIVER_MYSQL
+#if defined(APM_DRIVER_MYSQL) || defined(APM_DRIVER_MYSQLND)
 	*next = apm_driver_mysql_create();
 	next = &(*next)->next;
 #endif
@@ -457,6 +457,21 @@ PHP_MINFO_FUNCTION(apm)
 	php_info_print_table_start();
 	php_info_print_table_row(2, "APM support", "enabled");
 	php_info_print_table_row(2, "Version", PHP_APM_VERSION);
+#ifdef APM_DRIVER_SQLITE3
+	php_info_print_table_row(2, "Sqlite3 driver", "enabled");
+#endif
+#ifdef APM_DRIVER_MYSQL
+	php_info_print_table_row(2, "MySQL driver (mysqlnd)", "enabled");
+#endif
+#ifdef APM_DRIVER_MYSQLND
+	php_info_print_table_row(2, "MySQL driver (libmysqlclient)", "enabled");
+#endif
+#ifdef APM_DRIVER_STATSD
+	php_info_print_table_row(2, "Statsd driver", "enabled");
+#endif
+#ifdef APM_DRIVER_SOCKET
+	php_info_print_table_row(2, "Socket driver", "enabled");
+#endif
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();

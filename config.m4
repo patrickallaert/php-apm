@@ -29,7 +29,9 @@ PHP_ARG_ENABLE(apm, whether to enable apm support,
 [  --enable-apm            Enable apm support], yes)
 PHP_ARG_WITH(sqlite3, enable support for sqlite3,
 [  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
-PHP_ARG_WITH(mysql, enable support for MySQL,
+PHP_ARG_WITH(mysqlnd, enable support for MySQL through mysqlnd,
+[  --with-mysqlnd          Enable mysqlnd support], no, no)
+PHP_ARG_WITH(mysql, enable support for MySQL through libmysqlclient,
 [  --with-mysql=DIR        Location of MySQL base directory], yes, no)
 PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
@@ -103,7 +105,18 @@ if test "$PHP_APM" != "no"; then
     fi
   fi
 
-  if test "$PHP_MYSQL" != "no"; then
+  if test "$PHP_MYSQLND" != "no"; then
+    mysql_driver="driver_mysqlnd.c"
+    AC_MSG_CHECKING([mysqlnd headers])
+    if test -f $phpincludedir/ext/mysqlnd/mysqlnd.h; then
+       AC_MSG_RESULT(found)
+       AC_DEFINE(APM_DRIVER_MYSQLND, 1, [activate MySQL storage driver])
+    else
+       AC_MSG_RESULT(not found)
+       AC_MSG_ERROR([Please check PHP is build with mysqlnd])
+    fi
+
+  elif test "$PHP_MYSQL" != "no"; then
     mysql_driver="driver_mysql.c"
     AC_DEFINE(APM_DRIVER_MYSQL, 1, [activate MySQL storage driver])
 

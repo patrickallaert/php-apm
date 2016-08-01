@@ -44,6 +44,9 @@
 #ifdef APM_DRIVER_MYSQL
 	#include <mysql/mysql.h>
 #endif
+#ifdef APM_DRIVER_MYSQLND
+	#include <ext/mysqlnd/mysqlnd.h>
+#endif
 
 #ifdef PHP_WIN32
 #define PHP_APM_API __declspec(dllexport)
@@ -274,7 +277,7 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool sqlite3_process_silenced_events;
 #endif
 
-#ifdef APM_DRIVER_MYSQL
+#if defined(APM_DRIVER_MYSQL) || defined(APM_DRIVER_MYSQLND)
 	/* Boolean controlling whether the driver is active or not */
 	zend_bool mysql_enabled;
 	/* Boolean controlling the collection of stats */
@@ -294,7 +297,11 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	/* MySQL database */
 	char *mysql_db_name;
 	/* DB handle */
+#ifdef APM_DRIVER_MYSQL
 	MYSQL *mysql_event_db;
+#else
+	MYSQLND *mysql_event_db;
+#endif
 	/* Option to process silenced events */
 	zend_bool mysql_process_silenced_events;
 
