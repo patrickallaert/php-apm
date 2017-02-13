@@ -19,4 +19,5 @@ script:
   - MYPHP=`which php`
   - export PATH=`dirname $MYPHP`:$PATH
   - $MYPHP -c /tmp/temp-php-config.ini -v
+  - $MYPHP -c /tmp/temp-php-config.ini -m | grep apm
   - REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=$MYPHP $MYPHP -c /tmp/temp-php-config.ini run-tests.php -q -x --show-diff
