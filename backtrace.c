@@ -378,11 +378,13 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 	}
 
 	switch (Z_TYPE_P(expr)) {
+#if PHP_VERSION_ID >= 70000
 		case IS_REFERENCE:
 			ZVAL_DEREF(expr);
 			smart_str_appendc(trace_str, '&');
 			append_flat_zval_r(expr, trace_str, depth);
 			break;
+#endif
 		case IS_ARRAY:
 			smart_str_appendc(trace_str, '[');
 #if PHP_VERSION_ID >= 70000
