@@ -20,6 +20,7 @@
 #include <time.h>
 #include "php_apm.h"
 #include "php_ini.h"
+
 #include "ext/standard/php_filestat.h"
 #include "driver_sqlite3.h"
 #ifdef NETWARE
@@ -46,6 +47,14 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 // php_stat() crashes with ZTS, see later
 #ifndef ZTS
 	zend_bool is_dir;
+#if PHP_VERSION_ID >= 70000
+	zval stat;
+
+	php_stat(path, strlen(path), FS_IS_DIR, &stat);
+	
+	is_dir = (Z_TYPE(stat) == IS_TRUE);
+	zval_dtor(&stat);
+#else
 	zval *stat;
 
 	MAKE_STD_ZVAL(stat);
@@ -54,6 +63,7 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 	is_dir = Z_BVAL_P(stat);
 	zval_dtor(stat);
 	FREE_ZVAL(stat);
+#endif
 
 	/* Does db_path exists ? */
 	if (!is_dir && !php_stream_mkdir((char *)path, 0777, PHP_STREAM_MKDIR_RECURSIVE, NULL)) {
@@ -72,6 +82,21 @@ static int perform_db_access_checks(const char *path TSRMLS_DC)
 
 PHP_INI_MH(OnUpdateDBFile)
 {
+#if PHP_VERSION_ID >= 70000
+	if (APM_G(enabled) && APM_G(sqlite3_enabled)) {
+		if (new_value && new_value->len > 0) {
+			snprintf(APM_G(sqlite3_db_file), MAXPATHLEN, "%s/%s", new_value->val, DB_FILE);
+			disconnect(TSRMLS_C);
+
+			if (perform_db_access_checks(new_value->val) == FAILURE) {
+				APM_G(sqlite3_enabled) = 0;
+			}
+		} else {
+			APM_G(sqlite3_enabled) = 0;
+		}
+	}
+	return OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
+#else
 	if (APM_G(enabled) && APM_G(sqlite3_enabled)) {
 		if (new_value && new_value_length > 0) {
 			snprintf(APM_G(sqlite3_db_file), MAXPATHLEN, "%s/%s", new_value, DB_FILE);
@@ -85,6 +110,7 @@ PHP_INI_MH(OnUpdateDBFile)
 		}
 	}
 	return OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC);
+#endif
 }
 
 /* Returns the SQLite instance (singleton) */
@@ -126,7 +152,8 @@ CREATE TABLE IF NOT EXISTS request (\n\
     ip INTEGER UNSIGNED NOT NULL,\n\
     cookies TEXT NOT NULL,\n\
     post_vars TEXT NOT NULL,\n\
-    referer TEXT NOT NULL\n\
+    referer TEXT NOT NULL,\n\
+    method TEXT NOT NULL\n\
 );\n\
 CREATE TABLE IF NOT EXISTS event (\n\
     id INTEGER PRIMARY KEY AUTOINCREMENT,\n\
@@ -159,13 +186,12 @@ CREATE INDEX IF NOT EXISTS stats_request ON stats (request_id);",
 /* Insert a request in the backend */
 static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 {
-	char *sql, *script = NULL;
+	char *sql;
 	int ip_int = 0, code;
 	struct in_addr ip_addr;
 	sqlite3 *connection;
-	zval *tmp;
 
-	EXTRACT_DATA();
+	extract_data(TSRMLS_C);
 
 	APM_DEBUG("[SQLite driver] Begin insert request\n");
 	if (APM_G(sqlite3_is_request_created)) {
@@ -175,16 +201,24 @@ static void apm_driver_sqlite3_insert_request(TSRMLS_D)
 
 	SQLITE_INSTANCE_INIT
 
-	get_script(&script TSRMLS_CC);
-
-	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
+	if (APM_RD(ip_found) && (inet_pton(AF_INET, APM_RD_STRVAL(ip), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
 
 	/* Builing SQL insert query */
 	sql = sqlite3_mprintf(
-		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q)",
-		APM_G(application_id) ? APM_G(application_id) : "", (long)time(NULL), script ? script : "", APM_RD(uri_found) ? Z_STRVAL_PP(APM_RD(uri)) : "", APM_RD(host_found) ? Z_STRVAL_PP(APM_RD(host)) : "", ip_int, APM_RD(cookies_found) ? APM_RD(cookies).c : "", APM_RD(post_vars_found) ? APM_RD(post_vars).c : "", APM_RD(referer_found) ? Z_STRVAL_PP(APM_RD(referer)) : "");
+		"INSERT INTO request (application, ts, script, uri, host, ip, cookies, post_vars, referer, method) VALUES (%Q, %d, %Q, %Q, %Q, %d, %Q, %Q, %Q, %Q)",
+		APM_G(application_id) ? APM_G(application_id) : "",
+		(long)time(NULL),
+		APM_RD(script_found) ? APM_RD_STRVAL(script) : "",
+		APM_RD(uri_found) ? APM_RD_STRVAL(uri) : "",
+		APM_RD(host_found) ? APM_RD_STRVAL(host) : "",
+		ip_int,
+		APM_RD(cookies_found) ? APM_RD_SMART_STRVAL(cookies) : "",
+		APM_RD(post_vars_found) ? APM_RD_SMART_STRVAL(post_vars) : "",
+		APM_RD(referer_found) ? APM_RD_STRVAL(referer) : "",
+		APM_RD(method_found) ? APM_RD_STRVAL(method) : ""
+	);
 	/* Executing SQL insert query */
 	APM_DEBUG("[SQLite driver] Sending: %s\n", sql);
 	if ((code = sqlite3_exec(connection, sql, NULL, NULL, NULL)) != SQLITE_OK)

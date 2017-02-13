@@ -16,10 +16,11 @@
  +----------------------------------------------------------------------+
 */
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_mysql.h"
+
 #ifdef NETWARE
 #include <netinet/in.h>
 #endif
@@ -73,7 +74,8 @@ CREATE TABLE IF NOT EXISTS request (\
     ip INTEGER UNSIGNED NOT NULL,\
     cookies TEXT NOT NULL,\
     post_vars TEXT NOT NULL,\
-    referer TEXT NOT NULL\
+    referer TEXT NOT NULL,\
+    method TEXT NOT NULL\
 )"
 	);
 		mysql_query(
@@ -110,16 +112,35 @@ CREATE TABLE IF NOT EXISTS stats (\
 	return APM_G(mysql_event_db);
 }
 
+/* Escape string request data */
+#define APM_MYSQL_ESCAPE_STR(data) \
+{ \
+	if (APM_RD(data##_found)) { \
+		data##_len = strlen(APM_RD_STRVAL(data)); \
+		data##_esc = emalloc(data##_len * 2 + 1); \
+		data##_len = mysql_real_escape_string(connection, data##_esc, APM_RD_STRVAL(data), data##_len); \
+	} \
+}
+
+/* Escape smart_str request data */
+#define APM_MYSQL_ESCAPE_SMART_STR(data) \
+{ \
+	if (APM_RD(data##_found)) { \
+		data##_len = strlen(APM_RD_SMART_STRVAL(data)); \
+		data##_esc = emalloc(data##_len * 2 + 1); \
+		data##_len = mysql_real_escape_string(connection, data##_esc, APM_RD_SMART_STRVAL(data), data##_len); \
+	} \
+}
+
 /* Insert a request in the backend */
 static void apm_driver_mysql_insert_request(TSRMLS_D)
 {
-	char *script = NULL, *application_esc = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *sql = NULL;
-	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0;
+	char *application_esc = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *method_esc = NULL, *sql = NULL;
+	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0, method_len = 0;
 	struct in_addr ip_addr;
 	MYSQL *connection;
-	zval *tmp;
 
-	EXTRACT_DATA();
+	extract_data(TSRMLS_C);
 
 	APM_DEBUG("[MySQL driver] Begin insert request\n");
 	if (APM_G(mysql_is_request_created)) {
@@ -134,54 +155,31 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 		application_esc = emalloc(application_len * 2 + 1);
 		application_len = mysql_real_escape_string(connection, application_esc, APM_G(application_id), application_len);
 	}
+	
+	APM_MYSQL_ESCAPE_STR(script);
+	APM_MYSQL_ESCAPE_STR(uri);
+	APM_MYSQL_ESCAPE_STR(host);
+	APM_MYSQL_ESCAPE_STR(referer);
+	APM_MYSQL_ESCAPE_STR(method);
+	APM_MYSQL_ESCAPE_SMART_STR(cookies);
+	APM_MYSQL_ESCAPE_SMART_STR(post_vars);
 
-	get_script(&script TSRMLS_CC);
-
-	if (script) {
-		script_len = strlen(script);
-		script_esc = emalloc(script_len * 2 + 1);
-		script_len = mysql_real_escape_string(connection, script_esc, script, script_len);
-	}
-
-	if (APM_RD(uri_found)) {
-		uri_len = strlen(Z_STRVAL_PP(APM_RD(uri)));
-		uri_esc = emalloc(uri_len * 2 + 1);
-		uri_len = mysql_real_escape_string(connection, uri_esc, Z_STRVAL_PP(APM_RD(uri)), uri_len);
-	}
-
-	if (APM_RD(host_found)) {
-		host_len = strlen(Z_STRVAL_PP(APM_RD(host)));
-		host_esc = emalloc(host_len * 2 + 1);
-		host_len = mysql_real_escape_string(connection, host_esc, Z_STRVAL_PP(APM_RD(host)), host_len);
-	}
-
-	if (APM_RD(ip_found) && (inet_pton(AF_INET, Z_STRVAL_PP(APM_RD(ip)), &ip_addr) == 1)) {
+	if (APM_RD(ip_found) && (inet_pton(AF_INET, APM_RD_STRVAL(ip), &ip_addr) == 1)) {
 		ip_int = ntohl(ip_addr.s_addr);
 	}
-	
-	if (APM_RD(cookies_found)) {
-		cookies_len = strlen(APM_RD(cookies).c);
-		cookies_esc = emalloc(cookies_len * 2 + 1);
-		cookies_len = mysql_real_escape_string(connection, cookies_esc, APM_RD(cookies).c, cookies_len);
-	}
 
-	if (APM_RD(post_vars_found)) {
-		post_vars_len = strlen(APM_RD(post_vars).c);
-		post_vars_esc = emalloc(post_vars_len * 2 + 1);
-		post_vars_len = mysql_real_escape_string(connection, post_vars_esc, APM_RD(post_vars).c, post_vars_len);
-	}
-
-	if (APM_RD(referer_found)) {
-		referer_len = strlen(Z_STRVAL_PP(APM_RD(referer)));
-		referer_esc = emalloc(referer_len * 2 + 1);
-		referer_len = mysql_real_escape_string(connection, referer_esc, Z_STRVAL_PP(APM_RD(referer)), referer_len);
-	}
-
-	sql = emalloc(154 + application_len + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len);
+	sql = emalloc(166 + application_len + script_len + uri_len + host_len + cookies_len + post_vars_len + referer_len + method_len);
 	sprintf(
 		sql,
-		"INSERT INTO request (application, script, uri, host, ip, cookies, post_vars, referer) VALUES ('%s', '%s', '%s', '%s', %u, '%s', '%s', '%s')",
-		application_esc ? application_esc : "", script ? script_esc : "", APM_RD(uri_found) ? uri_esc : "", APM_RD(host_found) ? host_esc : "", ip_int, APM_RD(cookies_found) ? cookies_esc : "", APM_RD(post_vars_found) ? post_vars_esc : "", APM_RD(referer_found) ? referer_esc : "");
+		"INSERT INTO request (application, script, uri, host, ip, cookies, post_vars, referer, method) VALUES ('%s', '%s', '%s', '%s', %u, '%s', '%s', '%s', '%s')",
+		application_esc ? application_esc : "",
+		APM_RD(script_found) ? script_esc : "",
+		APM_RD(uri_found) ? uri_esc : "",
+		APM_RD(host_found) ? host_esc : "",
+		ip_int, APM_RD(cookies_found) ? cookies_esc : "",
+		APM_RD(post_vars_found) ? post_vars_esc : "",
+		APM_RD(referer_found) ? referer_esc : "",
+		APM_RD(method_found) ? method_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
 	if (mysql_query(connection, sql) != 0)
@@ -204,6 +202,8 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 		efree(post_vars_esc);
 	if (referer_esc)
 		efree(referer_esc);
+	if (method_esc)
+		efree(method_esc);
 
 	APM_G(mysql_is_request_created) = 1;
 	APM_DEBUG("[MySQL driver] End insert request\n");

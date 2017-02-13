@@ -61,34 +61,46 @@ static PHP_GSHUTDOWN_FUNCTION(apm);
 #define APM_DRIVER_BEGIN_LOOP driver_entry = APM_G(drivers); \
 		while ((driver_entry = driver_entry->next) != NULL) {
 
-#if PHP_VERSION_ID < 50300
-typedef opcode_handler_t user_opcode_handler_t;
-#endif
-
 static user_opcode_handler_t _orig_begin_silence_opcode_handler = NULL;
 static user_opcode_handler_t _orig_end_silence_opcode_handler = NULL;
 
-static int apm_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+#if PHP_VERSION_ID >= 70000
+# define ZEND_USER_OPCODE_HANDLER_ARGS zend_execute_data *execute_data
+# define ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU execute_data
+#else
+# define ZEND_USER_OPCODE_HANDLER_ARGS ZEND_OPCODE_HANDLER_ARGS
+# define ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU ZEND_OPCODE_HANDLER_ARGS_PASSTHRU
+#endif
+
+static int apm_begin_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 1;
 
-	if (_orig_begin_silence_opcode_handler)
-		return _orig_begin_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+	if (_orig_begin_silence_opcode_handler) {
+		_orig_begin_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU);
+	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-static int apm_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS)
+static int apm_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 {
 	APM_G(currently_silenced) = 0;
 
-	if (_orig_end_silence_opcode_handler)
-		return _orig_end_silence_opcode_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU);
+	if (_orig_end_silence_opcode_handler) {
+		_orig_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS_PASSTHRU);
+	}
 
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-int apm_write(const char *str, uint length)
+int apm_write(const char *str,
+#if PHP_VERSION_ID >= 70000
+size_t
+#else
+uint
+#endif
+length)
 {
 	TSRMLS_FETCH();
 	smart_str_appendl(APM_G(buffer), str, length);
@@ -111,9 +123,7 @@ struct rusage begin_usg;
 #endif
 
 zend_module_entry apm_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
-#endif
 	"apm",
 	NULL,
 	PHP_MINIT(apm),
@@ -121,9 +131,7 @@ zend_module_entry apm_module_entry = {
 	PHP_RINIT(apm),
 	PHP_RSHUTDOWN(apm),
 	PHP_MINFO(apm),
-#if ZEND_MODULE_API_NO >= 20010901
 	PHP_APM_VERSION,
-#endif
 	PHP_MODULE_GLOBALS(apm),
 	PHP_GINIT(apm),
 	PHP_GSHUTDOWN(apm),
@@ -206,6 +214,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.statsd_enabled", "1", PHP_INI_PERDIR, OnUpdateBool, statsd_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling the collection of stats */
 	STD_PHP_INI_BOOLEAN("apm.statsd_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, statsd_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.statsd_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, statsd_exception_mode, zend_apm_globals, apm_globals)
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.statsd_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMstatsdErrorReporting, statsd_error_reporting, zend_apm_globals, apm_globals)
 	/* StatsD host */
@@ -221,6 +231,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_BOOLEAN("apm.socket_enabled", "1", PHP_INI_ALL, OnUpdateBool, socket_enabled, zend_apm_globals, apm_globals)
 	/* Boolean controlling the collection of stats */
 	STD_PHP_INI_BOOLEAN("apm.socket_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, socket_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.socket_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, socket_exception_mode, zend_apm_globals, apm_globals)
 	/* error_reporting of the driver */
 	STD_PHP_INI_ENTRY("apm.socket_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMsocketErrorReporting, socket_error_reporting, zend_apm_globals, apm_globals)
 	/* Socket path */
@@ -286,12 +298,6 @@ PHP_MINIT_FUNCTION(apm)
 
 	/* Initialize the storage drivers */
 	if (APM_G(enabled)) {
-		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
-		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
-		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
-
-		_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
-		zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
 
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL) {
@@ -336,6 +342,13 @@ PHP_RINIT_FUNCTION(apm)
 
 	APM_INIT_DEBUG;
 	if (APM_G(enabled)) {
+		/* Overload the ZEND_BEGIN_SILENCE / ZEND_END_SILENCE opcodes */
+		_orig_begin_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_BEGIN_SILENCE);
+		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, apm_begin_silence_opcode_handler);
+
+		_orig_end_silence_opcode_handler = zend_get_user_opcode_handler(ZEND_END_SILENCE);
+		zend_set_user_opcode_handler(ZEND_END_SILENCE, apm_end_silence_opcode_handler);
+
 		memset(&APM_G(request_data), 0, sizeof(struct apm_request_data));
 		if (APM_G(event_enabled)) {
 			/* storing timestamp of request */
@@ -375,6 +388,9 @@ PHP_RSHUTDOWN_FUNCTION(apm)
 	int code = SUCCESS;
 
 	if (APM_G(enabled)) {
+		zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, _orig_begin_silence_opcode_handler);
+		zend_set_user_opcode_handler(ZEND_END_SILENCE, _orig_end_silence_opcode_handler);
+
 		driver_entry = APM_G(drivers);
 		while ((driver_entry = driver_entry->next) != NULL && stats_enabled == 0) {
 			stats_enabled = driver_entry->driver.want_stats(TSRMLS_C);
@@ -472,6 +488,9 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 	zval *message, *file, *line;
+#if PHP_VERSION_ID >= 70000
+	zval rv;
+#endif
 	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
@@ -479,13 +498,21 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 			return;
 		}
 
+#if PHP_VERSION_ID >= 70000
+		default_ce = Z_OBJCE_P(exception);
+
+		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
+		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
+		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
+#else
 		default_ce = zend_exception_get_default(TSRMLS_C);
 
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
+#endif
 
-		process_event(APM_EVENT_EXCEPTION, E_ERROR, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
 	}
 }
 
@@ -509,7 +536,11 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 				error_filename,
 				error_lineno,
 				msg,
+#if PHP_VERSION_ID >= 70000
+				(APM_G(store_stacktrace) && trace_str.s && trace_str.s->val) ? trace_str.s->val : ""
+#else
 				(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
+#endif
 				TSRMLS_CC
 			);
 		}
@@ -519,14 +550,68 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str_free(&trace_str);
 }
 
-void get_script(char ** script_filename TSRMLS_DC)
-{
-	zval **array, **token;
+#if PHP_VERSION_ID >= 70000
+#define REGISTER_INFO(name, dest, type) \
+	if ((APM_RD(dest) = zend_hash_str_find(Z_ARRVAL_P(tmp), name, sizeof(name) - 1)) && (Z_TYPE_P(APM_RD(dest)) == (type))) { \
+		APM_RD(dest##_found) = 1; \
+	}
+#else
+#define REGISTER_INFO(name, dest, type) \
+	if ((zend_hash_find(Z_ARRVAL_P(tmp), name, sizeof(name), (void**)&APM_RD(dest)) == SUCCESS) && (Z_TYPE_PP(APM_RD(dest)) == (type))) { \
+		APM_RD(dest##_found) = 1; \
+	}
+#endif
 
-	zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
-	if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &array) == SUCCESS &&
-		Z_TYPE_PP(array) == IS_ARRAY &&
-		zend_hash_find(Z_ARRVAL_PP(array), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &token) == SUCCESS) {
-		*script_filename = Z_STRVAL_PP(token);
+#if PHP_VERSION_ID >= 70000
+#define FETCH_HTTP_GLOBALS(name) (tmp = &PG(http_globals)[TRACK_VARS_##name])
+#else
+#define FETCH_HTTP_GLOBALS(name) (tmp = PG(http_globals)[TRACK_VARS_##name])
+#endif
+
+void extract_data(TSRMLS_D)
+{
+	zval *tmp;
+
+	APM_DEBUG("Extracting data\n");
+	
+	if (APM_RD(initialized)) {
+		APM_DEBUG("Data already initialized\n");
+		return;
+	}
+
+	APM_RD(initialized) = 1;
+	
+	zend_is_auto_global_compat("_SERVER");
+	if (FETCH_HTTP_GLOBALS(SERVER)) {
+		REGISTER_INFO("REQUEST_URI", uri, IS_STRING);
+		REGISTER_INFO("HTTP_HOST", host, IS_STRING);
+		REGISTER_INFO("HTTP_REFERER", referer, IS_STRING);
+		REGISTER_INFO("REQUEST_TIME", ts, IS_LONG);
+		REGISTER_INFO("SCRIPT_FILENAME", script, IS_STRING);
+		REGISTER_INFO("REQUEST_METHOD", method, IS_STRING);
+		
+		if (APM_G(store_ip)) {
+			REGISTER_INFO("REMOTE_ADDR", ip, IS_STRING);
+		}
+	}
+	if (APM_G(store_cookies)) {
+		zend_is_auto_global_compat("_COOKIE");
+		if (FETCH_HTTP_GLOBALS(COOKIE)) {
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+				APM_G(buffer) = &APM_RD(cookies);
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+				APM_RD(cookies_found) = 1;
+			}
+		}
+	}
+	if (APM_G(store_post)) {
+		zend_is_auto_global_compat("_POST");
+		if (FETCH_HTTP_GLOBALS(POST)) {
+			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+				APM_G(buffer) = &APM_RD(post_vars);
+				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+				APM_RD(post_vars_found) = 1;
+			}
+		}
 	}
 }

@@ -46,6 +46,9 @@ void apm_driver_statsd_process_event(PROCESS_EVENT_ARGS)
 		(socketDescriptor = socket(APM_G(statsd_servinfo)->ai_family, APM_G(statsd_servinfo)->ai_socktype, APM_G(statsd_servinfo)->ai_protocol)) != -1
 	) {
 		switch(type) {
+			case E_EXCEPTION:
+				type_string = "exception";
+				break;
 			case E_ERROR:
 				type_string = "error";
 				break;

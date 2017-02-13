@@ -1,4 +1,32 @@
-APM 2.0.4        ?? Jun 2015
+APM 2.1.2        ?? ??? 2016
+----------------------------
+Fixed:
+- Wrong path for mysql.h prevents Windows build
+
+APM 2.1.1        29 Mar 2016
+----------------------------
+Fixed:
+- Compilation issue with ZTS
+
+APM 2.1.0        29 Mar 2016
+----------------------------
+Added:
+- Support for PHP 7
+- collecting HTTP method
+
+Improved:
+- Better coexistence with Xdebug
+
+APM 2.0.5        17 Jun 2015
+----------------------------
+Fixed:
+- missing apm.statsd_exception_mode and apm.socket_exception_mode
+- sqlite3.h file not found in Windows build
+
+Improved:
+- Minor optimizations in stacktrace creation
+
+APM 2.0.4        01 Jun 2015
 ----------------------------
 Fixed:
 - Temporary buffer not freed when generating stacktraces.
