@@ -498,13 +498,15 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 			return;
 		}
 
-		default_ce = zend_exception_get_default(TSRMLS_C);
-
 #if PHP_VERSION_ID >= 70000
+		default_ce = Z_OBJCE_P(exception);
+
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
 #else
+		default_ce = zend_exception_get_default(TSRMLS_C);
+
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
