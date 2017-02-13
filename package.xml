@@ -30,13 +30,13 @@ A web frontend exists for manipulating the data stored in database at: https://g
   <email>dmendolia@php.net</email>
   <active>no</active>
  </lead>
- <date>????-??-??</date>
+ <date>2017-02-13</date>
  <version>
   <release>2.1.2</release>
   <api>2.0.0</api>
  </version>
  <stability>
-  <release>beta</release>
+  <release>stable</release>
   <api>stable</api>
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
@@ -95,10 +95,10 @@ Fixed:
     <api>2.0.0</api>
    </version>
    <stability>
-    <release>beta</release>
+    <release>stable</release>
     <api>stable</api>
    </stability>
-   <date>????-??-??</date>
+   <date>2017-02-13</date>
    <license uri="http://www.php.net/license">PHP License</license>
    <notes>
 Fixed:
