@@ -43,6 +43,8 @@ A web frontend exists for manipulating the data stored in database at: https://g
  <notes>
 Fixed:
 - Wrong path for mysql.h prevents Windows build
+- Possible segmentation fault and invalid errors under PHP 7.0
+- Make error: duplicate symbol for architecture x86_64 #25
  </notes>
  <contents>
   <dir name="/">

@@ -2,6 +2,8 @@ APM 2.1.2        ?? ??? 2016
 ----------------------------
 Fixed:
 - Wrong path for mysql.h prevents Windows build
+- Possible segmentation fault and invalid errors under PHP 7.0
+- Make error: duplicate symbol for architecture x86_64 #25
 
 APM 2.1.1        29 Mar 2016
 ----------------------------
