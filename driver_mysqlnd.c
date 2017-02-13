@@ -16,10 +16,10 @@
  +----------------------------------------------------------------------+
 */
 
-#include <mysql.h>
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_mysql.h"
+#include <ext/mysqlnd/mysqlnd.h>
 
 #ifdef NETWARE
 #include <netinet/in.h>
@@ -32,38 +32,36 @@ ZEND_EXTERN_MODULE_GLOBALS(apm);
 
 APM_DRIVER_CREATE(mysql)
 
+
 static void mysql_destroy(TSRMLS_D) {
 	APM_DEBUG("[MySQL driver] Closing connection\n");
-	mysql_close(APM_G(mysql_event_db));
-	free(APM_G(mysql_event_db));
+	mysqlnd_close(APM_G(mysql_event_db), 0);
 	APM_G(mysql_event_db) = NULL;
-	mysql_library_end();
 }
 
 /* Returns the MYSQL instance (singleton) */
-MYSQL * mysql_get_instance(TSRMLS_D) {
-	my_bool reconnect = 1;
+MYSQLND * mysql_get_instance(TSRMLS_D) {
+	
 	if (APM_G(mysql_event_db) == NULL) {
-		mysql_library_init(0, NULL, NULL);
-		APM_G(mysql_event_db) = malloc(sizeof(MYSQL));
+		APM_G(mysql_event_db) = mysqlnd_init(0, 1);
 
-		mysql_init(APM_G(mysql_event_db));
-
-		mysql_options(APM_G(mysql_event_db), MYSQL_OPT_RECONNECT, &reconnect);
 		APM_DEBUG("[MySQL driver] Connecting to server...");
-		if (mysql_real_connect(APM_G(mysql_event_db), APM_G(mysql_db_host), APM_G(mysql_db_user), APM_G(mysql_db_pass), APM_G(mysql_db_name), APM_G(mysql_db_port), NULL, 0) == NULL) {
-			APM_DEBUG("FAILED! Message: %s\n", mysql_error(APM_G(mysql_event_db)));
+		if (mysqlnd_connect(APM_G(mysql_event_db), APM_G(mysql_db_host), APM_G(mysql_db_user), 
+                            APM_G(mysql_db_pass), strlen(APM_G(mysql_db_pass)),
+                            APM_G(mysql_db_name), strlen(APM_G(mysql_db_name)),
+                            APM_G(mysql_db_port), NULL, 0, 0) == NULL) {
+			APM_DEBUG("FAILED! Message: %s\n", mysqlnd_error(APM_G(mysql_event_db)));
 
 			mysql_destroy(TSRMLS_C);
 			return NULL;
 		}
 		APM_DEBUG("OK\n");
 
-		mysql_set_character_set(APM_G(mysql_event_db), "utf8");
+		mysqlnd_set_character_set(APM_G(mysql_event_db), "utf8");
 
-		mysql_query(APM_G(mysql_event_db), TABLE_REQUEST);
-		mysql_query(APM_G(mysql_event_db), TABLE_EVENT);
-		mysql_query(APM_G(mysql_event_db), TABLE_STATS);
+		mysqlnd_query(APM_G(mysql_event_db), TABLE_REQUEST, sizeof(TABLE_REQUEST)-1);
+		mysqlnd_query(APM_G(mysql_event_db), TABLE_EVENT,   sizeof(TABLE_EVENT)-1);
+		mysqlnd_query(APM_G(mysql_event_db), TABLE_STATS,   sizeof(TABLE_STATS)-1);
 	}
 
 	return APM_G(mysql_event_db);
@@ -75,7 +73,7 @@ MYSQL * mysql_get_instance(TSRMLS_D) {
 	if (APM_RD(data##_found)) { \
 		data##_len = strlen(APM_RD_STRVAL(data)); \
 		data##_esc = emalloc(data##_len * 2 + 1); \
-		data##_len = mysql_real_escape_string(connection, data##_esc, APM_RD_STRVAL(data), data##_len); \
+		data##_len = mysqlnd_real_escape_string(connection, data##_esc, APM_RD_STRVAL(data), data##_len); \
 	} \
 }
 
@@ -85,7 +83,7 @@ MYSQL * mysql_get_instance(TSRMLS_D) {
 	if (APM_RD(data##_found)) { \
 		data##_len = strlen(APM_RD_SMART_STRVAL(data)); \
 		data##_esc = emalloc(data##_len * 2 + 1); \
-		data##_len = mysql_real_escape_string(connection, data##_esc, APM_RD_SMART_STRVAL(data), data##_len); \
+		data##_len = mysqlnd_real_escape_string(connection, data##_esc, APM_RD_SMART_STRVAL(data), data##_len); \
 	} \
 }
 
@@ -95,7 +93,7 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 	char *application_esc = NULL, *script_esc = NULL, *uri_esc = NULL, *host_esc = NULL, *cookies_esc = NULL, *post_vars_esc = NULL, *referer_esc = NULL, *method_esc = NULL, *sql = NULL;
 	unsigned int application_len = 0, script_len = 0, uri_len = 0, host_len = 0, ip_int = 0, cookies_len = 0, post_vars_len = 0, referer_len = 0, method_len = 0;
 	struct in_addr ip_addr;
-	MYSQL *connection;
+	MYSQLND *connection;
 
 	extract_data(TSRMLS_C);
 
@@ -110,7 +108,7 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 	if (APM_G(application_id)) {
 		application_len = strlen(APM_G(application_id));
 		application_esc = emalloc(application_len * 2 + 1);
-		application_len = mysql_real_escape_string(connection, application_esc, APM_G(application_id), application_len);
+		application_len = mysqlnd_real_escape_string(connection, application_esc, APM_G(application_id), application_len);
 	}
 	
 	APM_MYSQL_ESCAPE_STR(script);
@@ -139,10 +137,10 @@ static void apm_driver_mysql_insert_request(TSRMLS_D)
 		APM_RD(method_found) ? method_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
-	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
+	if (mysqlnd_query(connection, sql, strlen(sql)) != 0)
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysqlnd_error(APM_G(mysql_event_db)));
 
-	mysql_query(connection, QUERY_REQUEST_ID);
+	mysqlnd_query(connection, QUERY_REQUEST_ID, sizeof(QUERY_REQUEST_ID)-1);
 
 	efree(sql);
 	if (application_esc)
@@ -171,7 +169,7 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 {
 	char *filename_esc = NULL, *msg_esc = NULL, *trace_esc = NULL, *sql = NULL;
 	int filename_len = 0, msg_len = 0, trace_len = 0;
-	MYSQL *connection;
+	MYSQLND *connection;
 
 	apm_driver_mysql_insert_request(TSRMLS_C);
 
@@ -180,19 +178,19 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 	if (error_filename) {
 		filename_len = strlen(error_filename);
 		filename_esc = emalloc(filename_len * 2 + 1);
-		filename_len = mysql_real_escape_string(connection, filename_esc, error_filename, filename_len);
+		filename_len = mysqlnd_real_escape_string(connection, filename_esc, error_filename, filename_len);
 	}
 
 	if (msg) {
 		msg_len = strlen(msg);
 		msg_esc = emalloc(msg_len * 2 + 1);
-		msg_len = mysql_real_escape_string(connection, msg_esc, msg, msg_len);
+		msg_len = mysqlnd_real_escape_string(connection, msg_esc, msg, msg_len);
 	}
 
 	if (trace) {
 		trace_len = strlen(trace);
 		trace_esc = emalloc(trace_len * 2 + 1);
-		trace_len = mysql_real_escape_string(connection, trace_esc, trace, trace_len);
+		trace_len = mysqlnd_real_escape_string(connection, trace_esc, trace, trace_len);
 	}
 
 	sql = emalloc(135 + filename_len + msg_len + trace_len);
@@ -202,8 +200,8 @@ void apm_driver_mysql_process_event(PROCESS_EVENT_ARGS)
 		type, error_filename ? filename_esc : "", error_lineno, msg ? msg_esc : "", trace ? trace_esc : "");
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
-	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
+	if (mysqlnd_query(connection, sql, strlen(sql)) != 0)
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysqlnd_error(APM_G(mysql_event_db)));
 
 	efree(sql);
 	efree(filename_esc);
@@ -239,7 +237,7 @@ int apm_driver_mysql_rshutdown(TSRMLS_D)
 void apm_driver_mysql_process_stats(TSRMLS_D)
 {
 	char *sql = NULL;
-	MYSQL *connection;
+	MYSQLND *connection;
 
 	apm_driver_mysql_insert_request(TSRMLS_C);
 
@@ -256,8 +254,8 @@ void apm_driver_mysql_process_stats(TSRMLS_D)
 	);
 
 	APM_DEBUG("[MySQL driver] Sending: %s\n", sql);
-	if (mysql_query(connection, sql) != 0)
-		APM_DEBUG("[MySQL driver] Error: %s\n", mysql_error(APM_G(mysql_event_db)));
+	if (mysqlnd_query(connection, sql, strlen(sql)) != 0)
+		APM_DEBUG("[MySQL driver] Error: %s\n", mysqlnd_error(APM_G(mysql_event_db)));
 
 	efree(sql);
 }
