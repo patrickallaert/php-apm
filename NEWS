@@ -1,4 +1,9 @@
-APM 2.1.2        ?? ??? 2016
+APM 2.1.3        13 Feb 2017
+----------------------------
+Fixed:
+- PHP 5 build is broken #50 (Thanks Remi Collet)
+
+APM 2.1.2        13 Feb 2017
 ----------------------------
 Fixed:
 - Wrong path for mysql.h prevents Windows build
