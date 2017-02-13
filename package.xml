@@ -103,6 +103,9 @@ Fixed:
    <notes>
 Fixed:
 - Wrong path for mysql.h prevents Windows build
+- Possible segmentation fault and invalid errors under PHP 7.0
+- Make error: duplicate symbol for architecture x86_64 #25
+- Build with PHP 7.1 #44 (Thanks Remi Collet)
    </notes>
   </release>
   <release>
