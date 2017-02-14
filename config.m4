@@ -30,7 +30,7 @@ PHP_ARG_ENABLE(apm, whether to enable apm support,
 PHP_ARG_WITH(sqlite3, enable support for sqlite3,
 [  --with-sqlite3=DIR      Location of sqlite3 library], yes, no)
 PHP_ARG_WITH(mysql, enable support for MySQL,
-[  --with-mysql=DIR        Location of MySQL base directory], yes, no)
+[  --with-mysql=FILE       FILE is path to mysql_config command], yes, no)
 PHP_ARG_ENABLE(statsd, enable support for statsd,
 [  --enable-statsd         Enable statsd support], yes, no)
 PHP_ARG_ENABLE(socket, enable support for socket,
@@ -107,86 +107,42 @@ if test "$PHP_APM" != "no"; then
     mysql_driver="driver_mysql.c"
     AC_DEFINE(APM_DRIVER_MYSQL, 1, [activate MySQL storage driver])
 
-    MYSQL_DIR=
-    MYSQL_INC_DIR=
-
-    for i in $PHP_MYSQL /usr/local /usr; do
-      if test -r $i/include/mysql/mysql.h; then
-        MYSQL_DIR=$i
-        MYSQL_INC_DIR=$i/include/mysql
-        break
-      elif test -r $i/include/mysql.h; then
-        MYSQL_DIR=$i
-        MYSQL_INC_DIR=$i/include
-        break
-      fi
-    done
-
-    if test -z "$MYSQL_DIR"; then
-      AC_MSG_ERROR([Cannot find MySQL header files])
+    if test "$PHP_MYSQL" != "yes"; then
+      dnl mysql_config path given as option parameter
+      MYSQL_CONFIG=$PHP_MYSQL
+    else
+      dnl search mysql_config in PATH
+      AC_PATH_PROG(MYSQL_CONFIG, mysql_config, no)
     fi
 
     if test "$enable_maintainer_zts" = "yes"; then
-      MYSQL_LIBNAME=mysqlclient_r
+      MYSQL_LIB_CFG='--libs_r'
+      MYSQL_LIB_NAME='mysqlclient_r'
     else
-      MYSQL_LIBNAME=mysqlclient
-    fi
-    case $host_alias in
-      *netware*[)]
-        MYSQL_LIBNAME=mysql
-        ;;
-    esac
-
-    if test -z "$MYSQL_LIB_DIR"; then
-       MYSQL_LIB_CHK(lib/x86_64-linux-gnu)
-    fi
-    if test -z "$MYSQL_LIB_DIR"; then
-      MYSQL_LIB_CHK(lib/i386-linux-gnu)
+      MYSQL_LIB_CFG='--libs'
+      MYSQL_LIB_NAME='mysqlclient'
     fi
 
-    for i in $PHP_LIBDIR $PHP_LIBDIR/mysql; do
-      MYSQL_LIB_CHK($i)
-    done
-
-    if test -z "$MYSQL_LIB_DIR"; then
-      AC_MSG_ERROR([Cannot find lib$MYSQL_LIBNAME under $MYSQL_DIR.])
+    AC_MSG_CHECKING([Configuration of MySQL ])
+    if test -x "$MYSQL_CONFIG" && $MYSQL_CONFIG $MYSQL_LIB_CFG > /dev/null 2>&1; then
+      MYSQL_INCLINE=`$MYSQL_CONFIG --cflags | $SED -e "s/'//g"`
+      MYSQL_LIBLINE=`$MYSQL_CONFIG $MYSQL_LIB_CFG | $SED -e "s/'//g"`
+      AC_MSG_RESULT([INC=$MYSQL_INCLINE  LIB=$MYSQL_LIBLINE])
+    else
+      AC_MSG_RESULT([mysql_config not found])
+      AC_MSG_ERROR([Please reinstall the mysql distribution])
     fi
 
-    PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_close, [ ],
-    [
-      if test "$PHP_ZLIB_DIR" != "no"; then
-        PHP_ADD_LIBRARY_WITH_PATH(z, $PHP_ZLIB_DIR, APM_SHARED_LIBADD)
-        PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_error, [], [
-          AC_MSG_ERROR([mysql configure failed. Please check config.log for more information.])
-        ], [
-          -L$PHP_ZLIB_DIR/$PHP_LIBDIR -L$MYSQL_LIB_DIR 
-        ])  
-        MYSQL_LIBS="-L$PHP_ZLIB_DIR/$PHP_LIBDIR -lz"
-      else
-        PHP_ADD_LIBRARY(z,, APM_SHARED_LIBADD)
-        PHP_CHECK_LIBRARY($MYSQL_LIBNAME, mysql_errno, [], [
-          AC_MSG_ERROR([Try adding --with-zlib-dir=<DIR>. Please check config.log for more information.])
-        ], [
-          -L$MYSQL_LIB_DIR
-        ])   
-        MYSQL_LIBS="-lz"
-      fi
+    PHP_CHECK_LIBRARY($MYSQL_LIB_NAME, mysql_close, [], [
+      AC_MSG_ERROR([Missing symbols, Please reinstall the mysql distribution])
+    ], $MYSQL_LIBLINE)
+    PHP_CHECK_LIBRARY($MYSQL_LIB_NAME, mysql_error, [
+      AC_DEFINE(HAVE_MYSQL,1,[MySQL found and included])
+      PHP_EVAL_INCLINE($MYSQL_INCLINE)
+      PHP_EVAL_LIBLINE($MYSQL_LIBLINE, APM_SHARED_LIBADD)
     ], [
-      -L$MYSQL_LIB_DIR 
-    ])
-
-    PHP_ADD_LIBRARY_WITH_PATH($MYSQL_LIBNAME, $MYSQL_LIB_DIR, APM_SHARED_LIBADD)
-    PHP_ADD_INCLUDE($MYSQL_INC_DIR)
-
-    MYSQL_MODULE_TYPE=external
-    MYSQL_LIBS="-L$MYSQL_LIB_DIR -l$MYSQL_LIBNAME $MYSQL_LIBS"
-    MYSQL_INCLUDE=-I$MYSQL_INC_DIR
-
-    PHP_SUBST_OLD(MYSQL_MODULE_TYPE)
-    PHP_SUBST_OLD(MYSQL_LIBS)
-    PHP_SUBST_OLD(MYSQL_INCLUDE)
-
-    AC_DEFINE(HAVE_MYSQL,1,[MySQL found and included])
+      AC_MSG_ERROR([Missing symbols, Please reinstall the mysql distribution])
+    ], $MYSQL_LIBLINE)
   fi
 
   if test "$PHP_STATSD" != "no"; then
