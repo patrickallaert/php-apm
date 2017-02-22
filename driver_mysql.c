@@ -16,7 +16,7 @@
  +----------------------------------------------------------------------+
 */
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 #include "php_apm.h"
 #include "php_ini.h"
 #include "driver_mysql.h"

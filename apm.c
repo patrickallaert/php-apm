@@ -98,7 +98,8 @@ static int apm_end_silence_opcode_handler(ZEND_USER_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-int apm_write(const char *str,
+#if PHP_VERSION_ID <  70100
+static int apm_write(const char *str,
 #if PHP_VERSION_ID >= 70000
 size_t
 #else
@@ -111,6 +112,7 @@ length)
 	smart_str_0(APM_G(buffer));
 	return length;
 }
+#endif
 
 void (*old_error_cb)(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args);
 
@@ -518,10 +520,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
-#if PHP_VERSION_ID >= 70000
-	zval dummy;
-#endif
 	zval *message, *file, *line;
+#if PHP_VERSION_ID >= 70000
+	zval rv;
+#endif
 	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
@@ -531,15 +533,13 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 
 #if PHP_VERSION_ID >= 70000
 		default_ce = Z_OBJCE_P(exception);
+
+		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0, &rv);
+		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0, &rv);
+		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0, &rv);
 #else
 		default_ce = zend_exception_get_default(TSRMLS_C);
-#endif
 
-#if PHP_VERSION_ID >= 70000
-	        message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC, &dummy);
-		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC, &dummy);
-		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC, &dummy);
-#else
 		message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
@@ -607,14 +607,14 @@ void extract_data(TSRMLS_D)
 	zval *tmp;
 
 	APM_DEBUG("Extracting data\n");
-	
+
 	if (APM_RD(initialized)) {
 		APM_DEBUG("Data already initialized\n");
 		return;
 	}
 
 	APM_RD(initialized) = 1;
-	
+
 	zend_is_auto_global_compat("_SERVER");
 	if (FETCH_HTTP_GLOBALS(SERVER)) {
 		REGISTER_INFO("REQUEST_URI", uri, IS_STRING);
@@ -623,7 +623,7 @@ void extract_data(TSRMLS_D)
 		REGISTER_INFO("REQUEST_TIME", ts, IS_LONG);
 		REGISTER_INFO("SCRIPT_FILENAME", script, IS_STRING);
 		REGISTER_INFO("REQUEST_METHOD", method, IS_STRING);
-		
+
 		if (APM_G(store_ip)) {
 			REGISTER_INFO("REMOTE_ADDR", ip, IS_STRING);
 		}
@@ -632,8 +632,15 @@ void extract_data(TSRMLS_D)
 		zend_is_auto_global_compat("_COOKIE");
 		if (FETCH_HTTP_GLOBALS(COOKIE)) {
 			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+#if PHP_VERSION_ID >= 70100
+				zend_string *tmpstr;
+				tmpstr = zend_print_zval_r_to_str(tmp, 0);
+				smart_str_append(&APM_RD(cookies), tmpstr);
+				zend_string_release(tmpstr);
+#else
 				APM_G(buffer) = &APM_RD(cookies);
 				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+#endif
 				APM_RD(cookies_found) = 1;
 			}
 		}
@@ -642,8 +649,15 @@ void extract_data(TSRMLS_D)
 		zend_is_auto_global_compat("_POST");
 		if (FETCH_HTTP_GLOBALS(POST)) {
 			if (Z_ARRVAL_P(tmp)->nNumOfElements > 0) {
+#if PHP_VERSION_ID >= 70100
+				zend_string *tmpstr;
+				tmpstr = zend_print_zval_r_to_str(tmp, 0);
+				smart_str_append(&APM_RD(post_vars), tmpstr);
+				zend_string_release(tmpstr);
+#else
 				APM_G(buffer) = &APM_RD(post_vars);
 				zend_print_zval_r_ex(apm_write, tmp, 0 TSRMLS_CC);
+#endif
 				APM_RD(post_vars_found) = 1;
 			}
 		}

@@ -21,6 +21,10 @@
 #include "zend_types.h"
 #include "ext/standard/php_string.h"
 
+#if PHP_VERSION_ID >= 70000
+#include "Zend/zend_generators.h"
+#endif
+
 #include "backtrace.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
@@ -77,6 +81,8 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 
 #if PHP_VERSION_ID >= 70000
 		ZVAL_UNDEF(&arg_array);
+
+		ptr = zend_generator_check_placeholder_frame(ptr);
 #else
 		arg_array = NULL;
 #endif
@@ -130,20 +136,14 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 #if PHP_VERSION_ID >= 70000
 		/* $this may be passed into regular internal functions */
 		object = Z_OBJ(call->This);
-		if (object &&
-			call &&
-			call->func->type == ZEND_INTERNAL_FUNCTION &&
-			!call->func->common.scope) {
-			object = NULL;
-		}
 
 		if (call->func) {
 			func = call->func;
 			function_name = (func->common.scope && func->common.scope->trait_aliases) ?
-				zend_resolve_method_name(
-					(object ? object->ce : func->common.scope), func)->val :
+				ZSTR_VAL(zend_resolve_method_name(
+					(object ? object->ce : func->common.scope), func)) :
 				(func->common.function_name ?
-					func->common.function_name->val : NULL);
+					ZSTR_VAL(func->common.function_name) : NULL);
 		} else {
 			func = NULL;
 			function_name = NULL;
@@ -153,8 +153,10 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 			if (object) {
 				if (func->common.scope) {
 					class_name = func->common.scope->name;
-				} else {
+				} else if (object->handlers->get_class_name == std_object_handlers.get_class_name) {
 					class_name = object->ce->name;
+				} else {
+					class_name = object->handlers->get_class_name(object);
 				}
 
 				call_type = "->";
@@ -255,7 +257,7 @@ void append_backtrace(smart_str *trace_str TSRMLS_DC)
 		smart_str_appendc(trace_str, ' ');
 		if (class_name) {
 #if PHP_VERSION_ID >= 70000
-			smart_str_appends(trace_str, class_name->val);
+			smart_str_appends(trace_str, ZSTR_VAL(class_name));
 #else
 			smart_str_appends(trace_str, class_name);
 #endif
@@ -376,8 +378,15 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 	}
 
 	switch (Z_TYPE_P(expr)) {
+#if PHP_VERSION_ID >= 70000
+		case IS_REFERENCE:
+			ZVAL_DEREF(expr);
+			smart_str_appendc(trace_str, '&');
+			append_flat_zval_r(expr, trace_str, depth);
+			break;
+#endif
 		case IS_ARRAY:
-			smart_str_appendl(trace_str, "array(", 6);
+			smart_str_appendc(trace_str, '[');
 #if PHP_VERSION_ID >= 70000
 			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
 #else
@@ -392,7 +401,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 				return;
 			}
 			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
-			smart_str_appendc(trace_str, ')');
+			smart_str_appendc(trace_str, ']');
 #if PHP_VERSION_ID >= 70000
 			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
 				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
@@ -406,9 +415,14 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			HashTable *properties = NULL;
 #if PHP_VERSION_ID >= 70000
 			zend_string *class_name = Z_OBJ_HANDLER_P(expr, get_class_name)(Z_OBJ_P(expr));
-			smart_str_appends(trace_str, class_name->val);
+			smart_str_appends(trace_str, ZSTR_VAL(class_name));
 			smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
 			zend_string_release(class_name);
+
+			if (Z_OBJ_APPLY_COUNT_P(expr) > 0) {
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				return;
+			}
 #else
 			char *class_name = NULL;
 			zend_uint clen;
@@ -430,21 +444,17 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			}
 			if (properties) {
 #if PHP_VERSION_ID >= 70000
-				if (++properties->u.v.nApplyCount>1) {
+				Z_OBJ_INC_APPLY_COUNT_P(expr);
 #else
 				if (++properties->nApplyCount>1) {
-#endif
 					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
-#if PHP_VERSION_ID >= 70000
-					properties->u.v.nApplyCount--;
-#else
 					properties->nApplyCount--;
-#endif
 					return;
 				}
+#endif
 				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
 #if PHP_VERSION_ID >= 70000
-				properties->u.v.nApplyCount--;
+				Z_OBJ_DEC_APPLY_COUNT_P(expr);
 #else
 				properties->nApplyCount--;
 #endif
@@ -487,15 +497,16 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 		if (i++ > 0) {
 			smart_str_appendl(trace_str, ", ", 2);
 		}
+		smart_str_appendc(trace_str, '[');
 #if PHP_VERSION_ID >= 70000
 		if (string_key) {
-			smart_str_appendl(trace_str, string_key->val, string_key->len);
+			smart_str_appendl(trace_str, ZSTR_VAL(string_key), ZSTR_LEN(string_key));
 		} else {
 			smart_str_append_long(trace_str, num_key);
 		}
 
-		smart_str_appendl(trace_str, " => ", 4);
-		append_flat_zval_r(tmp TSRMLS_CC, trace_str, depth);
+		smart_str_appendl(trace_str, "] => ", 5);
+		append_flat_zval_r(tmp, trace_str, depth);
 	} ZEND_HASH_FOREACH_END();
 #else
 		switch (zend_hash_get_current_key_ex(ht, &string_key, &str_len, &num_key, 0, &iterator)) {
@@ -531,7 +542,7 @@ static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char
 				break;
 		}
 
-		smart_str_appendl(trace_str, " => ", 4);
+		smart_str_appendl(trace_str, "] => ", 5);
 		append_flat_zval_r(*tmp TSRMLS_CC, trace_str, depth);
 		zend_hash_move_forward_ex(ht, &iterator);
 	}
