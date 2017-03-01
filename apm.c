@@ -156,10 +156,8 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.application_id", "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.event_enabled", "1", PHP_INI_ALL, OnUpdateBool, event_enabled, zend_apm_globals, apm_globals)
-#if PHP_VERSION_ID < 70000
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace", "1", PHP_INI_ALL, OnUpdateBool, store_stacktrace, zend_apm_globals, apm_globals)
-#endif
 	/* Boolean controlling whether the ip should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_ip", "1", PHP_INI_ALL, OnUpdateBool, store_ip, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the cookies should be stored or not */
@@ -554,12 +552,10 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
 
-#if PHP_VERSION_ID < 70000
 	if (APM_G(store_stacktrace) && 0 == depth) {
 		append_backtrace(&trace_str TSRMLS_CC);
 		smart_str_0(&trace_str);
 	}
-#endif
 
 	driver_entry = APM_G(drivers);
 	APM_DEBUG("Direct processing process_event loop begin\n");
@@ -571,7 +567,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 				error_lineno,
 				msg,
 #if PHP_VERSION_ID >= 70000
-				""
+				(APM_G(store_stacktrace) && trace_str.s && trace_str.s->val) ? trace_str.s->val : ""
 #else
 				(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
 #endif

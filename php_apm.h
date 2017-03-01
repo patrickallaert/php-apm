@@ -19,7 +19,7 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
-#define PHP_APM_VERSION "2.1.3.pantheon2"
+#define PHP_APM_VERSION "2.1.3.pantheon3"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
