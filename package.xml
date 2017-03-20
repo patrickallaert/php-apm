@@ -32,7 +32,7 @@ A web frontend exists for manipulating the data stored in database at: https://g
  </lead>
  <date>2017-02-13</date>
  <version>
-  <release>2.1.3</release>
+  <release>2.1.3.pantheon3</release>
   <api>2.0.0</api>
  </version>
  <stability>
