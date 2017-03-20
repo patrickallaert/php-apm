@@ -1,3 +1,16 @@
+APM 2.1.3        13 Feb 2017
+----------------------------
+Fixed:
+- PHP 5 build is broken #50 (Thanks Remi Collet)
+
+APM 2.1.2        13 Feb 2017
+----------------------------
+Fixed:
+- Wrong path for mysql.h prevents Windows build
+- Possible segmentation fault and invalid errors under PHP 7.0
+- Make error: duplicate symbol for architecture x86_64 #25
+- Build with PHP 7.1 #44 (Thanks Remi Collet)
+
 APM 2.1.1        29 Mar 2016
 ----------------------------
 Fixed:

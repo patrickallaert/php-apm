@@ -19,7 +19,7 @@
 #ifndef PHP_APM_H
 #define PHP_APM_H
 
-#define PHP_APM_VERSION "2.1.1.pantheon2"
+#define PHP_APM_VERSION "2.1.3.pantheon3"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -331,9 +331,9 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 	zend_bool socket_enabled;
 	/* Boolean controlling the collection of stats */
 	zend_bool socket_stats_enabled;
-	/* (unused for socket) */
+	/* (unused for socket driver) */
 	long socket_exception_mode;
-	/* (unused for socket) */
+	/* (unused for socket driver) */
 	int socket_error_reporting;
 	/* Option to process silenced events */
 	zend_bool socket_process_silenced_events;
@@ -365,6 +365,8 @@ ZEND_BEGIN_MODULE_GLOBALS(apm)
 
 ZEND_END_MODULE_GLOBALS(apm)
 
+ZEND_EXTERN_MODULE_GLOBALS(apm)
+
 #ifdef ZTS
 #define APM_G(v) TSRMG(apm_globals_id, zend_apm_globals *, v)
 #else
@@ -392,14 +394,5 @@ ZEND_END_MODULE_GLOBALS(apm)
 # define add_assoc_long_compat(array, key, value) add_assoc_long_ex((array), (key), (sizeof(key)), (value));
 #endif
 
-int apm_write(const char *str,
-#if PHP_VERSION_ID >= 70000
-size_t
-#else
-uint
-#endif
-length);
-
-#endif
-
 void extract_data(TSRMLS_D);
+#endif
