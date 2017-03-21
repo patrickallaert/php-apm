@@ -521,7 +521,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
 #if PHP_VERSION_ID >= 70000
-	zval dummy;
+	zval rv;
 #endif
 	zval *message, *file, *line;
 	zend_class_entry *default_ce;
