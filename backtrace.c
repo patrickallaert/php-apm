@@ -370,6 +370,8 @@ static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *tra
 }
 #endif
 
+// See void zend_print_flat_zval_r in php/Zend/zend.c for template when adapting to newer php versions
+#if PHP_VERSION_ID >= 70300
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth)
 {
 	if (depth >= APM_G(dump_max_depth)) {
@@ -378,42 +380,86 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 	}
 
 	switch (Z_TYPE_P(expr)) {
-#if PHP_VERSION_ID >= 70000
 		case IS_REFERENCE:
 			ZVAL_DEREF(expr);
 			smart_str_appendc(trace_str, '&');
 			append_flat_zval_r(expr, trace_str, depth);
 			break;
-#endif
 		case IS_ARRAY:
 			smart_str_appendc(trace_str, '[');
-#if PHP_VERSION_ID >= 70000
-			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
-#else
-			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
-#endif
-				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
-#if PHP_VERSION_ID >= 70000
-				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
-#else
-				Z_ARRVAL_P(expr)->nApplyCount--;
-#endif
-				return;
+			if (Z_REFCOUNTED_P(expr)) {
+				if (Z_IS_RECURSIVE_P(expr)) {
+					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+					return;
+				}
+				Z_PROTECT_RECURSION_P(expr);
 			}
 			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
 			smart_str_appendc(trace_str, ']');
-#if PHP_VERSION_ID >= 70000
-			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
-				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
+			if (Z_REFCOUNTED_P(expr)) {
+				Z_UNPROTECT_RECURSION_P(expr);
 			}
-#else
-			Z_ARRVAL_P(expr)->nApplyCount--;
-#endif
 			break;
 		case IS_OBJECT:
 		{
 			HashTable *properties = NULL;
-#if PHP_VERSION_ID >= 70000
+			zend_string *class_name = Z_OBJ_HANDLER_P(expr, get_class_name)(Z_OBJ_P(expr));
+			smart_str_appends(trace_str, ZSTR_VAL(class_name));
+			smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
+			zend_string_release_ex(class_name, 0);
+
+			if (Z_IS_RECURSIVE_P(expr)) {
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				return;
+			}
+
+			if (Z_OBJ_HANDLER_P(expr, get_properties)) {
+				properties = Z_OBJPROP_P(expr);
+			}
+			if (properties) {
+				Z_PROTECT_RECURSION_P(expr);
+				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
+				Z_UNPROTECT_RECURSION_P(expr);
+			}
+			smart_str_appendc(trace_str, ')');
+			break;
+		}
+		default:
+			append_variable(expr, trace_str);
+			break;
+	}
+}
+#elif PHP_VERSION_ID >= 70000
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth)
+{
+	if (depth >= APM_G(dump_max_depth)) {
+		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
+		return;
+	}
+
+	switch (Z_TYPE_P(expr)) {
+		case IS_REFERENCE:
+			ZVAL_DEREF(expr);
+			smart_str_appendc(trace_str, '&');
+			append_flat_zval_r(expr, trace_str, depth);
+			break;
+
+		case IS_ARRAY:
+			smart_str_appendc(trace_str, '[');
+			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
+				return;
+			}
+			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
+			smart_str_appendc(trace_str, ']');
+			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
+				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
+			}
+			break;
+		case IS_OBJECT:
+		{
+			HashTable *properties = NULL;
 			zend_string *class_name = Z_OBJ_HANDLER_P(expr, get_class_name)(Z_OBJ_P(expr));
 			smart_str_appends(trace_str, ZSTR_VAL(class_name));
 			smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
@@ -423,7 +469,45 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 				return;
 			}
+			if (Z_OBJ_HANDLER_P(expr, get_properties)) {
+				properties = Z_OBJPROP_P(expr);
+			}
+			if (properties) {
+				Z_OBJ_INC_APPLY_COUNT_P(expr);
+				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
+				Z_OBJ_DEC_APPLY_COUNT_P(expr);
+			}
+			smart_str_appendc(trace_str, ')');
+			break;
+		}
+		default:
+			append_variable(expr, trace_str);
+			break;
+	}
+}
 #else
+static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth)
+{
+	if (depth >= APM_G(dump_max_depth)) {
+		smart_str_appendl(trace_str, "/* [...] */", sizeof("/* [...] */") - 1);
+		return;
+	}
+
+	switch (Z_TYPE_P(expr)) {
+		case IS_ARRAY:
+			smart_str_appendc(trace_str, '[');
+			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				Z_ARRVAL_P(expr)->nApplyCount--;
+				return;
+			}
+			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
+			smart_str_appendc(trace_str, ']');
+			Z_ARRVAL_P(expr)->nApplyCount--;
+			break;
+		case IS_OBJECT:
+		{
+			HashTable *properties = NULL;
 			char *class_name = NULL;
 			zend_uint clen;
 			if (Z_OBJ_HANDLER_P(expr, get_class_name)) {
@@ -438,26 +522,17 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			if (class_name) {
 				efree(class_name);
 			}
-#endif
 			if (Z_OBJ_HANDLER_P(expr, get_properties)) {
 				properties = Z_OBJPROP_P(expr);
 			}
 			if (properties) {
-#if PHP_VERSION_ID >= 70000
-				Z_OBJ_INC_APPLY_COUNT_P(expr);
-#else
 				if (++properties->nApplyCount>1) {
 					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 					properties->nApplyCount--;
 					return;
 				}
-#endif
 				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
-#if PHP_VERSION_ID >= 70000
-				Z_OBJ_DEC_APPLY_COUNT_P(expr);
-#else
 				properties->nApplyCount--;
-#endif
 			}
 			smart_str_appendc(trace_str, ')');
 			break;
@@ -467,6 +542,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			break;
 	}
 }
+#endif
 
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth)
 {
@@ -638,7 +714,7 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC)
 {
 	void **p = *curpos;
 	zval *arg_array, **arg;
-	int arg_count = 
+	int arg_count =
 	(int)(zend_uintptr_t) *p;
 
 	MAKE_STD_ZVAL(arg_array);
