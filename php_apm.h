@@ -193,6 +193,11 @@ PHP_RINIT_FUNCTION(apm);
 PHP_RSHUTDOWN_FUNCTION(apm);
 PHP_MINFO_FUNCTION(apm);
 
+extern zend_module_entry apm_module_entry;
+#define apm_module_ptr &apm_module_entry
+
+#define phpext_apm_ptr apm_module_ptr
+
 #ifdef APM_DEBUGFILE
 #define APM_INIT_DEBUG APM_G(debugfile) = fopen(APM_DEBUGFILE, "a+");
 #define APM_DEBUG(...) if (APM_G(debugfile)) { fprintf(APM_G(debugfile), __VA_ARGS__); fflush(APM_G(debugfile)); }
