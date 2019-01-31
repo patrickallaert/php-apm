@@ -38,6 +38,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "zend_exceptions.h"
+#include "zend_interfaces.h"
 #include "php_apm.h"
 #include "backtrace.h"
 #include "ext/standard/info.h"
@@ -52,6 +53,9 @@
 #endif
 #ifdef APM_DRIVER_SOCKET
 # include "driver_socket.h"
+#endif
+#ifdef APM_DRIVER_HTTP
+  #include "driver_http.h"
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
@@ -116,7 +120,7 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC);
 
-static void process_event(int, int, char *, uint, char * TSRMLS_DC);
+static void process_event(int, int, char *, uint, char * TSRMLS_DC, unsigned int depth);
 
 /* recorded timestamp for the request */
 struct timeval begin_tp;
@@ -152,8 +156,10 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("apm.application_id", "My application", PHP_INI_ALL, OnUpdateString, application_id, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the event monitoring is active or not */
 	STD_PHP_INI_BOOLEAN("apm.event_enabled", "1", PHP_INI_ALL, OnUpdateBool, event_enabled, zend_apm_globals, apm_globals)
+#if PHP_VERSION_ID < 70000
 	/* Boolean controlling whether the stacktrace should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_stacktrace", "1", PHP_INI_ALL, OnUpdateBool, store_stacktrace, zend_apm_globals, apm_globals)
+#endif
 	/* Boolean controlling whether the ip should be stored or not */
 	STD_PHP_INI_BOOLEAN("apm.store_ip", "1", PHP_INI_ALL, OnUpdateBool, store_ip, zend_apm_globals, apm_globals)
 	/* Boolean controlling whether the cookies should be stored or not */
@@ -242,6 +248,25 @@ PHP_INI_BEGIN()
 	/* process silenced events? */
 	STD_PHP_INI_BOOLEAN("apm.socket_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, socket_process_silenced_events, zend_apm_globals, apm_globals)
 #endif
+
+#ifdef APM_DRIVER_HTTP
+	/* Boolean controlling whether the driver is active or not */
+	STD_PHP_INI_BOOLEAN("apm.http_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_enabled, zend_apm_globals, apm_globals)
+	/* Boolean controlling the collection of stats */
+	STD_PHP_INI_BOOLEAN("apm.http_stats_enabled", "1", PHP_INI_ALL, OnUpdateBool, http_stats_enabled, zend_apm_globals, apm_globals)
+	/* Control which exceptions to collect (0: none exceptions collected, 1: collect uncaught exceptions (default), 2: collect ALL exceptions) */
+	STD_PHP_INI_ENTRY("apm.http_exception_mode","1", PHP_INI_PERDIR, OnUpdateLongGEZero, http_exception_mode, zend_apm_globals, apm_globals)
+	/* error_reporting of the driver */
+	STD_PHP_INI_ENTRY("apm.http_error_reporting", NULL, PHP_INI_ALL, OnUpdateAPMhttpErrorReporting, http_error_reporting, zend_apm_globals, apm_globals)
+	/* process silenced events? */
+	STD_PHP_INI_BOOLEAN("apm.http_process_silenced_events", "1", PHP_INI_PERDIR, OnUpdateBool, http_process_silenced_events, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_request_timeout", "1000", PHP_INI_ALL, OnUpdateLong, http_request_timeout, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_server", "http://localhost", PHP_INI_ALL, OnUpdateString, http_server, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_certificate", NULL, PHP_INI_ALL, OnUpdateString, http_client_certificate, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_client_key", NULL, PHP_INI_ALL, OnUpdateString, http_client_key, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_certificate_authorities", NULL, PHP_INI_ALL, OnUpdateString, http_certificate_authorities, zend_apm_globals, apm_globals)
+	STD_PHP_INI_ENTRY("apm.http_max_backtrace_length", "0", PHP_INI_ALL, OnUpdateLong, http_max_backtrace_length, zend_apm_globals, apm_globals)
+#endif
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(apm)
@@ -273,6 +298,9 @@ static PHP_GINIT_FUNCTION(apm)
 #ifdef APM_DRIVER_SOCKET
 	*next = apm_driver_socket_create();
 	next = &(*next)->next;
+#endif
+#ifdef APM_DRIVER_HTTP
+	*next = apm_driver_http_create();
 #endif
 }
 
@@ -468,7 +496,8 @@ PHP_MINFO_FUNCTION(apm)
 	This function provides a hook for error */
 void apm_error_cb(int type, const char *error_filename, const uint error_lineno, const char *format, va_list args)
 {
-	char *msg;
+  static unsigned int depth = 0;
+  char *msg;
 	va_list args_copy;
 	TSRMLS_FETCH();
 
@@ -477,8 +506,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 	vspprintf(&msg, 0, format, args_copy);
 	va_end(args_copy);
 
-	if (APM_G(event_enabled)) {
-		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC);
+	if (APM_G(event_enabled) && depth < 2) {
+		++depth;
+		process_event(APM_EVENT_ERROR, type, (char *) error_filename, error_lineno, msg TSRMLS_CC, depth);
+		--depth;
 	}
 	efree(msg);
 
@@ -489,10 +520,10 @@ void apm_error_cb(int type, const char *error_filename, const uint error_lineno,
 
 void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 {
-	zval *message, *file, *line;
 #if PHP_VERSION_ID >= 70000
 	zval rv;
 #endif
+	zval *message, *file, *line;
 	zend_class_entry *default_ce;
 
 	if (APM_G(event_enabled)) {
@@ -513,21 +544,22 @@ void apm_throw_exception_hook(zval *exception TSRMLS_DC)
 		file = zend_read_property(default_ce, exception, "file", sizeof("file")-1, 0 TSRMLS_CC);
 		line = zend_read_property(default_ce, exception, "line", sizeof("line")-1, 0 TSRMLS_CC);
 #endif
-
-		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC);
+		process_event(APM_EVENT_EXCEPTION, E_EXCEPTION, Z_STRVAL_P(file), Z_LVAL_P(line), Z_STRVAL_P(message) TSRMLS_CC, 0);
 	}
 }
 
 /* Insert an event in the backend */
-static void process_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC)
+static void process_event(int event_type, int type, char * error_filename, uint error_lineno, char * msg TSRMLS_DC, unsigned int depth)
 {
 	smart_str trace_str = {0};
 	apm_driver_entry * driver_entry;
 
-	if (APM_G(store_stacktrace)) {
+#if PHP_VERSION_ID < 70000
+	if (APM_G(store_stacktrace) && 0 == depth) {
 		append_backtrace(&trace_str TSRMLS_CC);
 		smart_str_0(&trace_str);
 	}
+#endif
 
 	driver_entry = APM_G(drivers);
 	APM_DEBUG("Direct processing process_event loop begin\n");
@@ -539,7 +571,7 @@ static void process_event(int event_type, int type, char * error_filename, uint 
 				error_lineno,
 				msg,
 #if PHP_VERSION_ID >= 70000
-				(APM_G(store_stacktrace) && trace_str.s && trace_str.s->val) ? trace_str.s->val : ""
+				""
 #else
 				(APM_G(store_stacktrace) && trace_str.c) ? trace_str.c : ""
 #endif
@@ -575,14 +607,14 @@ void extract_data(TSRMLS_D)
 	zval *tmp;
 
 	APM_DEBUG("Extracting data\n");
-	
+
 	if (APM_RD(initialized)) {
 		APM_DEBUG("Data already initialized\n");
 		return;
 	}
 
 	APM_RD(initialized) = 1;
-	
+
 	zend_is_auto_global_compat("_SERVER");
 	if (FETCH_HTTP_GLOBALS(SERVER)) {
 		REGISTER_INFO("REQUEST_URI", uri, IS_STRING);
@@ -591,7 +623,7 @@ void extract_data(TSRMLS_D)
 		REGISTER_INFO("REQUEST_TIME", ts, IS_LONG);
 		REGISTER_INFO("SCRIPT_FILENAME", script, IS_STRING);
 		REGISTER_INFO("REQUEST_METHOD", method, IS_STRING);
-		
+
 		if (APM_G(store_ip)) {
 			REGISTER_INFO("REMOTE_ADDR", ip, IS_STRING);
 		}
