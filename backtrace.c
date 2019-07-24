@@ -388,13 +388,21 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 		case IS_ARRAY:
 			smart_str_appendc(trace_str, '[');
 #if PHP_VERSION_ID >= 70000
-			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
+			#if PHP_VERSION_ID >= 70300 
+				if (!(GC_FLAGS(Z_ARRVAL_P(expr)) & GC_IMMUTABLE) && GC_IS_RECURSIVE(++Z_ARRVAL_P(expr))) {
+			#else
+				if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
+			#endif
 #else
 			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
 #endif
 				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 #if PHP_VERSION_ID >= 70000
+			#if PHP_VERSION_ID >= 70300
+				if (GC_IS_RECURSIVE(Z_ARRVAL_P(expr)--))
+			#else
 				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
+			#endif
 #else
 				Z_ARRVAL_P(expr)->nApplyCount--;
 #endif
@@ -403,9 +411,15 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
 			smart_str_appendc(trace_str, ']');
 #if PHP_VERSION_ID >= 70000
-			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
-				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
-			}
+			#if PHP_VERSION_ID >= 70300 
+				if (!(GC_FLAGS(Z_ARRVAL_P(expr)) & GC_IMMUTABLE)) {
+					if (GC_IS_RECURSIVE(--Z_ARRVAL_P(expr)));
+				} 
+			#else
+				if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
+					Z_ARRVAL_P(expr)->u.v.nApplyCount--;
+				}
+			#endif
 #else
 			Z_ARRVAL_P(expr)->nApplyCount--;
 #endif
@@ -419,7 +433,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
 			zend_string_release(class_name);
 
-			if (Z_OBJ_APPLY_COUNT_P(expr) > 0) {
+			if (Z_IS_RECURSIVE_P(expr) > 0) {
 				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 				return;
 			}
@@ -444,7 +458,11 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			}
 			if (properties) {
 #if PHP_VERSION_ID >= 70000
+			#if PHP_VERSION_ID >= 70300
+				Z_PROTECT_RECURSION_P(expr);
+			#else
 				Z_OBJ_INC_APPLY_COUNT_P(expr);
+			#endif
 #else
 				if (++properties->nApplyCount>1) {
 					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
@@ -454,7 +472,11 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 #endif
 				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
 #if PHP_VERSION_ID >= 70000
+			#if PHP_VERSION_ID >= 70300
+				Z_UNPROTECT_RECURSION_P(expr);
+			#else
 				Z_OBJ_DEC_APPLY_COUNT_P(expr);
+			#endif
 #else
 				properties->nApplyCount--;
 #endif
