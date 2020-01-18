@@ -30,7 +30,7 @@
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 
 inline static zend_bool php_apm_zend_hash_apply_protection_begin(HashTable* ht);
-inline static zend_bool php_apm_zend_hash_apply_protection_end(HashTable* ht)
+inline static zend_bool php_apm_zend_hash_apply_protection_end(HashTable* ht);
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth);
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth);
