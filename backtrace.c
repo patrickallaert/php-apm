@@ -392,7 +392,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 // #else
 // 			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
 // #endif
-// 				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+			// smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
 // #if PHP_VERSION_ID >= 70000
 // 				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
 // #else
@@ -409,7 +409,7 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 // #else
 // 			Z_ARRVAL_P(expr)->nApplyCount--;
 // #endif
-//			break;
+			break;
 		case IS_OBJECT:
 		{
 			HashTable *properties = NULL;
