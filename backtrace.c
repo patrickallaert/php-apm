@@ -42,6 +42,69 @@ static zval *debug_backtrace_get_args(void ***curpos TSRMLS_DC);
 static int append_variable(zval *expr, smart_str *trace_str);
 static char *apm_addslashes(char *str, uint length, int *new_length);
 
+
+#ifdef ZEND_HASH_GET_APPLY_COUNT /* PHP 7.2 or earlier recursion protection */
+
+
+inline static zend_bool php_apm_zend_hash_apply_protection(HashTable* ht)
+{
+	if (!ht) {
+		return 1;
+	}
+	if (ZEND_HASH_GET_APPLY_COUNT(ht) > 0) {
+		return 0;
+	}
+	if (ZEND_HASH_APPLY_PROTECTION(ht)) {
+		ZEND_HASH_INC_APPLY_COUNT(ht);
+	}
+	return 1;
+}
+
+inline static zend_bool php_apm_zend_hash_apply_protection_end(HashTable* ht)
+{
+	if (!ht) {
+		return 1;
+	}
+	if (ZEND_HASH_GET_APPLY_COUNT(ht) == 0) {
+		return 0;
+	}
+	if (ZEND_HASH_APPLY_PROTECTION(ht)) {
+		ZEND_HASH_DEC_APPLY_COUNT(ht);
+	}
+	return 1;
+}
+
+
+#else /* PHP 7.3 or later */
+
+inline static zend_bool php_apm_zend_hash_apply_protection_begin(zend_array* ht)
+{
+	if (GC_IS_RECURSIVE(ht)) {
+		return 0;
+	}
+	if (!(GC_FLAGS(ht) & GC_IMMUTABLE)) {
+		GC_PROTECT_RECURSION(ht);
+	}
+	return 1;
+}
+
+inline static zend_bool php_apm_zend_hash_apply_protection_end(zend_array* ht)
+{
+	if (!GC_IS_RECURSIVE(ht)) {
+		return 0;
+	}
+	if (!(GC_FLAGS(ht) & GC_IMMUTABLE)) {
+		GC_UNPROTECT_RECURSION(ht);
+	}
+	return 1;
+}
+
+#endif
+
+
+
+
+
 void append_backtrace(smart_str *trace_str TSRMLS_DC)
 {
 	/* backtrace variables */
@@ -387,28 +450,14 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 #endif
 		case IS_ARRAY:
 			smart_str_appendc(trace_str, '[');
-// #if PHP_VERSION_ID >= 70000
-// 			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr)) && ++Z_ARRVAL_P(expr)->u.v.nApplyCount>1) {
-// #else
-// 			if (++Z_ARRVAL_P(expr)->nApplyCount>1) {
-// #endif
-			// smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
-// #if PHP_VERSION_ID >= 70000
-// 				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
-// #else
-// 				Z_ARRVAL_P(expr)->nApplyCount--;
-// #endif
-// 				return;
-// 			}
+			if ( php_apm_zend_hash_apply_protection_begin(Z_ARRVAL_P(expr)) ) {
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				php_apm_zend_hash_apply_protection_end(Z_ARRVAL_P(expr));
+				return;
+			}
 			append_flat_hash(Z_ARRVAL_P(expr) TSRMLS_CC, trace_str, 0, depth + 1);
 			smart_str_appendc(trace_str, ']');
-// #if PHP_VERSION_ID >= 70000
-// 			if (ZEND_HASH_APPLY_PROTECTION(Z_ARRVAL_P(expr))) {
-// 				Z_ARRVAL_P(expr)->u.v.nApplyCount--;
-// 			}
-// #else
-// 			Z_ARRVAL_P(expr)->nApplyCount--;
-// #endif
+			php_apm_zend_hash_apply_protection_end(Z_ARRVAL_P(expr));
 			break;
 		case IS_OBJECT:
 		{
@@ -419,10 +468,15 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			smart_str_appendl(trace_str, " Object (", sizeof(" Object (") - 1);
 			zend_string_release(class_name);
 
-			// if (Z_OBJ_APPLY_COUNT_P(expr) > 0) {
-			// 	smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
-			// 	return;
-			// }
+	#ifdef Z_IS_RECURSIVE_P
+			if (Z_IS_RECURSIVE_P(expr)) {
+	#else 
+			if (Z_OBJ_APPLY_COUNT_P(expr) > 0) {
+	#endif
+				smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+				return;
+			}
+			
 #else
 			char *class_name = NULL;
 			zend_uint clen;
@@ -439,25 +493,34 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 				efree(class_name);
 			}
 #endif
+
 			if (Z_OBJ_HANDLER_P(expr, get_properties)) {
 				properties = Z_OBJPROP_P(expr);
 			}
 			if (properties) {
-// #if PHP_VERSION_ID >= 70000
-// 				Z_OBJ_INC_APPLY_COUNT_P(expr);
-// #else
-// 				if (++properties->nApplyCount>1) {
-// 					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
-// 					properties->nApplyCount--;
-// 					return;
-// 				}
-// #endif
+#if PHP_VERSION_ID >= 70000
+	#ifdef Z_IS_RECURSIVE_P
+			Z_PROTECT_RECURSION_P(expr);
+	#else 
+			Z_OBJ_INC_APPLY_COUNT_P(expr);
+	#endif
+#else
+				if (++properties->nApplyCount>1) {
+					smart_str_appendl(trace_str, " *RECURSION*", sizeof(" *RECURSION*") - 1);
+					properties->nApplyCount--;
+					return;
+				}
+#endif
 				append_flat_hash(properties TSRMLS_CC, trace_str, 1, depth + 1);
-// #if PHP_VERSION_ID >= 70000
-// 				Z_OBJ_DEC_APPLY_COUNT_P(expr);
-// #else
-// 				properties->nApplyCount--;
-// #endif
+#if PHP_VERSION_ID >= 70000
+	#ifdef Z_IS_RECURSIVE_P
+			Z_UNPROTECT_RECURSION_P(expr);
+	#else 
+			Z_OBJ_DEC_APPLY_COUNT_P(expr);
+	#endif
+#else
+				properties->nApplyCount--;
+#endif				
 			}
 			smart_str_appendc(trace_str, ')');
 			break;
@@ -467,6 +530,8 @@ static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char 
 			break;
 	}
 }
+
+
 
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth)
 {
