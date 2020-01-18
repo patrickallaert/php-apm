@@ -29,6 +29,8 @@
 
 ZEND_DECLARE_MODULE_GLOBALS(apm);
 
+inline static zend_bool php_apm_zend_hash_apply_protection_begin(HashTable* ht);
+inline static zend_bool php_apm_zend_hash_apply_protection_end(HashTable* ht)
 static void debug_print_backtrace_args(zval *arg_array TSRMLS_DC, smart_str *trace_str);
 static void append_flat_zval_r(zval *expr TSRMLS_DC, smart_str *trace_str, char depth);
 static void append_flat_hash(HashTable *ht TSRMLS_DC, smart_str *trace_str, char is_object, char depth);
@@ -46,7 +48,7 @@ static char *apm_addslashes(char *str, uint length, int *new_length);
 #ifdef ZEND_HASH_GET_APPLY_COUNT /* PHP 7.2 or earlier recursion protection */
 
 
-inline static zend_bool php_apm_zend_hash_apply_protection(HashTable* ht)
+inline static zend_bool php_apm_zend_hash_apply_protection_begin(HashTable* ht)
 {
 	if (!ht) {
 		return 1;
